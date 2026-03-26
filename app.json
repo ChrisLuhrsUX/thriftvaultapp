@@ -1,36 +1,53 @@
 {
   "expo": {
-    "name": "thriftvaultapp",
+    "name": "ThriftVault",
     "slug": "thriftvaultapp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/logo/thriftvault_logo.jpg",
     "scheme": "thriftvaultapp",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/images/splash-icon.png",
+      "image": "./assets/logo/thriftvault_logo.jpg",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#7A9B94"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "com.thriftvault.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#7A9B94",
+        "foregroundImage": "./assets/logo/thriftvault_logo.jpg"
       },
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/logo/thriftvault_logo.jpg"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "expo-font",
+      "expo-web-browser",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "ThriftVault uses the camera to scan items. Photos are sent to Google's AI for identification."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "ThriftVault needs access to save item photos to your camera roll.",
+          "savePhotosPermission": "Allow ThriftVault to save photos to your camera roll."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

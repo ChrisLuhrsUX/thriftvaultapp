@@ -22,12 +22,12 @@ export function useThemeColor(
 ) {
   const theme = useColorScheme();
   const colorFromProps = props[theme];
+  const colors = Colors[theme];
 
   if (colorFromProps) {
     return colorFromProps;
-  } else {
-    return Colors[theme][colorName];
   }
+  return colors[colorName];
 }
 
 export function Text(props: TextProps) {
