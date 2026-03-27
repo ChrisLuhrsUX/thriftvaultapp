@@ -26,6 +26,6 @@ See total profit, ROI, best flips, and profit by store on your profile dashboard
 
 30-day free trial with **every feature unlocked** (same as Pro: AI scan, vault, hauls, and the rest) — then keep full access forever with a one-time $1.99 purchase. No subscriptions, ever.
 
-By downloading ThriftVault, you agree to our Privacy Policy: [URL]
+By downloading ThriftVault, you agree to our Privacy Policy: https://chrisluhrsux.github.io/thriftvaultapp/assets/privacy-policy.html
 
 **Keywords:** thrift, resell, reseller, flip, poshmark, depop, ebay, inventory, tracker, profit

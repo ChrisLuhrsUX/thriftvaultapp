@@ -197,6 +197,12 @@ interface ScanScenario {
 
 ## Session Notes
 
+### Session — 2026-03-26
+
+- **Screenshots plan expanded** — SCREENSHOTS.md updated from 6 to 8 screenshots: Scan card, Scan screen, Flips, Flip item detail, Closet, Hauls, Profile, Onboarding. Haul grid view cut as redundant with Hauls.
+- **App icon confirmed** — `assets/logo/thriftvault_logo.jpg` is already 1024×1024; checked off in MVP.md.
+- **Privacy policy live** — GitHub Pages enabled at `https://chrisluhrsux.github.io/thriftvaultapp/`. Updated STORE_LISTING.md with live URL. Fixed fake `support@thriftvaultapp.com` → real `thriftvaultapp@gmail.com`. Checked off in MVP.md.
+
 ### Session — 2026-03-24
 
 - **App Store compliance audit** — full cross-analysis against Apple review guidelines. Fixed: app display name (`thriftvaultapp` → `ThriftVault`), removed stub Notifications setting, replaced phantom paywall features list with real features, removed "thousands of users" onboarding copy, changed "Continue as Guest" → "Skip", removed export data references entirely.
