@@ -3,15 +3,8 @@
 ## Blocking (must ship — in order)
 
 - [ ] **Screenshots** — 6.7" and 6.5" iPhone (needs simulator or TestFlight build)
-- [x] **Privacy policy** — live at `https://chrisluhrsux.github.io/thriftvaultapp/assets/privacy-policy.html`
 - [ ] **Apple Developer Program** — $99/yr membership required before any of the below is possible
-- [ ] **RevenueCat subscriptions** — requires Apple Developer membership first. Then: `npm install react-native-purchases`, add plugin to `app.json`, set `EXPO_PUBLIC_REVENUECAT_API_KEY` in `.env`, run `npx expo prebuild`. Create products `tv_monthly` / `tv_season` / `tv_annual` in App Store Connect + RevenueCat dashboard (entitlement: `pro`, offering: `default`). Hook code already written in `hooks/usePurchases.ts`.
-
-## Done from above list
-- [x] **Real AI scan** — Gemini 2.5 Flash vision API via `services/gemini.ts`
-- [x] **Store listing** — `STORE_LISTING.md`
-- [x] **Paywall modal UI** — 3-plan picker (Monthly / Season Pass / Annual), trial copy, plan-aware fine print
-- [x] **App icon** — 1024×1024 for App Store (`assets/logo/thriftvault_logo.jpg`)
+- [ ] **RevenueCat subscriptions** — requires Apple Developer membership first. Then: `npm install react-native-purchases`, add plugin to `app.json`, set `EXPO_PUBLIC_REVENUECAT_API_KEY` in `.env`, run `npx expo prebuild`. Create products `tv_monthly` / `tv_season` / `tv_annual` in App Store Connect + RevenueCat dashboard (entitlement: `pro`, offering: `default`). Hook code already written in `hooks/usePurchases.ts`
 
 ## Post-Launch
 
@@ -19,6 +12,11 @@
 
 ## Done
 
+- [x] **Real AI scan** — Gemini 2.5 Flash vision API via `services/gemini.ts`
+- [x] **Store listing** — `STORE_LISTING.md`
+- [x] **Paywall modal UI** — 3-plan picker (Monthly / Season Pass / Annual), trial copy, plan-aware fine print
+- [x] **App icon** — 1024×1024 for App Store (`assets/logo/thriftvault_logo.jpg`)
+- [x] **Privacy policy** — live at `https://chrisluhrsux.github.io/thriftvaultapp/assets/privacy-policy.html`
 - [x] Onboarding carousel with skip
 - [x] Inventory CRUD with AsyncStorage persistence
 - [x] Flips / Closet / Hauls three-view vault
