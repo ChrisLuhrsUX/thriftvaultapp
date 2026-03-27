@@ -22,6 +22,7 @@ ThriftVault is a mobile-first thrift reselling app (Expo + React Native + TypeSc
 | Camera Integration | Done | Capture + gallery picker with permission handling |
 | Haul Grouping | Done | Date-based grouping with detail view + grid/list toggle |
 | Save for Later | Done | Persists up to 5 scan snapshots per item |
+| Privacy Policy | Done | Live on GitHub Pages, linked in STORE_LISTING.md |
 
 ---
 
@@ -32,15 +33,11 @@ ThriftVault is a mobile-first thrift reselling app (Expo + React Native + TypeSc
 - `usePurchases.ts` is a **stub** — everyone gets Pro access in dev mode
 - **Requires:** Apple Developer membership ($99/yr), RevenueCat dashboard setup, 3 IAP products (tv_monthly, tv_season, tv_annual)
 
-### 2. Privacy Policy Deployment
-- `assets/privacy-policy.html` exists but needs hosting at a public URL
-- `STORE_LISTING.md` still has `[URL]` placeholder
-
-### 3. App Store Screenshots
+### 2. App Store Screenshots
 - 6.7" and 6.5" iPhone screenshots not yet captured
 - Requires TestFlight build or simulator
 
-### 4. Apple Developer Program Membership
+### 3. Apple Developer Program Membership
 - Required before RevenueCat, TestFlight, and App Store submission
 
 ---
@@ -72,6 +69,7 @@ ThriftVault is a mobile-first thrift reselling app (Expo + React Native + TypeSc
 ## Git History
 
 ```
+1e16ebb Update docs with live privacy policy URL and session notes (2026-03-27)
 c6dc493 Add privacy policy as GitHub Pages index (2026-03-26)
 ab79f9b ThriftVault: Expo app, inventory, Gemini scan, onboarding, paywall stub (2026-03-26)
 201bccb Initial commit (2026-03-09)
@@ -85,13 +83,12 @@ ab79f9b ThriftVault: Expo app, inventory, Gemini scan, onboarding, paywall stub 
 2. Set up RevenueCat dashboard + create IAP products
 3. Install `react-native-purchases`, add to `app.json` plugins, run `npx expo prebuild`
 4. Set `EXPO_PUBLIC_REVENUECAT_API_KEY` in `.env`
-5. Deploy privacy policy to public URL
-6. Capture App Store screenshots (6.7" + 6.5")
-7. End-to-end paywall flow testing
-8. Submit to App Store
+5. Capture App Store screenshots (6.7" + 6.5")
+6. End-to-end paywall flow testing
+7. Submit to App Store
 
 ---
 
 ## Bottom Line
 
-**Core app is production-ready.** AI scanning, inventory management, profit tracking, and the full UI are complete and polished. The only blockers are external: Apple Developer account and RevenueCat integration for in-app purchases. Once those are set up, the app can ship.
+**Core app is production-ready.** AI scanning, inventory management, profit tracking, and the full UI are complete and polished. Privacy policy is live. The remaining blockers are external: Apple Developer account, RevenueCat integration, and App Store screenshots. Once those are done, the app can ship.
