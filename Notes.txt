@@ -1,2 +1,5 @@
 cd c:\Users\Chris\Downloads\ThriftVault\thriftvaultapp
 npx expo start
+
+github
+npm run backup
