@@ -24,7 +24,7 @@ See total profit, ROI, best flips, and profit by store on your profile dashboard
 
 **No account needed.** Your data stays on your device. No cloud, no sign-up, no tracking.
 
-30-day free trial with **every feature unlocked** (same as Pro: AI scan, vault, hauls, and the rest) — then keep full access forever with a one-time $1.99 purchase. No subscriptions, ever.
+Start with a **30-day free trial** — every Pro feature unlocked: AI scan, vault, hauls, profit tracking, and more. After your trial, choose a plan that fits: Monthly ($4.99/mo), Season Pass ($9.99/3 mo), or Annual ($29.99/yr).
 
 By downloading ThriftVault, you agree to our Privacy Policy: https://chrisluhrsux.github.io/thriftvaultapp/assets/privacy-policy.html
 

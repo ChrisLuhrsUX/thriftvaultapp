@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -20,6 +21,7 @@ import type { Theme } from '@/theme';
 
 const SETTINGS_ROWS = [
   { id: 'subscription', label: 'Subscription', icon: 'card-outline' as const },
+  { id: 'manage', label: 'Manage Subscription', icon: 'settings-outline' as const },
   { id: 'restore', label: 'Restore Purchases', icon: 'refresh-outline' as const },
 ];
 
@@ -89,6 +91,10 @@ export default function ProfileScreen() {
   const handleSetting = async (id: string) => {
 if (id === 'subscription') {
       setPaywallVisible(true);
+      return;
+    }
+    if (id === 'manage') {
+      Linking.openURL('https://apps.apple.com/account/subscriptions');
       return;
     }
     if (id === 'restore') {

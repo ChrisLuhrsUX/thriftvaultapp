@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
+  Linking,
   Modal,
   PanResponder,
   Pressable,
@@ -156,6 +157,22 @@ export function PaywallModal({ visible, onClose }: PaywallModalProps) {
           <Text style={styles.fine}>
             {TRIAL_DURATION_DAYS}-day free trial · then {activePlan.price}{activePlan.period} · cancel anytime
           </Text>
+          <Text style={styles.legal}>
+            Payment will be charged to your Apple ID account at confirmation of purchase.
+            Subscription automatically renews unless canceled at least 24 hours before the
+            end of the current period. Your account will be charged for renewal within 24
+            hours prior to the end of the current period. Manage and cancel subscriptions
+            in your Account Settings after purchase.
+          </Text>
+          <View style={styles.legalLinks}>
+            <Pressable onPress={() => Linking.openURL('https://chrisluhrsux.github.io/thriftvaultapp/assets/privacy-policy.html')}>
+              <Text style={styles.legalLink}>Privacy Policy</Text>
+            </Pressable>
+            <Text style={styles.legalDot}> · </Text>
+            <Pressable onPress={() => Linking.openURL('https://chrisluhrsux.github.io/thriftvaultapp/assets/terms.html')}>
+              <Text style={styles.legalLink}>Terms of Use</Text>
+            </Pressable>
+          </View>
         </Animated.View>
       </View>
     </Modal>
@@ -352,6 +369,28 @@ function createStyles(theme: Theme, isDesktop: boolean) {
     ...theme.typography.caption,
     color: theme.colors.mauve,
     textAlign: 'center',
+  },
+  legal: {
+    ...theme.typography.label,
+    color: theme.colors.mauve,
+    textAlign: 'center',
+    marginTop: theme.spacing.sm,
+    lineHeight: 15,
+  },
+  legalLinks: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: theme.spacing.xs,
+  },
+  legalLink: {
+    ...theme.typography.label,
+    color: theme.colors.vintageBlueDark,
+    textDecorationLine: 'underline',
+  },
+  legalDot: {
+    ...theme.typography.label,
+    color: theme.colors.mauve,
   },
   });
 }

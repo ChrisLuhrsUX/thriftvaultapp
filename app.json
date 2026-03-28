@@ -10,11 +10,12 @@
     "splash": {
       "image": "./assets/logo/thriftvault_logo.jpg",
       "resizeMode": "contain",
-      "backgroundColor": "#7A9B94"
+      "backgroundColor": "#F8F1E9"
     },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.thriftvault.app",
+      "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -39,6 +40,12 @@
         "expo-camera",
         {
           "cameraPermission": "ThriftVault uses the camera to scan items. Photos are sent to Google's AI for identification."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "ThriftVault needs access to your photo library to add photos to items and create hauls."
         }
       ],
       [

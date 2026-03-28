@@ -108,6 +108,8 @@ export default function DetailScreen() {
   const [scanInsightsExpanded, setScanInsightsExpanded] = useState(false);
   const [scanHistoryVisible, setScanHistoryVisible] = useState(false);
   const [addPhotoModalVisible, setAddPhotoModalVisible] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [editedName, setEditedName] = useState('');
   const priceInitialized = useRef(false);
   const paidInputRef = useRef<TextInput>(null);
   const resaleInputRef = useRef<TextInput>(null);
@@ -477,7 +479,36 @@ export default function DetailScreen() {
           <AppIcon name="arrow-back" size={24} color={theme.colors.charcoal} />
         </Pressable>
         <View style={styles.headerTitleWrap}>
-          <Text style={styles.headerTitle} numberOfLines={1}>{item.name}</Text>
+          {editingName ? (
+            <TextInput
+              style={[styles.headerTitle, styles.headerTitleInput]}
+              value={editedName}
+              onChangeText={setEditedName}
+              onBlur={() => {
+                const trimmed = editedName.trim();
+                if (trimmed && trimmed !== item.name) update({ name: trimmed });
+                else setEditedName(item.name);
+                setEditingName(false);
+              }}
+              onSubmitEditing={() => {
+                const trimmed = editedName.trim();
+                if (trimmed && trimmed !== item.name) update({ name: trimmed });
+                else setEditedName(item.name);
+                setEditingName(false);
+              }}
+              autoFocus
+              selectTextOnFocus
+              returnKeyType="done"
+            />
+          ) : (
+            <Pressable
+              onPress={() => { setEditedName(item.name); setEditingName(true); }}
+              style={styles.headerTitleRow}
+            >
+              <Text style={styles.headerTitle} numberOfLines={1}>{item.name}</Text>
+              <AppIcon name="pencil" size={14} color={theme.colors.mauve} />
+            </Pressable>
+          )}
           {activeSnapshot?.sub ? (
             <Text style={styles.headerSub} numberOfLines={1}>{activeSnapshot.sub}</Text>
           ) : null}
@@ -792,7 +823,7 @@ export default function DetailScreen() {
                     <Pressable
                       key={p}
                       style={[styles.platformChip, item.platform === p && styles.platformChipActive]}
-                      onPress={() => update({ platform: p })}
+                      onPress={() => update({ platform: item.platform === p ? '' : p })}
                     >
                       <Text style={[styles.platformChipText, item.platform === p && styles.platformChipTextActive]}>{p}</Text>
                     </Pressable>
@@ -1219,6 +1250,17 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     fontWeight: '600',
     color: theme.colors.charcoal,
     textAlign: 'center',
+  },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  headerTitleInput: {
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.vintageBlueDark,
+    paddingVertical: 2,
+    minWidth: 120,
   },
   headerSub: {
     ...theme.typography.caption,

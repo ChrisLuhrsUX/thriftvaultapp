@@ -82,7 +82,16 @@
       for details on how Google handles data sent to the Gemini API.
     </p>
     <p>
-      There is no backend, no account system, and no other network requests made by the app.
+      ThriftVault uses RevenueCat to manage subscriptions and in-app purchases. When you
+      subscribe, purchase data (such as your subscription status and transaction identifiers)
+      is processed by Apple and RevenueCat. RevenueCat may collect anonymous device identifiers
+      to manage your entitlements. No personal information such as your name or email is shared
+      with RevenueCat. See
+      <a href="https://www.revenuecat.com/privacy/">RevenueCat's Privacy Policy</a> for details.
+    </p>
+    <p>
+      There is no backend and no account system. The only network requests made by the app are
+      to the Gemini API (for AI scans) and to RevenueCat (for subscription management).
     </p>
 
     <h2>5. Data Backup and Loss</h2>

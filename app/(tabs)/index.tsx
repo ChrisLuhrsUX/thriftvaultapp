@@ -119,12 +119,12 @@ const HaulCard = React.memo(function HaulCard({
           <View style={styles.haulCardPlaceholder}>
             <AppIcon name="images-outline" size={32} color={theme.colors.mauve} />
           </View>
-        ) : count === 1 ? (
+        ) : count === 1 && thumbItems[0].img ? (
           <Image source={{ uri: thumbItems[0].img }} style={styles.haulCardImg} />
         ) : (
           <View style={styles.haulCardGridOuter}>
             <View style={styles.haulCardGrid}>
-              {thumbItems.map((item) => (
+              {thumbItems.filter((item) => !!item.img).map((item) => (
                 <Image
                   key={item.id}
                   source={{ uri: item.img }}

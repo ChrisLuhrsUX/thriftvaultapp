@@ -28,6 +28,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -47,6 +48,7 @@ function ScanResultCard({
   onAddToCloset,
   onSkip,
   onSaveForLater,
+  onNameChange,
   theme,
   styles,
 }: {
@@ -55,6 +57,7 @@ function ScanResultCard({
   onAddToCloset: () => void;
   onSkip: () => void;
   onSaveForLater: () => void;
+  onNameChange: (name: string) => void;
   theme: Theme;
   styles: ReturnType<typeof createScanStyles>;
 }) {
@@ -62,10 +65,42 @@ function ScanResultCard({
   const confPresentation =
     c === 'low' || c === 'medium' || c === 'high' ? getConfidencePresentation(c, theme) : null;
 
+  const [editingName, setEditingName] = useState(false);
+  const [editedName, setEditedName] = useState(scenario.name);
+
+  const commitNameEdit = () => {
+    const trimmed = editedName.trim();
+    if (trimmed && trimmed !== scenario.name) {
+      onNameChange(trimmed);
+    } else {
+      setEditedName(scenario.name);
+    }
+    setEditingName(false);
+  };
+
   return (
     <View style={styles.resultCard}>
       <View style={styles.resultHeader}>
-        <Text style={styles.resultName}>{scenario.name}</Text>
+        {editingName ? (
+          <TextInput
+            style={[styles.resultName, styles.resultNameInput]}
+            value={editedName}
+            onChangeText={setEditedName}
+            onBlur={commitNameEdit}
+            onSubmitEditing={commitNameEdit}
+            autoFocus
+            selectTextOnFocus
+            returnKeyType="done"
+          />
+        ) : (
+          <Pressable
+            onPress={() => { setEditedName(scenario.name); setEditingName(true); }}
+            style={styles.resultNameRow}
+          >
+            <Text style={styles.resultName}>{scenario.name}</Text>
+            <AppIcon name="pencil" size={16} color={theme.colors.mauve} />
+          </Pressable>
+        )}
         <Text style={styles.resultProfit}>{scenario.profit}</Text>
       </View>
       <Text style={styles.resultSub}>{scenario.sub}</Text>
@@ -147,6 +182,17 @@ function createScanStyles(theme: Theme, formMaxWidth?: number) {
       flex: 1,
       ...theme.typography.h2,
       color: theme.colors.charcoal,
+    },
+    resultNameRow: {
+      flex: 1,
+      flexDirection: 'row' as const,
+      alignItems: 'flex-start' as const,
+      gap: 6,
+    },
+    resultNameInput: {
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.vintageBlueDark,
+      paddingVertical: 2,
     },
     resultProfit: {
       ...theme.typography.body,
@@ -476,7 +522,7 @@ export default function ScanScreen() {
         year: 'numeric',
       }),
       store: '',
-      platform: 'Depop',
+      platform: '',
       notes: '',
       soldPrice: null,
       img: imgUri || DEFAULT_ITEM_PLACEHOLDER_IMAGE,
@@ -748,6 +794,7 @@ export default function ScanScreen() {
             onAddToCloset={handleAddToCloset}
             onSkip={handleSkip}
             onSaveForLater={handleSaveForLater}
+            onNameChange={(name) => setResult((prev) => prev ? { ...prev, name } : null)}
             theme={theme}
             styles={scanStyles}
           />
@@ -807,7 +854,13 @@ export default function ScanScreen() {
                   style={({ pressed }) => [styles.recentCard, pressed && styles.btnPressed]}
                   onPress={() => router.push({ pathname: '/detail', params: { itemId: String(item.id) } })}
                 >
-                  <Image source={{ uri: item.img }} style={styles.recentImg} />
+                  {item.img ? (
+                    <Image source={{ uri: item.img }} style={styles.recentImg} />
+                  ) : (
+                    <View style={[styles.recentImg, { alignItems: 'center', justifyContent: 'center' }]}>
+                      <AppIcon name="camera-outline" size={22} color={theme.colors.mauve} />
+                    </View>
+                  )}
                   <Text style={styles.recentName} numberOfLines={2}>{item.name}</Text>
                 </Pressable>
               )}
