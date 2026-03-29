@@ -197,6 +197,20 @@ interface ScanScenario {
 
 ## Session Notes
 
+### Session — 2026-03-28
+
+- **Editable item names** — pencil icon on scan card and detail header toggles inline `TextInput` for renaming. Text still wraps; icon aligned flex-start.
+- **Manual item add** — free users can add items without AI scan. Empty-state "Add manually" button + creates blank item with no preselected category/status/platform. Auto-focuses name field. If user backs out without editing, item is deleted (not saved).
+- **AI scan paywall gating** — scan functions gated behind `isPro` check from `usePurchases`. `__DEV__` bypasses paywall for development.
+- **App Store compliance fixes** — PaywallModal: Apple-required subscription disclosure + Privacy/Terms links. `terms.html` created. Privacy policy updated with RevenueCat disclosure. `app.json`: added `expo-image-picker` plugin, `buildNumber: "1"`, splash bg → `#F8F1E9`.
+- **PaywallModal fixes** — selected plan card uses `surface` instead of `cream` (was invisible). Default plan changed from Season Pass to Monthly.
+- **Gemini prompt improvements** — single most prominent item focus for multi-item photos, AI art/screenshot detection, bundle recommendation never says "not applicable".
+- **Photo modal crash fix** — iOS modal dismiss race condition. Ref-based deferred action pattern: `pendingPhotoAction` ref stores choice, `onDismiss` fires it after full dismiss. Explicit permission requests added.
+- **UX refinements** — platform/category/status chips now toggle-deselectable. Platform no longer preselected to Depop. Empty gallery is tappable. Removed "See all" from recents.
+- **Profile additions** — Manage Subscription (Apple URL) and Send Feedback (mailto) settings rows.
+- **Apple Developer Program** — $99/yr enrollment purchased, awaiting confirmation (up to 48hrs). Blocks RevenueCat + App Store submission.
+- **Post-launch items added to MVP.md** — Android launch, landing page, social media, ASO, feedback channel, haul titles, affiliate links, platform filter.
+
 ### Session — 2026-03-26
 
 - **Screenshots plan expanded** — SCREENSHOTS.md updated from 6 to 8 screenshots: Scan card, Scan screen, Flips, Flip item detail, Closet, Hauls, Profile, Onboarding. Haul grid view cut as redundant with Hauls.

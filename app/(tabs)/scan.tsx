@@ -1,8 +1,10 @@
 import { AppIcon } from '@/components/AppIcon';
+import { PaywallModal } from '@/components/PaywallModal';
 import { DEFAULT_ITEM_PLACEHOLDER_IMAGE } from '@/constants/seedItems';
 import { useInventory } from '@/context/InventoryContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useToast } from '@/context/ToastContext';
+import { usePurchases } from '@/hooks/usePurchases';
 import { useResponsive } from '@/hooks/useResponsive';
 import { scanWithGemini } from '@/services/gemini';
 import type { Theme } from '@/theme';
@@ -313,6 +315,8 @@ export default function ScanScreen() {
   const { theme } = useTheme();
   const { inventory, addItem, updateItem } = useInventory();
   const { showToast } = useToast();
+  const { isPro } = usePurchases();
+  const [paywallVisible, setPaywallVisible] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraFacing, setCameraFacing] = useState<'back' | 'front'>('back');
@@ -384,6 +388,7 @@ export default function ScanScreen() {
   }, [showToast]);
 
   const handleCaptureAndScan = useCallback(async () => {
+    if (!__DEV__ && !isPro) { setPaywallVisible(true); return; }
     if (!CAMERA_AVAILABLE || scanning || !cameraReady) return;
     setResult(null);
     setCapturedPhotoUri(null);
@@ -401,6 +406,7 @@ export default function ScanScreen() {
   }, [cameraReady, runScan, scanning]);
 
   const handleTapToScan = useCallback(async () => {
+    if (!__DEV__ && !isPro) { setPaywallVisible(true); return; }
     if (!CAMERA_AVAILABLE) {
       runScan();
       return;
@@ -416,6 +422,7 @@ export default function ScanScreen() {
   }, [CAMERA_AVAILABLE, cameraActive, permission?.granted, requestPermission, runScan, showToast]);
 
   const handlePickFromLibrary = useCallback(async () => {
+    if (!__DEV__ && !isPro) { setPaywallVisible(true); return; }
     if (scanning) return;
     if (Platform.OS === 'web') {
       showToast('Upload is not available on web');
@@ -837,12 +844,6 @@ export default function ScanScreen() {
           <View style={styles.recentsSection}>
             <View style={styles.recentsHeader}>
               <Text style={styles.recentsTitle}>Recent finds</Text>
-              <Pressable
-                onPress={() => router.replace('/(tabs)')}
-                style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
-              >
-                <Text style={styles.seeAll}>See all</Text>
-              </Pressable>
             </View>
             <FlatList
               data={recents}
@@ -969,6 +970,7 @@ export default function ScanScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+      <PaywallModal visible={paywallVisible} onClose={() => setPaywallVisible(false)} />
     </View>
   );
 }

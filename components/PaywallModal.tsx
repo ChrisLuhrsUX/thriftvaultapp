@@ -302,7 +302,7 @@ function createStyles(theme: Theme, isDesktop: boolean) {
   },
   planCardSelected: {
     borderColor: theme.colors.vintageBlueDark,
-    backgroundColor: theme.colors.cream,
+    backgroundColor: theme.colors.surface,
   },
   planBadge: {
     paddingHorizontal: 6,

@@ -23,7 +23,7 @@ Return ONLY a valid JSON object with this exact structure — no markdown fences
   "ideas": [
     {"t": "Listing/pricing suggestion", "ideaIcon": "pricetag"},
     {"t": "Photography or styling tip", "ideaIcon": "camera"},
-    {"t": "Bundle or upsell idea", "ideaIcon": "flame"}
+    {"t": "Bundle or upsell idea (if item is already a bundle, suggest how to split or market it instead — never say 'not applicable')", "ideaIcon": "flame"}
   ]
 }
 
@@ -34,7 +34,9 @@ Guidelines:
 - confidence = "low" if brand is obscure/niche or resale comps are sparse
 - suggestedPaid = realistic thrift store price ($3–$30)
 - suggestedResale = realistic price on Depop/Poshmark/eBay
-- ideas[].t = short, actionable tip (no price amounts)`;
+- ideas[].t = short, actionable tip (no price amounts)
+- If multiple items are visible, identify only the most prominent one
+- If the photo appears to be AI-generated, a screenshot, or not a real physical item, set name to "Not a real item" and confidence to "low"`;
 
 function inferMimeType(uri: string): string {
   const u = uri.split('?')[0].toLowerCase();

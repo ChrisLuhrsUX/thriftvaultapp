@@ -23,6 +23,7 @@ const SETTINGS_ROWS = [
   { id: 'subscription', label: 'Subscription', icon: 'card-outline' as const },
   { id: 'manage', label: 'Manage Subscription', icon: 'settings-outline' as const },
   { id: 'restore', label: 'Restore Purchases', icon: 'refresh-outline' as const },
+  { id: 'feedback', label: 'Send Feedback', icon: 'mail-outline' as const },
 ];
 
 export default function ProfileScreen() {
@@ -91,6 +92,10 @@ export default function ProfileScreen() {
   const handleSetting = async (id: string) => {
 if (id === 'subscription') {
       setPaywallVisible(true);
+      return;
+    }
+    if (id === 'feedback') {
+      Linking.openURL('mailto:thriftvaultapp@gmail.com?subject=ThriftVault%20Feedback');
       return;
     }
     if (id === 'manage') {

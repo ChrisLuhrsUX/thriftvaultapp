@@ -8,7 +8,15 @@
 
 ## Post-Launch
 
+- [x] **Manual item add** — "+" button in vault header creates blank item and opens detail screen for manual entry. Free users can track items without AI scan.
+- [ ] **Haul titles** — let users name their hauls instead of defaulting to the date (e.g. "Saturday Goodwill Run")
 - [ ] **Platform filter in Vault** — filter by eBay / Poshmark / etc.
+- [ ] **Android launch** — test, fix platform-specific issues, and publish to Google Play Store
+- [ ] **Landing page** — marketing website to promote the app (App Store link, features, screenshots)
+- [ ] **Social media** — Instagram/TikTok presence for thrift community, haul content, tips
+- [ ] **ASO iteration** — refine keywords and metadata based on real App Store search data
+- [ ] **Feedback channel** — Discord community or in-app feedback form beyond support email
+- [ ] **Affiliate links** — link scanned items to retailer listings (Amazon, Walmart, etc.) with affiliate tags for commission revenue
 
 ## Done
 

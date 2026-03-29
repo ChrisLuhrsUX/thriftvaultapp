@@ -41,4 +41,4 @@ export const PLANS: PlanOption[] = [
   },
 ];
 
-export const DEFAULT_PLAN_ID = 'season';
+export const DEFAULT_PLAN_ID = 'monthly';

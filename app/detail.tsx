@@ -90,7 +90,7 @@ function sanitizePrice(raw: string): string {
 }
 
 export default function DetailScreen() {
-  const { itemId, fromScan } = useLocalSearchParams<{ itemId: string; fromScan?: string }>();
+  const { itemId, fromScan, manual } = useLocalSearchParams<{ itemId: string; fromScan?: string; manual?: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
@@ -110,6 +110,7 @@ export default function DetailScreen() {
   const [addPhotoModalVisible, setAddPhotoModalVisible] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
+  const hasEdited = useRef(false);
   const priceInitialized = useRef(false);
   const paidInputRef = useRef<TextInput>(null);
   const resaleInputRef = useRef<TextInput>(null);
@@ -225,10 +226,14 @@ export default function DetailScreen() {
     const found = getItemById(id);
     if (found) {
       setItem({ ...found });
+      if (manual === '1') {
+        setEditedName(found.name);
+        setEditingName(true);
+      }
     } else {
       setNotFound(true);
     }
-  }, [id, getItemById]);
+  }, [id, getItemById, manual]);
 
   useEffect(() => {
     if (item && !priceInitialized.current) {
@@ -245,6 +250,7 @@ export default function DetailScreen() {
   }, [fromScan, item?.id, item?.scanSnapshots]);
 
   const update = useCallback((updates: Partial<Item>) => {
+    hasEdited.current = true;
     setItem((prev) => (prev ? { ...prev, ...updates } : null));
   }, []);
 
@@ -268,10 +274,14 @@ export default function DetailScreen() {
 
   const saveAndBack = useCallback(() => {
     if (item) {
-      updateItem(item.id, item);
+      if (manual === '1' && !hasEdited.current) {
+        removeItem(item.id);
+      } else {
+        updateItem(item.id, item);
+      }
     }
     router.back();
-  }, [item, updateItem, router]);
+  }, [item, manual, updateItem, removeItem, router]);
 
   const getActiveSnapshot = useCallback((targetItem: Item): ItemScanSnapshot | null => {
     const snapshots = targetItem.scanSnapshots;
@@ -312,6 +322,19 @@ export default function DetailScreen() {
   const executeAddPhoto = useCallback(
     async (useCamera: boolean) => {
       if (!item) return;
+      if (useCamera) {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+          showToast('Camera permission is required to take photos');
+          return;
+        }
+      } else {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          showToast('Photo library permission is required');
+          return;
+        }
+      }
       const currentPhotos =
         item.photos && item.photos.length > 0 ? item.photos : (item.img ? [item.img] : []);
       const opts: ImagePicker.ImagePickerOptions = {
@@ -340,9 +363,21 @@ export default function DetailScreen() {
     [item, update, updateItem, showToast]
   );
 
+  const pendingPhotoAction = useRef<boolean | null>(null);
+
   const closeAddPhotoModal = useCallback(() => {
     setAddPhotoModalVisible(false);
   }, []);
+
+  // Android fallback: onDismiss doesn't fire on Android
+  useEffect(() => {
+    if (!addPhotoModalVisible && pendingPhotoAction.current !== null && Platform.OS === 'android') {
+      const useCamera = pendingPhotoAction.current;
+      pendingPhotoAction.current = null;
+      const timer = setTimeout(() => void executeAddPhoto(useCamera), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [addPhotoModalVisible, executeAddPhoto]);
 
   const handleAddPhoto = useCallback(async () => {
     if (!item) return;
@@ -558,11 +593,14 @@ export default function DetailScreen() {
                       </Pressable>
                     </View>
                   )) : (
-                    <View style={[styles.galleryEmpty, { width: galleryWidth, height: galleryWidth }]}>
+                    <Pressable
+                      style={[styles.galleryEmpty, { width: galleryWidth, height: galleryWidth }]}
+                      onPress={handleAddPhoto}
+                    >
                       <AppIcon name="camera-outline" size={48} color={theme.colors.mauve} />
                       <Text style={styles.galleryEmptyTitle}>No photos yet</Text>
-                      <Text style={styles.galleryEmptySub}>Tap the camera button to add photos</Text>
-                    </View>
+                      <Text style={styles.galleryEmptySub}>Tap to add photos</Text>
+                    </Pressable>
                   )}
                 </ScrollView>
 
@@ -792,7 +830,7 @@ export default function DetailScreen() {
                 <Pressable
                   key={c}
                   style={[styles.platformChip, item.cat === c && styles.platformChipActive]}
-                  onPress={() => update({ cat: c })}
+                  onPress={() => update({ cat: item.cat === c ? '' as any : c })}
                 >
                   <Text style={[styles.platformChipText, item.cat === c && styles.platformChipTextActive]}>
                     {c.charAt(0).toUpperCase() + c.slice(1)}
@@ -858,7 +896,7 @@ export default function DetailScreen() {
                         item.status === s && s === 'listed' && styles.statusChipActiveListed,
                         item.status === s && s === 'sold' && styles.statusChipActiveSold,
                       ]}
-                      onPress={() => update({ status: s })}
+                      onPress={() => update({ status: item.status === s ? '' as any : s })}
                     >
                       <Text style={[styles.statusChipText, item.status === s && styles.statusChipTextActive]}>
                         {s === 'unlisted' ? 'Unlisted' : s === 'listed' ? 'Listed' : 'Sold'}
@@ -914,6 +952,13 @@ export default function DetailScreen() {
         transparent
         animationType="fade"
         onRequestClose={closeAddPhotoModal}
+        onDismiss={() => {
+          if (pendingPhotoAction.current !== null) {
+            const useCamera = pendingPhotoAction.current;
+            pendingPhotoAction.current = null;
+            void executeAddPhoto(useCamera);
+          }
+        }}
       >
         <View style={styles.addPhotoOverlay}>
           <Pressable
@@ -927,8 +972,8 @@ export default function DetailScreen() {
             <Pressable
               style={({ pressed }) => [styles.addPhotoRow, pressed && styles.btnPressed]}
               onPress={() => {
+                pendingPhotoAction.current = true;
                 closeAddPhotoModal();
-                void executeAddPhoto(true);
               }}
               accessibilityRole="button"
             >
@@ -938,8 +983,8 @@ export default function DetailScreen() {
             <Pressable
               style={({ pressed }) => [styles.addPhotoRow, pressed && styles.btnPressed]}
               onPress={() => {
+                pendingPhotoAction.current = false;
                 closeAddPhotoModal();
-                void executeAddPhoto(false);
               }}
               accessibilityRole="button"
             >

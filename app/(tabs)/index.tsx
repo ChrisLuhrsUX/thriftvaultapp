@@ -221,7 +221,7 @@ export default function InventoryScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { theme } = useTheme();
-  const { inventory, addItems } = useInventory();
+  const { inventory, addItem, addItems } = useInventory();
   const { showToast } = useToast();
   const { gridColumns, hPad, headerHPad, contentMaxWidth, isTablet } = useResponsive();
   const [view, setView] = useState<VaultView>('flips');
@@ -244,6 +244,31 @@ export default function InventoryScreen() {
     (date: string) => router.push({ pathname: '/haul-detail', params: { date: encodeURIComponent(date) } }),
     [router]
   );
+
+  const handleManualAdd = useCallback(() => {
+    const id = Date.now();
+    const intent = view === 'closet' ? 'closet' : 'flip';
+    const newItem: Item = {
+      id,
+      name: 'New Item',
+      cat: '' as any,
+      paid: 0,
+      resale: 0,
+      status: '' as any,
+      date: new Date().toLocaleDateString('en-US', {
+        month: 'short', day: 'numeric', year: 'numeric',
+      }),
+      store: '',
+      platform: '',
+      notes: '',
+      soldPrice: null,
+      img: '',
+      intent,
+    };
+    addItem(newItem);
+    Haptics.selectionAsync();
+    router.push({ pathname: '/detail', params: { itemId: String(id), manual: '1' } });
+  }, [view, addItem, router]);
 
   const createHaulItems = useCallback(async (
     assets: ImagePicker.ImagePickerAsset[],
@@ -274,7 +299,7 @@ export default function InventoryScreen() {
         status: 'unlisted',
         date: today,
         store,
-        platform: 'Depop',
+        platform: '',
         notes: '',
         soldPrice: null,
         img: imgUri,
@@ -724,17 +749,25 @@ export default function InventoryScreen() {
                 {isFiltering
                   ? 'Try a different search or filter.'
                   : view === 'closet'
-                    ? 'Scan a find and choose "Add to Closet" to keep track of pieces you\'re holding onto.'
-                    : 'Every flip starts with a find. Scan an item to track profit from day one.'}
+                    ? 'Add pieces you\'re holding onto — scan with AI or add manually.'
+                    : 'Every flip starts with a find. Scan with AI or add an item manually.'}
               </Text>
               {!isFiltering && (
-                <Pressable
-                  style={({ pressed }) => [styles.emptyBtn, pressed && { opacity: 0.8 }]}
-                  onPress={() => router.replace('/(tabs)/scan')}
-                >
-                  <Text style={styles.emptyBtnText}>Scan your first find</Text>
-                  <AppIcon name="arrow-forward" size={16} color={theme.colors.onPrimary} />
-                </Pressable>
+                <>
+                  <Pressable
+                    style={({ pressed }) => [styles.emptyBtn, pressed && { opacity: 0.8 }]}
+                    onPress={() => router.replace('/(tabs)/scan')}
+                  >
+                    <Text style={styles.emptyBtnText}>Scan with AI</Text>
+                    <AppIcon name="arrow-forward" size={16} color={theme.colors.onPrimary} />
+                  </Pressable>
+                  <Pressable
+                    style={({ pressed }) => [styles.emptyBtnSecondary, pressed && { opacity: 0.8 }]}
+                    onPress={handleManualAdd}
+                  >
+                    <Text style={styles.emptyBtnSecondaryText}>Add manually</Text>
+                  </Pressable>
+                </>
               )}
             </View>
           }
@@ -821,6 +854,19 @@ function createStyles(theme: Theme, hPad: number, headerHPad: number, numColumns
     paddingHorizontal: headerHPad,
     paddingTop: 20,
     paddingBottom: 12,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  addBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: theme.colors.vintageBlueDark,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   title: {
     ...theme.typography.h1,
@@ -1286,6 +1332,17 @@ function createStyles(theme: Theme, hPad: number, headerHPad: number, numColumns
     ...theme.typography.bodySmall,
     fontWeight: '600',
     color: theme.colors.onPrimary,
+  },
+  emptyBtnSecondary: {
+    marginTop: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: theme.radius.full,
+  },
+  emptyBtnSecondaryText: {
+    ...theme.typography.bodySmall,
+    fontWeight: '600',
+    color: theme.colors.vintageBlueDark,
   },
   });
 }
