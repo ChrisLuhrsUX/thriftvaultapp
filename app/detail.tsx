@@ -46,7 +46,7 @@ function buildShareMessage(item: Item): string {
   const name = item.name;
   if (item.intent === 'closet') {
     const paid = Number(item.paid) || 0;
-    return `From my closet: ${name} (paid $${paid}). I track pieces with ThriftVault.`;
+    return `From my closet: ${name} (cost $${paid}). I track pieces with ThriftVault.`;
   }
   if (item.status === 'sold' && item.soldPrice != null) {
     return `Sold this flip: ${name} for $${Number(item.soldPrice)}. Tracked with ThriftVault.`;
@@ -117,6 +117,7 @@ export default function DetailScreen() {
   const soldInputRef = useRef<TextInput>(null);
   const { width: screenWidth } = useWindowDimensions();
   const fullScreenScrollRef = useRef<ScrollView>(null);
+  const mainScrollRef = useRef<ScrollView>(null);
   const { formMaxWidth } = useResponsive();
   const styles = React.useMemo(() => createStyles(theme, formMaxWidth), [theme, formMaxWidth]);
 
@@ -237,7 +238,7 @@ export default function DetailScreen() {
 
   useEffect(() => {
     if (item && !priceInitialized.current) {
-      setPaidStr(String(item.paid));
+      setPaidStr(item.paid != null ? String(item.paid) : '');
       setResaleStr(String(item.resale));
       setSoldStr(item.soldPrice != null ? String(item.soldPrice) : '');
       priceInitialized.current = true;
@@ -296,12 +297,9 @@ export default function DetailScreen() {
   const formatSnapshotTime = useCallback((createdAt: number) => {
     const date = new Date(createdAt);
     if (Number.isNaN(date.getTime())) return 'Unknown time';
-    return date.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    });
+    const datePart = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const timePart = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    return `${datePart} · ${timePart}`;
   }, []);
 
   const switchActiveSnapshot = useCallback((snapshotId: string) => {
@@ -557,11 +555,11 @@ export default function DetailScreen() {
       </View>
 
       <ScrollView
+        ref={mainScrollRef}
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-        onScrollBeginDrag={() => Keyboard.dismiss()}
         onScroll={handleScrollDismissKeyboard}
         scrollEventThrottle={16}
         nestedScrollEnabled
@@ -645,7 +643,7 @@ export default function DetailScreen() {
           <View style={styles.profitStrip}>
             <View style={styles.profitStripBlock}>
               <Text style={styles.profitStripVal}>${paidNum}</Text>
-              <Text style={styles.profitStripLabel}>Paid</Text>
+              <Text style={styles.profitStripLabel}>Cost</Text>
             </View>
           </View>
         ) : (
@@ -665,7 +663,7 @@ export default function DetailScreen() {
                   }}
                   onBlur={() => {
                     const val = parseFloat(paidStr);
-                    flushPrices({ paid: isNaN(val) ? 0 : val });
+                    flushPrices({ paid: paidStr.trim() === '' ? null : (isNaN(val) ? null : val) });
                   }}
                   keyboardType="decimal-pad"
                   inputAccessoryViewID={Platform.OS === 'ios' ? PRICE_INPUT_ACCESSORY_ID : undefined}
@@ -673,7 +671,7 @@ export default function DetailScreen() {
                   placeholderTextColor={theme.colors.mauve}
                 />
               </View>
-              <Text style={styles.profitStripLabel}>Paid</Text>
+              <Text style={styles.profitStripLabel}>Cost</Text>
             </View>
             <View style={styles.profitStripDivider} />
             <View style={styles.profitStripBlock}>
@@ -743,47 +741,43 @@ export default function DetailScreen() {
               accessibilityRole="button"
               accessibilityState={{ expanded: scanInsightsExpanded }}
             >
-              <View style={styles.insightsHeaderLeft}>
-                <View style={{ flexDirection: 'row' }}>
-                  <View style={{ alignItems: 'flex-start' }}>
-                    <Text style={styles.insightsTitle}>AI insights</Text>
-                    <Text style={styles.insightsProfit}>{activeSnapshot.profit || ''}</Text>
+              <View style={styles.insightsHeaderContent}>
+                <View style={styles.insightsHeaderTopRow}>
+                  <Text style={styles.insightsTitle}>AI Insights</Text>
+                  <View style={styles.insightsHeaderRight}>
+                    <View style={styles.insightsCountBadge}>
+                      <Text style={styles.insightsCountText}>
+                        {snapshots.length} scan{snapshots.length === 1 ? '' : 's'}
+                      </Text>
+                    </View>
+                    <AppIcon
+                      name={scanInsightsExpanded ? 'chevron-up' : 'chevron-down'}
+                      size={18}
+                      color={theme.colors.mauve}
+                    />
                   </View>
-                  <View style={{ alignItems: 'center', paddingHorizontal: theme.spacing.xs }}>
-                    <Text style={styles.insightsMeta}> · </Text>
-                    <Text style={styles.insightsMeta}> · </Text>
-                  </View>
-                  <View style={{ alignItems: 'flex-start' }}>
+                </View>
+                <View style={styles.insightsHeaderBottomRow}>
+                  <Text style={styles.insightsSummary}>
+                    {activeSnapshot.profit || ''}
                     {activeSnapshot.confidence ? (
-                      <Text
-                        style={[
-                          styles.insightsConfidence,
-                          { color: getConfidenceColor(theme, activeSnapshot.confidence) },
-                        ]}
-                      >
-                        {activeSnapshot.confidence[0].toUpperCase() + activeSnapshot.confidence.slice(1)} confidence
+                      <Text style={{ color: getConfidenceColor(theme, activeSnapshot.confidence) }}>
+                        {' · '}{activeSnapshot.confidence[0].toUpperCase() + activeSnapshot.confidence.slice(1)} confidence
                       </Text>
                     ) : null}
-                    <Text style={styles.insightsMeta}>{formatSnapshotTime(activeSnapshot.createdAt)}</Text>
-                  </View>
-                </View>
-              </View>
-              <View style={styles.insightsHeaderRight}>
-                <View style={styles.insightsCountBadge}>
-                  <Text style={styles.insightsCountText}>
-                    {snapshots.length} scan{snapshots.length === 1 ? '' : 's'}
                   </Text>
+                  <Text style={styles.insightsDate}>{formatSnapshotTime(activeSnapshot.createdAt)}</Text>
                 </View>
-                <AppIcon
-                  name={scanInsightsExpanded ? 'chevron-up' : 'chevron-down'}
-                  size={18}
-                  color={theme.colors.mauve}
-                />
               </View>
             </Pressable>
 
             {scanInsightsExpanded && (
               <View style={styles.insightsContent}>
+                {activeSnapshot.isCustom && (
+                  <View style={styles.insightsPillRow}>
+                    <Text style={styles.insightsCustom}>Custom / Reworked</Text>
+                  </View>
+                )}
                 {activeSnapshot.sub ? (
                   <Text style={styles.insightsSub}>{activeSnapshot.sub}</Text>
                 ) : (
@@ -916,6 +910,11 @@ export default function DetailScreen() {
               placeholder="Notes..."
               placeholderTextColor={theme.colors.mauve}
               multiline
+              onFocus={() => {
+                setTimeout(() => {
+                  mainScrollRef.current?.scrollToEnd({ animated: true });
+                }, 300);
+              }}
             />
           </View>
         </View>
@@ -1107,7 +1106,7 @@ export default function DetailScreen() {
                                 { color: getConfidenceColor(theme, snapshot.confidence) },
                               ]}
                             >
-                              {snapshot.confidence}
+                              {snapshot.confidence} confidence
                             </Text>
                           </Text>
                         ) : null}
@@ -1320,7 +1319,7 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
   },
   addPhotoBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: theme.colors.overlayHeavy,
   },
   addPhotoSheet: {
     backgroundColor: theme.colors.cream,
@@ -1373,7 +1372,7 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
   },
   itemMenuOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: theme.colors.overlay,
   },
   itemMenuCard: {
     position: 'absolute',
@@ -1541,7 +1540,7 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.15)',
+    backgroundColor: theme.colors.overlayLight,
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.85)',
     alignItems: 'center',
@@ -1572,7 +1571,7 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: theme.colors.overlay,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1604,7 +1603,7 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     ...theme.typography.caption,
     color: theme.colors.cream,
     fontWeight: '600',
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: theme.colors.overlay,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: theme.radius.full,
@@ -1658,7 +1657,7 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     backgroundColor: theme.colors.profit,
   },
   badgeUnlisted: {
-    backgroundColor: '#C8E6E4',
+    backgroundColor: theme.colors.vintageBlueLight,
   },
   badgeListed: {
     backgroundColor: theme.colors.vintageBlueDark,
@@ -1667,7 +1666,7 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     color: theme.colors.onPrimary,
   },
   badgeTextUnlisted: {
-    color: '#1A5C59',
+    color: theme.colors.vintageBlueDeep,
   },
   badgeTextListed: {
     color: theme.colors.onPrimary,
@@ -1699,8 +1698,19 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.md,
   },
-  insightsHeaderLeft: {
+  insightsHeaderContent: {
     flex: 1,
+    gap: 4,
+  },
+  insightsHeaderTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  insightsHeaderBottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   insightsHeaderRight: {
     flexDirection: 'row',
@@ -1712,10 +1722,18 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     color: theme.colors.charcoal,
     fontWeight: '600',
   },
+  insightsSummary: {
+    ...theme.typography.caption,
+    color: theme.colors.profit,
+    fontWeight: '600',
+  },
   insightsMeta: {
     ...theme.typography.caption,
     color: theme.colors.mauve,
-    marginTop: 2,
+  },
+  insightsDate: {
+    ...theme.typography.label,
+    color: theme.colors.mauve,
   },
   insightsCountBadge: {
     borderRadius: theme.radius.full,
@@ -1736,20 +1754,19 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     paddingBottom: theme.spacing.md,
     paddingTop: theme.spacing.sm,
   },
-  insightsTopRow: {
+  insightsPillRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: theme.spacing.sm,
-  },
-  insightsProfit: {
-    ...theme.typography.bodySmall,
-    color: theme.colors.profit,
-    fontWeight: '700',
+    flexWrap: 'wrap',
+    gap: 8,
   },
   insightsConfidence: {
     ...theme.typography.caption,
     fontWeight: '600',
+  },
+  insightsCustom: {
+    ...theme.typography.caption,
+    fontWeight: '600',
+    color: theme.colors.terra,
   },
   insightsSub: {
     ...theme.typography.caption,
@@ -1841,7 +1858,7 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     color: theme.colors.profit,
   },
   profitNeg: {
-    color: '#C0392B',
+    color: theme.colors.loss,
   },
   fields: {
   },

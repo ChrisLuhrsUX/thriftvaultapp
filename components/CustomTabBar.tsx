@@ -69,7 +69,7 @@ function createStyles(theme: Theme, isTablet: boolean) {
       marginBottom: 4,
       ...(Platform.OS === 'ios'
         ? {
-            shadowColor: '#000',
+            shadowColor: theme.colors.shadow,
             shadowOffset: { width: 0, height: 6 },
             shadowOpacity: 0.35,
             shadowRadius: 20,
@@ -151,6 +151,7 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
           <Pressable
             key={route.key}
             onPress={onPress}
+            hitSlop={{ top: 12, bottom: 12, left: 16, right: 16 }}
             style={({ pressed }) => [
               styles.tab,
               pressed && styles.tabPressed,

@@ -106,14 +106,24 @@ function ScanResultCard({
         <Text style={styles.resultProfit}>{scenario.profit}</Text>
       </View>
       <Text style={styles.resultSub}>{scenario.sub}</Text>
-      {confPresentation ? (
-        <View style={[styles.confidenceBanner, { backgroundColor: confPresentation.bg }]}>
-          <View style={[styles.confidenceDot, { backgroundColor: confPresentation.color }]} />
-          <Text style={[styles.confidenceText, { color: confPresentation.color }]}>
-            {confPresentation.label}
-          </Text>
+      {(scenario.isCustom || confPresentation) && (
+        <View style={styles.pillRow}>
+          {scenario.isCustom && (
+            <View style={styles.customBanner}>
+              <AppIcon name="brush-outline" size={14} color={theme.colors.terra} />
+              <Text style={styles.customBannerText}>Custom / Reworked</Text>
+            </View>
+          )}
+          {confPresentation && (
+            <View style={styles.confidenceBanner}>
+              <View style={[styles.confidenceDot, { backgroundColor: confPresentation.color }]} />
+              <Text style={[styles.confidenceText, { color: confPresentation.color }]}>
+                {confPresentation.label}
+              </Text>
+            </View>
+          )}
         </View>
-      ) : null}
+      )}
       <View style={styles.ideaRows}>
         {scenario.ideas.slice(0, 3).map((idea, i) => (
           <View key={i} style={styles.ideaRow}>
@@ -129,7 +139,7 @@ function ScanResultCard({
         ))}
       </View>
       <Text style={styles.priceHint}>
-        Estimated resale — edit on the next screen.
+        Estimated resale range — edit on the next screen.
       </Text>
       <View style={styles.resultActions}>
         <Pressable
@@ -284,25 +294,42 @@ function createScanStyles(theme: Theme, formMaxWidth?: number) {
       ...theme.typography.bodySmall,
       color: theme.colors.mauve,
     },
-    confidenceBanner: {
+    pillRow: {
       flexDirection: 'row',
-      alignItems: 'flex-start',
+      flexWrap: 'wrap',
       gap: 8,
       marginTop: 8,
-      paddingVertical: 8,
-      paddingHorizontal: 12,
-      borderRadius: theme.radius.sm,
+    },
+    confidenceBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+      borderRadius: theme.radius.full,
     },
     confidenceDot: {
       width: 6,
       height: 6,
       borderRadius: 3,
-      marginTop: 4,
       flexShrink: 0,
     },
     confidenceText: {
       ...theme.typography.caption,
-      flex: 1,
+    },
+    customBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+      borderRadius: theme.radius.full,
+      backgroundColor: theme.colors.blush,
+    },
+    customBannerText: {
+      ...theme.typography.caption,
+      color: theme.colors.terra,
+      fontWeight: '600',
     },
   });
 }
@@ -374,10 +401,10 @@ export default function ScanScreen() {
       const geminiResult = await scanWithGemini(photoUri);
       setResult(geminiResult);
     } catch (error) {
-      console.error('[ThriftVault] Gemini scan failed:', error);
+      if (__DEV__) console.log('[Scan] error:', error);
       const message = error instanceof Error ? error.message : String(error ?? '');
-      if (message.includes('API 429')) {
-        showToast('AI scan quota reached. Add billing or wait for quota reset.');
+      if (/API (429|503|529)/i.test(message) || /overloaded|high demand/i.test(message)) {
+        showToast('AI is busy right now — try again in a moment');
       } else {
         showToast('Couldn\'t identify — try getting the label in frame');
       }
@@ -505,6 +532,7 @@ export default function ScanScreen() {
     sub: scenario.sub ?? '',
     profit: scenario.profit ?? '',
     confidence: scenario.confidence,
+    isCustom: scenario.isCustom || false,
     ideas: Array.isArray(scenario.ideas) ? scenario.ideas.slice(0, 3) : [],
     sourceImageUri,
   }), []);
@@ -512,7 +540,7 @@ export default function ScanScreen() {
   const createItemFromScan = useCallback(async (intent: 'flip' | 'closet') => {
     if (!result) return;
     const id = Date.now();
-    const paid = 0;
+    const paid = null;
     const resale = intent === 'flip' ? (result.suggestedResale ?? 45) : 0;
     const imgUri = await getItemImageUri(id, capturedPhotoUri);
     const snapshot = createSnapshot(result, imgUri || undefined);
@@ -673,20 +701,22 @@ export default function ScanScreen() {
               <View style={styles.cameraOverlayWrap}>
                 <BlurView intensity={40} tint="dark" style={[styles.cameraOverlayBtnBlur, styles.cameraOverlayClose]}>
                   <Pressable
-                    style={({ pressed }) => [styles.cameraOverlayBtn, pressed && styles.cameraPressed]}
+                    hitSlop={12}
+                    style={({ pressed }) => [styles.cameraOverlayIconBtn, pressed && styles.cameraPressed]}
                     onPress={() => { setCameraActive(false); setCameraReady(false); }}
+                    accessibilityLabel="Close camera"
                   >
                     <AppIcon name="close" size={22} color={theme.colors.white} />
-                    <Text style={styles.cameraOverlayBtnText}>Close</Text>
                   </Pressable>
                 </BlurView>
                 <BlurView intensity={40} tint="dark" style={[styles.cameraOverlayBtnBlur, styles.cameraOverlayFlip]}>
                   <Pressable
-                    style={({ pressed }) => [styles.cameraOverlayBtn, pressed && styles.cameraPressed]}
+                    hitSlop={12}
+                    style={({ pressed }) => [styles.cameraOverlayIconBtn, pressed && styles.cameraPressed]}
                     onPress={() => setCameraFacing((f) => (f === 'back' ? 'front' : 'back'))}
+                    accessibilityLabel="Flip camera"
                   >
                     <AppIcon name="camera-reverse-outline" size={22} color={theme.colors.white} />
-                    <Text style={styles.cameraOverlayBtnText}>Flip</Text>
                   </Pressable>
                 </BlurView>
                 <View style={styles.cameraOverlayShutterWrap}>
@@ -1056,7 +1086,7 @@ function createStyles(
     ...StyleSheet.absoluteFillObject,
   },
   cameraOverlayBtnBlur: {
-    borderRadius: 22,
+    borderRadius: 9999,
     overflow: 'hidden',
   },
   cameraOverlayClose: {
@@ -1075,6 +1105,11 @@ function createStyles(
     gap: 6,
     paddingVertical: 10,
     paddingHorizontal: 14,
+  },
+  cameraOverlayIconBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
   },
   cameraOverlayShutterWrap: {
     position: 'absolute',
@@ -1107,7 +1142,7 @@ function createStyles(
   },
   cameraOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: theme.colors.overlay,
     borderRadius: 24,
   },
   clearBtnBlur: {
@@ -1268,7 +1303,7 @@ function createStyles(
   },
   duplicateOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: theme.colors.overlay,
     justifyContent: 'center',
     paddingHorizontal: theme.spacing.xl,
   },
@@ -1276,6 +1311,7 @@ function createStyles(
     backgroundColor: theme.colors.surface,
     borderRadius: theme.radius.md,
     padding: theme.spacing.lg,
+    paddingBottom: theme.spacing.section,
     gap: theme.spacing.sm,
     ...(theme.shadows.md ?? {}),
   },

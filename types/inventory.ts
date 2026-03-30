@@ -37,6 +37,7 @@ export interface ItemScanSnapshot {
   sub: string;
   profit: string;
   confidence?: 'high' | 'medium' | 'low';
+  isCustom?: boolean;
   ideas: ScanScenarioIdea[];
   sourceImageUri?: string;
 }
@@ -45,7 +46,7 @@ export interface Item {
   id: number;
   name: string;
   cat: ItemCategory;
-  paid: number;
+  paid: number | null;
   resale: number;
   status: ItemStatus;
   date: string;
@@ -71,13 +72,19 @@ export interface ScanScenario {
   name: string;
   sub: string;
   profit: string;
-  /** Suggested thrift price when adding from scan (realistic). */
+  /** Suggested thrift/materials price when adding from scan. */
   suggestedPaid?: number;
-  /** Suggested resale price when adding from scan (realistic). */
+  /** Midpoint resale price (average of low and high). */
   suggestedResale?: number;
+  /** Conservative resale estimate. */
+  suggestedResaleLow?: number;
+  /** Optimistic resale estimate. */
+  suggestedResaleHigh?: number;
   ideas: ScanScenarioIdea[];
   /** Confidence in resale pricing — low means sparse comps. */
   confidence?: 'high' | 'medium' | 'low';
   /** Detected item category. */
   category?: ItemCategory;
+  /** True if item appears handmade, reworked, or custom. */
+  isCustom?: boolean;
 }

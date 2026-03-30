@@ -172,7 +172,7 @@ const ItemCard = React.memo(function ItemCard({
   const profitLabel =
     !isCloset && item.status === 'sold' && soldPrice != null
       ? `Sold $${soldPrice}`
-      : `${estProfit >= 0 ? '+' : ''}$${estProfit}`;
+      : `${estProfit >= 0 ? '+' : '-'}$${Math.abs(estProfit)} profit`;
   return (
     <Pressable
       style={({ pressed }) => [
@@ -211,7 +211,7 @@ const ItemCard = React.memo(function ItemCard({
         <Text style={[styles.cardProfit, item.status === 'sold' && styles.cardProfitSold]}>{profitLabel}</Text>
       )}
       {isCloset && (
-        <Text style={styles.cardPaid}>Paid ${item.paid}</Text>
+        <Text style={styles.cardPaid}>{item.paid != null ? `Cost $${item.paid}` : 'Cost —'}</Text>
       )}
     </Pressable>
   );
@@ -252,7 +252,7 @@ export default function InventoryScreen() {
       id,
       name: 'New Item',
       cat: '' as any,
-      paid: 0,
+      paid: null,
       resale: 0,
       status: '' as any,
       date: new Date().toLocaleDateString('en-US', {
@@ -294,7 +294,7 @@ export default function InventoryScreen() {
         id,
         name: `Find ${i + 1}`,
         cat: 'tops',
-        paid: 0,
+        paid: null,
         resale: 0,
         status: 'unlisted',
         date: today,
@@ -1023,7 +1023,7 @@ function createStyles(theme: Theme, hPad: number, headerHPad: number, numColumns
   },
   storePickerBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: theme.colors.overlayHeavy,
   },
   storePickerSheet: {
     backgroundColor: theme.colors.cream,
@@ -1260,7 +1260,7 @@ function createStyles(theme: Theme, hPad: number, headerHPad: number, numColumns
     backgroundColor: theme.colors.profit,
   },
   cardBadgeUnlisted: {
-    backgroundColor: '#C8E6E4',
+    backgroundColor: theme.colors.vintageBlueLight,
   },
   cardBadgeListed: {
     backgroundColor: theme.colors.vintageBlueDark,
@@ -1274,7 +1274,7 @@ function createStyles(theme: Theme, hPad: number, headerHPad: number, numColumns
     color: theme.colors.white,
   },
   badgeTextUnlisted: {
-    color: '#1A5C59',
+    color: theme.colors.vintageBlueDeep,
   },
   badgeTextListed: {
     color: theme.colors.white,

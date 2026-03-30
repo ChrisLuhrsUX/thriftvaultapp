@@ -245,7 +245,7 @@ export default function HaulDetailScreen() {
                   {item.name}
                 </Text>
                 <Text style={styles.itemRowMeta}>
-                  Paid ${Number(item.paid) || 0}
+                  {item.paid != null ? `Cost $${Number(item.paid)}` : 'Cost —'}
                   {item.intent === 'flip' && Number(item.resale) > 0
                     ? ` · Resale $${Number(item.resale) || 0}`
                     : ''}
@@ -282,7 +282,7 @@ export default function HaulDetailScreen() {
                       {item.name}
                     </Text>
                     <Text style={styles.collageFooterMeta} numberOfLines={1}>
-                      Paid ${Number(item.paid) || 0}
+                      {item.paid != null ? `Cost $${Number(item.paid)}` : 'Cost —'}
                       {item.intent === 'flip' && Number(item.resale) > 0
                         ? ` · $${Number(item.resale) || 0} resale`
                         : ''}
@@ -456,7 +456,7 @@ function createStyles(theme: Theme) {
       backgroundColor: theme.colors.profit,
     },
     statusBadgeUnlisted: {
-      backgroundColor: '#C8E6E4',
+      backgroundColor: theme.colors.vintageBlueLight,
     },
     statusBadgeListed: {
       backgroundColor: theme.colors.vintageBlueDark,
@@ -470,7 +470,7 @@ function createStyles(theme: Theme) {
       color: theme.colors.white,
     },
     statusBadgeTextUnlisted: {
-      color: '#1A5C59',
+      color: theme.colors.vintageBlueDeep,
     },
     statusBadgeTextListed: {
       color: theme.colors.white,
@@ -545,7 +545,7 @@ function createStyles(theme: Theme) {
     },
     haulStoreBackdrop: {
       ...StyleSheet.absoluteFillObject,
-      backgroundColor: 'rgba(0,0,0,0.5)',
+      backgroundColor: theme.colors.overlayHeavy,
     },
     haulStoreSheet: {
       backgroundColor: theme.colors.cream,

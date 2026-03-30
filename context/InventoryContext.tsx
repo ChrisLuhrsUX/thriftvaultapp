@@ -89,7 +89,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
             return {
             ...i,
             id: Number(i.id),
-            paid: Number(i.paid),
+            paid: i.paid != null ? Number(i.paid) : null,
             resale: Number(i.resale),
             soldPrice: i.soldPrice != null ? Number(i.soldPrice) : null,
             name: String(i.name),

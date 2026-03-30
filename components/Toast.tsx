@@ -38,7 +38,7 @@ export function Toast() {
         { opacity },
       ]}
     >
-      <Text style={styles.text} numberOfLines={1}>
+      <Text style={styles.text} numberOfLines={2}>
         {message}
       </Text>
     </Animated.View>
@@ -48,9 +48,8 @@ export function Toast() {
 const styles = StyleSheet.create({
   toast: {
     position: 'absolute',
-    left: '50%',
-    marginLeft: -120,
-    width: 240,
+    left: 40,
+    right: 40,
     backgroundColor: theme.colors.charcoal,
     paddingVertical: 10,
     paddingHorizontal: 20,
@@ -63,5 +62,6 @@ const styles = StyleSheet.create({
     color: theme.colors.white,
     fontSize: 13,
     fontWeight: '500',
+    textAlign: 'center',
   },
 });

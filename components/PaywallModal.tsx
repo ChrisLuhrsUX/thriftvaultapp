@@ -223,7 +223,7 @@ function createStyles(theme: Theme, isDesktop: boolean) {
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: theme.colors.overlayHeavy,
   },
   sheet: {
     backgroundColor: theme.colors.cream,
