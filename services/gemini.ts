@@ -9,6 +9,12 @@ const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
 
 const VALID_CATEGORIES: ItemCategory[] = ITEM_CATEGORIES;
 
+const CUSTOM_KEYWORDS = /\b(crochet|crocheted|hand[\s-]?knit|handknit|hand[\s-]?made|handmade|hand[\s-]?crafted|handcrafted|hand[\s-]?sewn|handsewn|hand[\s-]?painted|hand[\s-]?tooled|hand[\s-]?stamped|hand[\s-]?stitched|hand[\s-]?woven|handwoven|hand[\s-]?dyed|macram[eé]|sashiko|visible mending|needle[\s-]?felt|punch[\s-]?needle|latch[\s-]?hook|tufted|tufting|quilted|patchwork|upcycled|reworked|repurposed|one[\s-]?of[\s-]?a[\s-]?kind|ooak|diy|wire[\s-]?wrap|resin[\s-]?cast|polymer[\s-]?clay|block[\s-]?print|lino[\s-]?print|pyrography|wood[\s-]?burn|leather[\s-]?burn|hand[\s-]?embroidered|custom[\s-]?painted|custom[\s-]?dyed|lace[\s-]?knit|granny[\s-]?square|amigurumi|friendship[\s-]?bracelet)\b/i;
+
+function detectCustomFromText(...fields: unknown[]): boolean {
+  return fields.some((f) => typeof f === 'string' && CUSTOM_KEYWORDS.test(f));
+}
+
 /** Gemini 2.5 thinking can consume most of a small output budget; JSON never arrives. */
 const MAX_OUTPUT_TOKENS = 8192;
 
@@ -28,6 +34,11 @@ Return ONLY a valid JSON object with this exact structure — no markdown fences
     {"t": "Listing/pricing suggestion", "ideaIcon": "pricetag"},
     {"t": "Photography or styling tip", "ideaIcon": "camera"},
     {"t": "Bundle or upsell idea (if item is already a bundle, suggest how to split or market it instead — never say 'not applicable')", "ideaIcon": "flame"}
+  ],
+  "upcycle": [
+    "First distinct upcycle idea (technique + aesthetic)",
+    "Second distinct upcycle idea using a different technique",
+    "Third distinct upcycle idea using a different technique"
   ]
 }
 
@@ -37,14 +48,27 @@ Guidelines:
 - Never use the word "generic" in the name field
 - Be conservative with prices
 - confidence = "low" if brand is obscure/niche or resale comps are sparse
-- isCustom = true if the item appears handmade, reworked, custom-dyed, hand-painted, upcycled, bleached, distressed by hand, patchwork, embroidered with custom designs, or otherwise modified from its original form. false otherwise
+- isCustom detection — examine the item carefully for ANY sign of modification before deciding. Set isCustom = true if you see ONE OR MORE of these:
+  • Hand-applied elements: fabric paint, puff paint, rhinestones, studs, patches sewn or ironed on, safety pins as decoration, beadwork, buttons added decoratively
+  • Dye/color work: hand tie-dye (irregular spirals, uneven saturation), bleach splatter, bleach-dyed patterns, custom overdyeing, ombre dip-dye
+  • Structural rework: cropped/cut hems (raw or unfinished edges), tapering, deconstruction/reconstruction, franken-pieces (two garments combined), asymmetric cuts
+  • Surface decoration: hand-painted designs, screen prints that look DIY (slightly uneven, small-batch feel), hand embroidery (irregular stitch patterns vs machine-perfect), marker/pen artwork, block/lino prints (slight ink inconsistency, repeated motif with minor variations)
+  • Distressing: hand-distressed holes/fraying (irregular placement, not factory-uniform), hand-sanded areas, patchwork repairs used as design
+  • Handcrafted fiber arts: crochet (any gauge — granny squares, lace, amigurumi, bead crochet), hand-knit, macrame, weaving, punch needle, rug hooking, tufting (dense loop pile in non-industrial patterns), latch hook. These are ALWAYS isCustom = true
+  • Visible mending and sashiko: Japanese-style running stitches in contrasting thread, decorative darning, patchwork repairs intended as design. Always isCustom = true
+  • Leather and shoe customization: hand-tooled or pyrography-burned leather, hand-stitched leather goods (angled saddle stitch), hand-painted sneakers/shoes (paint on typically unpainted surfaces), custom-dyed leather or suede, spike/stud additions to boots
+  • Handmade jewelry and accessories: wire-wrapped stones/crystals, resin jewelry (pressed flowers, pigment, glitter), polymer clay earrings/pendants, hand-stamped metal (hammer marks, slightly uneven letters), spoon/fork rings from bent flatware, friendship bracelets, beaded phone/bag straps
+  • Upcycling indicators: mismatched fabric panels, visible re-stitching, non-original hardware, repurposed materials (e.g. curtain fabric as lining, blanket turned into garment, tablecloth into skirt, vintage quilt turned into jacket/coat, vintage tee cut into tote bag, denim patchwork from multiple washes, bandana fabric reworked into tops/scrunchies)
+  Set isCustom = false for: factory distressing (uniform, repeated across units), mass-produced tie-dye (consistent patterns), standard brand embroidery, screen prints with barcode/SKU tags, machine-knit garments with uniform tension and factory tags, factory leather tooling (uniform depth, repeated pattern), mass-produced jewelry with brand markings
+  When uncertain, lean toward isCustom = true — it's better to flag a potential custom piece than to miss one
 - suggestedPaid = if isCustom is true, estimate total materials cost ($15–$60); otherwise, realistic thrift store price ($3–$30)
-- suggestedResaleLow = conservative realistic resale price on Depop/Poshmark/eBay. If isCustom, factor in labor and uniqueness
-- suggestedResaleHigh = optimistic realistic resale price (typically 30–50% above low). If isCustom, custom items typically sell for 2–4x materials cost
+- suggestedResaleLow = conservative realistic resale price on Depop/Poshmark/eBay. If isCustom, factor in labor, uniqueness, and one-of-one appeal
+- suggestedResaleHigh = optimistic realistic resale price (typically 30–50% above low). If isCustom, custom items typically sell for 2–4x materials cost — unique/viral-aesthetic pieces can go higher
 - ideas[].t = short, actionable tip (no price amounts)
 - If multiple items are visible, identify only the most prominent one
 - If the photo appears to be AI-generated, a screenshot, or not a real physical item, set name to "Not a real item" and confidence to "low"
-- For Sanrio characters (Hello Kitty, Kuromi, My Melody, Cinnamoroll, Pompompurin, etc.) or other collectible character brands, the bundle idea should suggest pairing with related items from the same universe — e.g. "Bundle with other Sanrio items for a themed lot — character bundles sell 30-50% higher on Depop"`;
+- For Sanrio characters (Hello Kitty, Kuromi, My Melody, Cinnamoroll, Pompompurin, etc.) or other collectible character brands, the bundle idea should suggest pairing with related items from the same universe — e.g. "Bundle with other Sanrio items for a themed lot — character bundles sell 30-50% higher on Depop"
+- upcycle[]: exactly 3 short, specific ideas for customizing or transforming this item to increase its resale value. Each should name a concrete technique (e.g. bleach spiral, crop + raw hem, puff paint lettering, overdye, crochet trim, patch placement) and the resulting aesthetic (e.g. Y2K, cottagecore, vintage streetwear). Do not mention platforms or where to sell. Keep each under 15 words. Do not say "not applicable" — every item can be transformed`;
 
 function inferMimeType(uri: string): string {
   const u = uri.split('?')[0].toLowerCase();
@@ -131,14 +155,15 @@ function isOverloadError(err: unknown): boolean {
 const MAX_RETRIES = 2;
 const RETRY_DELAYS = [2000, 4000]; // ms
 
-async function callGemini(base64: string, mimeType: string): Promise<Record<string, unknown>> {
+async function callGemini(base64: string, mimeType: string, promptSuffix = '', signal?: AbortSignal, promptOverride?: string): Promise<Record<string, unknown>> {
   const res = await fetch(GEMINI_URL, {
     method: 'POST',
+    signal,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       contents: [{
         parts: [
-          { text: PROMPT },
+          { text: promptOverride ?? (PROMPT + promptSuffix) },
           { inline_data: { mime_type: mimeType, data: base64 } },
         ],
       }],
@@ -175,9 +200,10 @@ async function callGemini(base64: string, mimeType: string): Promise<Record<stri
   return parseJsonFromModelText(text);
 }
 
-async function callOpenAI(base64: string, mimeType: string): Promise<Record<string, unknown>> {
+async function callOpenAI(base64: string, mimeType: string, promptSuffix = '', signal?: AbortSignal, promptOverride?: string): Promise<Record<string, unknown>> {
   const res = await fetch(OPENAI_URL, {
     method: 'POST',
+    signal,
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${OPENAI_KEY}`,
@@ -187,7 +213,7 @@ async function callOpenAI(base64: string, mimeType: string): Promise<Record<stri
       messages: [{
         role: 'user',
         content: [
-          { type: 'text', text: PROMPT },
+          { type: 'text', text: promptOverride ?? (PROMPT + promptSuffix) },
           { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64}`, detail: 'low' } },
         ],
       }],
@@ -208,7 +234,7 @@ async function callOpenAI(base64: string, mimeType: string): Promise<Record<stri
   return parseJsonFromModelText(text);
 }
 
-export async function scanWithGemini(photoUri: string): Promise<ScanScenario> {
+async function runScanPipeline(photoUri: string, promptSuffix = '', signal?: AbortSignal): Promise<ScanScenario> {
   if (!GEMINI_KEY && !OPENAI_KEY) throw new Error('API key not configured');
 
   const { uri: readUri, mimeType } = await resolveReadableUri(photoUri);
@@ -223,9 +249,10 @@ export async function scanWithGemini(photoUri: string): Promise<ScanScenario> {
   if (GEMINI_KEY) {
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {
-        parsed = await callGemini(base64, mimeType);
+        parsed = await callGemini(base64, mimeType, promptSuffix, signal);
         break;
       } catch (err) {
+        if ((err as Error)?.name === 'AbortError') throw err;
         if (!isOverloadError(err)) throw err;
         if (attempt < MAX_RETRIES) {
           await new Promise((r) => setTimeout(r, RETRY_DELAYS[attempt]));
@@ -236,7 +263,7 @@ export async function scanWithGemini(photoUri: string): Promise<ScanScenario> {
 
   // Fallback to OpenAI if Gemini failed or unavailable
   if (!parsed && OPENAI_KEY) {
-    parsed = await callOpenAI(base64, mimeType);
+    parsed = await callOpenAI(base64, mimeType, promptSuffix, signal);
   }
 
   if (!parsed) throw new Error('All scan providers failed');
@@ -254,7 +281,7 @@ export async function scanWithGemini(photoUri: string): Promise<ScanScenario> {
     suggestedResale: resale,
     suggestedResaleLow: resaleLow,
     suggestedResaleHigh: resaleHigh,
-    isCustom: parsed.isCustom === true,
+    isCustom: parsed.isCustom === true || detectCustomFromText(parsed.name, parsed.sub),
     category: VALID_CATEGORIES.includes(parsed.category as ItemCategory)
       ? (parsed.category as ItemCategory)
       : 'other',
@@ -269,5 +296,63 @@ export async function scanWithGemini(photoUri: string): Promise<ScanScenario> {
           ideaIcon: String(idea.ideaIcon || 'pricetag'),
         }))
       : [],
+    upcycle: Array.isArray(parsed.upcycle)
+      ? parsed.upcycle.slice(0, 3).map((u: unknown) => String(u || '')).filter(Boolean)
+      : [],
   };
+}
+
+export async function scanWithGemini(photoUri: string, signal?: AbortSignal): Promise<ScanScenario> {
+  return runScanPipeline(photoUri, '', signal);
+}
+
+const UPCYCLE_PROMPT = `You are an expert thrift reseller and DIY upcycler. Look at this thrift store item and suggest 3 creative ways to customize or transform it to increase its resale value.
+
+Return ONLY a valid JSON object — no markdown fences, no explanation:
+{
+  "upcycle": [
+    "First transformation idea (technique + aesthetic)",
+    "Second transformation idea using a different technique",
+    "Third transformation idea using a different technique"
+  ]
+}
+
+Guidelines:
+- Each idea should name a concrete technique (e.g. bleach spiral, crop + raw hem, puff paint lettering, overdye, crochet trim, patch placement, distressing, embroidery) and the resulting aesthetic (e.g. Y2K, cottagecore, vintage streetwear, dark academia)
+- Do not mention platforms or where to sell
+- Keep each idea under 15 words
+- Make all 3 ideas genuinely distinct from each other — different techniques, different aesthetics`;
+
+export async function refreshUpcycleIdeas(photoUri: string, signal?: AbortSignal): Promise<string[]> {
+  if (!GEMINI_KEY && !OPENAI_KEY) throw new Error('API key not configured');
+  const { uri: readUri, mimeType } = await resolveReadableUri(photoUri);
+  const base64 = await FileSystem.readAsStringAsync(readUri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+  let parsed: Record<string, unknown> | null = null;
+  if (GEMINI_KEY) {
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        parsed = await callGemini(base64, mimeType, '', signal, UPCYCLE_PROMPT);
+        break;
+      } catch (err) {
+        if ((err as Error)?.name === 'AbortError') throw err;
+        if (!isOverloadError(err)) throw err;
+        if (attempt < MAX_RETRIES) await new Promise((r) => setTimeout(r, RETRY_DELAYS[attempt]));
+      }
+    }
+  }
+  if (!parsed && OPENAI_KEY) {
+    parsed = await callOpenAI(base64, mimeType, '', signal, UPCYCLE_PROMPT);
+  }
+  if (!parsed) throw new Error('All providers failed');
+  return Array.isArray(parsed.upcycle)
+    ? parsed.upcycle.slice(0, 3).map((u: unknown) => String(u || '')).filter(Boolean)
+    : [];
+}
+
+const HANDMADE_SUFFIX = `\n\nIMPORTANT: The user has confirmed this item IS handmade/custom. Set isCustom = true. Price accordingly — factor in labor, materials, uniqueness, and one-of-one appeal. Handmade items typically sell for 2–4x materials cost.`;
+
+export async function rescanAsHandmade(photoUri: string, signal?: AbortSignal): Promise<ScanScenario> {
+  return runScanPipeline(photoUri, HANDMADE_SUFFIX, signal);
 }

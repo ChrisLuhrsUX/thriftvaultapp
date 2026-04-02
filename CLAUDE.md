@@ -197,6 +197,48 @@ interface ScanScenario {
 
 ## Session Notes
 
+### Session — 2026-04-02
+
+- **Share button commented out** — removed from kebab menu until wired up. Added to Post-Launch in `MVP.md`.
+- **RevenueCat setup guide** — `REVENUECAT_SETUP.md` created. Product IDs (`monthly`/`season`/`annual`) must match App Store Connect + RevenueCat.
+- **Profile stats redesign** — Total Profit and Best Single Flip moved into "Your Stats" card. Upgrade to Pro button moved to bottom of page.
+- **Dark mode** — warm background tokens (`#1F1B18`, `#292320`), stronger accent colors, unified badge contrast, switcher + chip active states all `vintageBlueDark`. Fullscreen photo overlay fixed to `#1A1A1A`. Handmade/wrong-scan prompt colors updated (`terraLight`/`mauveLight`).
+- **Notes keyboard dismiss bug fixed** — keyboard now only dismisses on upward scroll; `keyboardDismissMode="none"`.
+- **Flips sorted newest first** — `filtered` useMemo sorts by `id` desc.
+- **UX audit** — `UX_AUDIT.md` created. Rating: 7/10.
+- **Scan history modal redesigned** — bottom sheet with thumbnail, profit, confidence, Handmade pill per row. Swipe-to-dismiss via `PanResponder` on handle. Manual spring animation, no Modal lag.
+- **Handmade pill full-width bug fixed** — wrapped in `flexDirection: 'row'` container in `detail.tsx` and `scan.tsx`.
+- **Dismissed state persistence bug fixed** — `confirmHandmade` no longer clears `wrongScanDismissed` or AsyncStorage after rescan.
+- **AI scan description removed from header** — `activeSnapshot.sub` redundant in nav header; shown in AI Insights section.
+
+### Session — 2026-04-01
+
+- **Handmade detection expanded** — 4 new `isCustom` categories: fiber arts (crochet/knit/macrame/tufting — always `true`), visible mending/sashiko (always `true`), leather/shoe customization, handmade jewelry. Client-side keyword fallback (`detectCustomFromText`) overrides Gemini false negatives using 40+ regex terms.
+- **Rescan as handmade** — `rescanAsHandmade(photoUri, signal?)` in `gemini.ts` appends handmade hint, re-prices for labor/uniqueness. Prices ratchet up only (`Math.max` across low/high/resale — never decrease).
+- **"Is this handmade?" prompt** — Yes/No buttons on both scan card and item detail insights when `isCustom` is false. Yes triggers `rescanAsHandmade`, updates name + price + snapshot. Spinner while rescanning.
+- **"Is this scan wrong?" prompt** — Yes/No on both scan card and item detail insights. Yes triggers context-aware rescan (`rescanAsHandmade` if handmade confirmed, else `scanWithGemini`). Creates new snapshot, updates name and price. No dismisses.
+- **Cancel scan** — `AbortController` threaded through all `gemini.ts` fetch calls. Cancel button below spinner aborts silently, clears photo, no error toast.
+- **Rescan price ratchet on existing items** — `updateExistingFromScan` updates item name alongside price only when resale goes up.
+- **Handmade pill in item detail** — Proper pill style (blush bg, terra text) matching scan card. Always visible in insights; toggles between pill and "Is this handmade?" prompt.
+- **Delete scan** — Trash button at bottom of scan insights. Confirmation alert, falls back to next snapshot or hides insights if last.
+- **Fullscreen photo chrome toggle** — Tapping photo hides/shows close button, count pill, and action bar. Resets to visible on open.
+- **Fullscreen action bar** — Dark scrim behind buttons, icon-above-label layout, `minHeight: 64`, vertical divider before Delete, Delete tinted red.
+- **Dot indicator sync** — `galleryScrollRef` on main carousel; scrolls to correct photo immediately when fullscreen closes, no stale dot delay.
+- **Yes/No tap targets** — All handmade/wrong-scan prompt buttons: `minHeight: 36`, `paddingHorizontal: 18`, body-size text.
+- **Upcycle suggestions** — Gemini returns 3 upcycle ideas per scan (technique + aesthetic, no platform mentions). Collapsible "Upcycle ideas" section on scan card and item detail insights, terra-colored, with refresh button (`reload-outline`) visible only when expanded. `refreshUpcycleIdeas()` in `gemini.ts` uses a lightweight focused prompt — not a full rescan.
+- **Prompt dismissed state persisted** — "Is this handmade?" and "Is this scan wrong?" dismissed state saved to AsyncStorage per item (`tv_prompt_dismissed_<id>`). Cleared on rescan. "Is this handmade?" also auto-dismissed if any snapshot on the item has `isCustom: true`.
+- **Hardcoded color audit** — Added `overlayWhiteStrong`, `overlayWhiteMid`, `overlayWhiteLight` tokens to `theme/colors.ts`. All hardcoded hex/rgba values replaced with theme tokens across `detail.tsx`, `scan.tsx`, and `+not-found.tsx`.
+- **Scan card ordering fix** — "Is this scan wrong?" moved directly under "Is this handmade?". `pillRow` changed to `flexDirection: column`. Removed "Estimated resale range" hint text.
+
+### Session — 2026-03-30
+
+- **Handmade item detection expanded** — Gemini `isCustom` prompt expanded to 6-category visual checklist (hand-applied elements, dye work, structural rework, surface decoration, distressing, upcycling). Leans toward `true` when uncertain. Label renamed from "Custom / Reworked" to "Handmade".
+- **GPT-4o-mini fallback** — OpenAI fallback when Gemini is overloaded. Gemini retries 2x with backoff first. Key: `EXPO_PUBLIC_OPENAI_API_KEY`.
+- **Price range scan** — `suggestedResaleLow`/`suggestedResaleHigh` replace single estimate. Scan card shows `$X–$Y`; item creation uses midpoint.
+- **"Paid" → "Cost"** — Covers both thrift buyers and custom makers. `paid: number | null` — new items default to `null`.
+- **Theme token enforcement** — Added `vintageBlueLight`, `loss`, overlay, shadow tokens. Replaced all hardcoded colors app-wide.
+- **UX polish** — Profit labels say `+$X profit`, icon-only frosted glass camera buttons, `hitSlop` on tab bar + upload button, toast width fix, notes keyboard scroll fix, previous scans button restyled as row.
+
 ### Session — 2026-03-28
 
 - **Editable item names** — pencil icon on scan card and detail header toggles inline `TextInput` for renaming. Text still wraps; icon aligned flex-start.

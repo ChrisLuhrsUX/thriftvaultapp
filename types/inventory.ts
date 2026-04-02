@@ -39,6 +39,7 @@ export interface ItemScanSnapshot {
   confidence?: 'high' | 'medium' | 'low';
   isCustom?: boolean;
   ideas: ScanScenarioIdea[];
+  upcycle?: string[];
   sourceImageUri?: string;
 }
 
@@ -81,6 +82,8 @@ export interface ScanScenario {
   /** Optimistic resale estimate. */
   suggestedResaleHigh?: number;
   ideas: ScanScenarioIdea[];
+  /** AI-generated upcycle/customization ideas to increase resale value. */
+  upcycle?: string[];
   /** Confidence in resale pricing — low means sparse comps. */
   confidence?: 'high' | 'medium' | 'low';
   /** Detected item category. */

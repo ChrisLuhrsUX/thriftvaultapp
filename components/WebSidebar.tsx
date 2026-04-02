@@ -57,7 +57,7 @@ export function WebSidebar() {
       borderRadius: theme.radius.md,
     },
     navItemActive: {
-      backgroundColor: theme.colors.vintageBlue + '1F',
+      backgroundColor: theme.colors.vintageBlueLight,
     },
     navLabel: {
       ...theme.typography.body,

@@ -394,7 +394,7 @@ export default function InventoryScreen() {
         list = list.filter((i) => i.status === filter);
       }
     }
-    if (view === 'closet') {
+    if (view === 'closet' || view === 'flips') {
       list = [...list].sort((a, b) => b.id - a.id);
     }
     return list;
@@ -1206,7 +1206,7 @@ function createStyles(theme: Theme, hPad: number, headerHPad: number, numColumns
     borderRadius: theme.radius.full,
   },
   switcherTabActive: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.vintageBlueDark,
     ...(theme.shadows.sm ?? {}),
   },
   switcherText: {
@@ -1215,7 +1215,7 @@ function createStyles(theme: Theme, hPad: number, headerHPad: number, numColumns
     color: theme.colors.mauve,
   },
   switcherTextActive: {
-    color: theme.colors.charcoal,
+    color: theme.colors.onPrimary,
   },
   card: {
     flex: 1,
@@ -1251,33 +1251,35 @@ function createStyles(theme: Theme, hPad: number, headerHPad: number, numColumns
     position: 'absolute',
     top: 8,
     left: 8,
-    backgroundColor: theme.colors.surface,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    backgroundColor: theme.colors.vintageBlueDark,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: theme.radius.sm,
+    ...(theme.shadows.sm ?? {}),
   },
   cardBadgeSold: {
     backgroundColor: theme.colors.profit,
   },
   cardBadgeUnlisted: {
-    backgroundColor: theme.colors.vintageBlueLight,
+    backgroundColor: theme.colors.vintageBlueDark,
   },
   cardBadgeListed: {
     backgroundColor: theme.colors.vintageBlueDark,
   },
   badgeText: {
     ...theme.typography.label,
-    fontSize: 9,
-    color: theme.colors.charcoal,
+    fontSize: 11,
+    color: theme.colors.onPrimary,
+    fontFamily: 'DMSans_600SemiBold',
   },
   badgeTextSold: {
-    color: theme.colors.white,
+    color: theme.colors.onPrimary,
   },
   badgeTextUnlisted: {
-    color: theme.colors.vintageBlueDeep,
+    color: theme.colors.onPrimary,
   },
   badgeTextListed: {
-    color: theme.colors.white,
+    color: theme.colors.onPrimary,
   },
   cardName: {
     ...theme.typography.caption,

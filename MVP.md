@@ -2,24 +2,24 @@
 
 ## Blocking (must ship — in order)
 
-- [ ] **Screenshots** — 6.7" and 6.5" iPhone (needs simulator or TestFlight build)
-- [ ] **Apple Developer Program** — $99/yr membership required before any of the below is possible
-- [ ] **RevenueCat subscriptions** — requires Apple Developer membership first. Then: `npm install react-native-purchases`, add plugin to `app.json`, set `EXPO_PUBLIC_REVENUECAT_API_KEY` in `.env`, run `npx expo prebuild`. Create products `tv_monthly` / `tv_season` / `tv_annual` in App Store Connect + RevenueCat dashboard (entitlement: `pro`, offering: `default`). Hook code already written in `hooks/usePurchases.ts`
+- [x] **Apple Developer Program** — enrollment complete
+- [ ] **RevenueCat subscriptions** — now unblocked. `npm install react-native-purchases`, add plugin to `app.json`, set `EXPO_PUBLIC_REVENUECAT_API_KEY` in `.env`, run `npx expo prebuild`. Create products `tv_monthly` / `tv_season` / `tv_annual` in App Store Connect + RevenueCat dashboard (entitlement: `pro`, offering: `default`). Hook code already written in `hooks/usePurchases.ts`
+- [ ] **Screenshots** — 6.7" and 6.5" iPhone (simulator or TestFlight build)
 
 ## Post-Launch
 
-- [x] **Manual item add** — "+" button in vault header creates blank item and opens detail screen for manual entry. Free users can track items without AI scan.
+- [ ] **Share item** — wire up the share sheet on item detail (button already exists, commented out in `detail.tsx`)
 - [ ] **Haul titles** — let users name their hauls instead of defaulting to the date (e.g. "Saturday Goodwill Run")
 - [ ] **Platform filter in Vault** — filter by eBay / Poshmark / etc.
 - [ ] **Android launch** — test, fix platform-specific issues, and publish to Google Play Store
 - [ ] **Landing page** — marketing website to promote the app (App Store link, features, screenshots)
-- [ ] **Social media** — Instagram/TikTok presence for thrift community, haul content, tips
 - [ ] **ASO iteration** — refine keywords and metadata based on real App Store search data
 - [ ] **Feedback channel** — Discord community or in-app feedback form beyond support email
 - [ ] **Affiliate links** — link scanned items to retailer listings (Amazon, Walmart, etc.) with affiliate tags for commission revenue
 
 ## Done
 
+- [x] **Manual item add** — "+" button in vault header creates blank item and opens detail screen for manual entry. Free users can track items without AI scan.
 - [x] **Real AI scan** — Gemini 2.5 Flash vision API via `services/gemini.ts`
 - [x] **Store listing** — `STORE_LISTING.md`
 - [x] **Paywall modal UI** — 3-plan picker (Monthly / Season Pass / Annual), trial copy, plan-aware fine print

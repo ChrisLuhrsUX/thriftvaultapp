@@ -22,9 +22,9 @@ import type { Theme } from '@/theme';
 
 const FEATURES = [
   'Unlimited AI scans & price estimates',
-  'Unlimited inventory items & hauls',
-  'Profit tracking & store analytics',
-  'Multi-photo item galleries',
+  'Handmade item detection & rescanning',
+  'Upcycle suggestions & flip ideas',
+  'Store profit analytics',
 ];
 
 interface PaywallModalProps {

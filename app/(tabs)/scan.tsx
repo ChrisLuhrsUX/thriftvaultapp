@@ -6,7 +6,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useToast } from '@/context/ToastContext';
 import { usePurchases } from '@/hooks/usePurchases';
 import { useResponsive } from '@/hooks/useResponsive';
-import { scanWithGemini } from '@/services/gemini';
+import { scanWithGemini, rescanAsHandmade, refreshUpcycleIdeas } from '@/services/gemini';
 import type { Theme } from '@/theme';
 import type { Item, ItemScanSnapshot, ScanScenario } from '@/types/inventory';
 import { getConfidencePresentation } from '@/utils/confidencePresentation';
@@ -51,6 +51,12 @@ function ScanResultCard({
   onSkip,
   onSaveForLater,
   onNameChange,
+  onConfirmHandmade,
+  rescanningHandmade,
+  onRescanWrong,
+  rescanningWrong,
+  onRefreshUpcycle,
+  refreshingUpcycle,
   theme,
   styles,
 }: {
@@ -60,6 +66,12 @@ function ScanResultCard({
   onSkip: () => void;
   onSaveForLater: () => void;
   onNameChange: (name: string) => void;
+  onConfirmHandmade: () => void;
+  rescanningHandmade: boolean;
+  onRescanWrong: () => void;
+  rescanningWrong: boolean;
+  onRefreshUpcycle: () => void;
+  refreshingUpcycle: boolean;
   theme: Theme;
   styles: ReturnType<typeof createScanStyles>;
 }) {
@@ -69,6 +81,9 @@ function ScanResultCard({
 
   const [editingName, setEditingName] = useState(false);
   const [editedName, setEditedName] = useState(scenario.name);
+  const [customDismissed, setCustomDismissed] = useState(false);
+  const [wrongScanDismissed, setWrongScanDismissed] = useState(false);
+  const [upcycleExpanded, setUpcycleExpanded] = useState(false);
 
   const commitNameEdit = () => {
     const trimmed = editedName.trim();
@@ -106,24 +121,73 @@ function ScanResultCard({
         <Text style={styles.resultProfit}>{scenario.profit}</Text>
       </View>
       <Text style={styles.resultSub}>{scenario.sub}</Text>
-      {(scenario.isCustom || confPresentation) && (
-        <View style={styles.pillRow}>
-          {scenario.isCustom && (
+      <View style={styles.pillRow}>
+        {rescanningHandmade ? (
+          <View style={styles.handmadePromptRow}>
+            <ActivityIndicator size="small" color={theme.colors.terra} />
+            <Text style={styles.handmadePromptText}>Updating scan...</Text>
+          </View>
+        ) : scenario.isCustom ? (
+          <View style={{ flexDirection: 'row' }}>
             <View style={styles.customBanner}>
               <AppIcon name="brush-outline" size={14} color={theme.colors.terra} />
-              <Text style={styles.customBannerText}>Custom / Reworked</Text>
+              <Text style={styles.customBannerText}>Handmade</Text>
             </View>
-          )}
-          {confPresentation && (
-            <View style={styles.confidenceBanner}>
-              <View style={[styles.confidenceDot, { backgroundColor: confPresentation.color }]} />
-              <Text style={[styles.confidenceText, { color: confPresentation.color }]}>
-                {confPresentation.label}
-              </Text>
-            </View>
-          )}
-        </View>
-      )}
+          </View>
+        ) : !customDismissed ? (
+          <View style={styles.handmadePromptRow}>
+            <AppIcon name="brush-outline" size={14} color={theme.colors.mauve} />
+            <Text style={styles.handmadePromptText}>Is this handmade?</Text>
+            <Pressable
+              style={({ pressed }) => [styles.handmadeYes, pressed && { opacity: 0.7 }]}
+              onPress={onConfirmHandmade}
+              hitSlop={8}
+            >
+              <Text style={styles.handmadeYesText}>Yes</Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.handmadeNo, pressed && { opacity: 0.7 }]}
+              onPress={() => setCustomDismissed(true)}
+              hitSlop={8}
+            >
+              <Text style={styles.handmadeNoText}>No</Text>
+            </Pressable>
+          </View>
+        ) : null}
+        {rescanningWrong ? (
+          <View style={styles.handmadePromptRow}>
+            <ActivityIndicator size="small" color={theme.colors.vintageBlueDark} />
+            <Text style={styles.handmadePromptText}>Rescanning...</Text>
+          </View>
+        ) : !wrongScanDismissed && (
+          <View style={styles.handmadePromptRow}>
+            <AppIcon name="alert-circle-outline" size={14} color={theme.colors.mauve} />
+            <Text style={styles.handmadePromptText}>Is this scan wrong?</Text>
+            <Pressable
+              style={({ pressed }) => [styles.handmadeYes, pressed && { opacity: 0.7 }]}
+              onPress={onRescanWrong}
+              hitSlop={8}
+            >
+              <Text style={styles.handmadeYesText}>Yes</Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.handmadeNo, pressed && { opacity: 0.7 }]}
+              onPress={() => setWrongScanDismissed(true)}
+              hitSlop={8}
+            >
+              <Text style={styles.handmadeNoText}>No</Text>
+            </Pressable>
+          </View>
+        )}
+        {confPresentation && (
+          <View style={styles.confidenceBanner}>
+            <View style={[styles.confidenceDot, { backgroundColor: confPresentation.color }]} />
+            <Text style={[styles.confidenceText, { color: confPresentation.color }]}>
+              {confPresentation.label}
+            </Text>
+          </View>
+        )}
+      </View>
       <View style={styles.ideaRows}>
         {scenario.ideas.slice(0, 3).map((idea, i) => (
           <View key={i} style={styles.ideaRow}>
@@ -138,9 +202,40 @@ function ScanResultCard({
           </View>
         ))}
       </View>
-      <Text style={styles.priceHint}>
-        Estimated resale range — edit on the next screen.
-      </Text>
+      {scenario.upcycle && scenario.upcycle.length > 0 && (
+        <View style={styles.upcycleSection}>
+          <Pressable
+            style={styles.upcycleHeader}
+            onPress={() => setUpcycleExpanded((v) => !v)}
+            hitSlop={4}
+          >
+            <AppIcon name="color-palette-outline" size={15} color={theme.colors.terra} />
+            <Text style={styles.upcycleHeaderText}>Upcycle ideas</Text>
+            {upcycleExpanded && (refreshingUpcycle ? (
+              <ActivityIndicator size="small" color={theme.colors.terra} />
+            ) : (
+              <Pressable onPress={onRefreshUpcycle} hitSlop={8} style={({ pressed }) => pressed && { opacity: 0.6 }}>
+                <AppIcon name="reload-outline" size={15} color={theme.colors.terra} />
+              </Pressable>
+            ))}
+            <AppIcon
+              name={upcycleExpanded ? 'chevron-up' : 'chevron-down'}
+              size={14}
+              color={theme.colors.terra}
+            />
+          </Pressable>
+          {upcycleExpanded && (
+            <View style={styles.upcycleRows}>
+              {scenario.upcycle.map((tip, i) => (
+                <View key={i} style={styles.upcycleRow}>
+                  <View style={styles.upcycleDot} />
+                  <Text style={styles.upcycleText}>{tip}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      )}
       <View style={styles.resultActions}>
         <Pressable
           style={({ pressed }) => [styles.btnPrimary, pressed && styles.btnPressed]}
@@ -237,14 +332,49 @@ function createScanStyles(theme: Theme, formMaxWidth?: number) {
       color: theme.colors.profit,
       marginTop: 4,
     },
-    priceHint: {
-      ...theme.typography.caption,
-      color: theme.colors.mauve,
+    upcycleSection: {
       marginTop: theme.spacing.md,
-      lineHeight: 18,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.surfaceVariant,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.surfaceVariant,
+      paddingVertical: theme.spacing.sm,
+    },
+    upcycleHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    upcycleHeaderText: {
+      ...theme.typography.caption,
+      color: theme.colors.terra,
+      fontWeight: '600',
+      flex: 1,
+    },
+    upcycleRows: {
+      marginTop: theme.spacing.sm,
+      gap: 6,
+    },
+    upcycleRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 8,
+    },
+    upcycleDot: {
+      width: 5,
+      height: 5,
+      borderRadius: 3,
+      backgroundColor: theme.colors.terra,
+      marginTop: 6,
+    },
+    upcycleText: {
+      ...theme.typography.bodySmall,
+      color: theme.colors.charcoal,
+      flex: 1,
+      lineHeight: 20,
     },
     resultActions: {
-      marginTop: theme.spacing.md,
+      marginTop: theme.spacing.lg,
       gap: theme.spacing.sm,
     },
     resultActionsRow: {
@@ -295,9 +425,8 @@ function createScanStyles(theme: Theme, formMaxWidth?: number) {
       color: theme.colors.mauve,
     },
     pillRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 8,
+      flexDirection: 'column',
+      gap: 6,
       marginTop: 8,
     },
     confidenceBanner: {
@@ -320,16 +449,59 @@ function createScanStyles(theme: Theme, formMaxWidth?: number) {
     customBanner: {
       flexDirection: 'row',
       alignItems: 'center',
+      alignSelf: 'flex-start',
       gap: 6,
       paddingVertical: 6,
       paddingHorizontal: 10,
       borderRadius: theme.radius.full,
-      backgroundColor: theme.colors.blush,
+      backgroundColor: theme.colors.terraLight,
     },
     customBannerText: {
       ...theme.typography.caption,
       color: theme.colors.terra,
       fontWeight: '600',
+    },
+    handmadePromptRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      minHeight: 36,
+    },
+    handmadePromptText: {
+      ...theme.typography.caption,
+      color: theme.colors.mauve,
+    },
+    handmadeYes: {
+      minHeight: 36,
+      justifyContent: 'center',
+      paddingHorizontal: 18,
+      borderRadius: theme.radius.full,
+      backgroundColor: theme.colors.terraLight,
+    },
+    handmadeYesText: {
+      ...theme.typography.body,
+      fontWeight: '600',
+      color: theme.colors.terra,
+    },
+    handmadeNo: {
+      minHeight: 36,
+      justifyContent: 'center',
+      paddingHorizontal: 18,
+      borderRadius: theme.radius.full,
+      backgroundColor: theme.colors.mauveLight,
+    },
+    handmadeNoText: {
+      ...theme.typography.body,
+      fontWeight: '600',
+      color: theme.colors.mauve,
+    },
+    cancelScanBtn: {
+      marginTop: theme.spacing.sm,
+    },
+    cancelScanText: {
+      ...theme.typography.body,
+      color: theme.colors.overlayWhiteMid,
+      fontWeight: '500',
     },
   });
 }
@@ -357,8 +529,12 @@ export default function ScanScreen() {
   const [pendingIntent, setPendingIntent] = useState<'flip' | 'closet' | null>(null);
   const [duplicateCandidates, setDuplicateCandidates] = useState<Item[]>([]);
   const [duplicatePickerVisible, setDuplicatePickerVisible] = useState(false);
+  const [rescanningHandmade, setRescanningHandmade] = useState(false);
+  const [rescanningWrong, setRescanningWrong] = useState(false);
+  const [refreshingUpcycle, setRefreshingUpcycle] = useState(false);
   const cameraRef = useRef<{ takePictureAsync: (opts?: { quality?: number }) => Promise<{ uri: string }> } | null>(null);
   const scanningRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const { isTablet, isDesktop, hPad, headerHPad, formMaxWidth } = useResponsive();
   const scanStyles = useMemo(() => createScanStyles(theme, formMaxWidth), [theme, formMaxWidth]);
   const styles = useMemo(() => createStyles(theme, hPad, headerHPad, isTablet, formMaxWidth), [theme, hPad, headerHPad, isTablet, formMaxWidth]);
@@ -387,20 +563,32 @@ export default function ScanScreen() {
     AsyncStorage.setItem(SAVED_LATER_KEY, JSON.stringify(list));
   }, []);
 
+  const cancelScan = useCallback(() => {
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
+    setCapturedPhotoUri(null);
+    setPlaceholderImageUri(null);
+    setScanning(false);
+    scanningRef.current = false;
+  }, []);
+
   const runScan = useCallback(async (photoUri?: string | null) => {
     if (scanningRef.current) return;
     if (!photoUri) {
       showToast('Scan needs a photo. Use the camera or photo library on your phone.');
       return;
     }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     scanningRef.current = true;
     setResult(null);
     setCapturedPhotoUri(photoUri);
     setScanning(true);
     try {
-      const geminiResult = await scanWithGemini(photoUri);
+      const geminiResult = await scanWithGemini(photoUri, controller.signal);
       setResult(geminiResult);
     } catch (error) {
+      if ((error as Error)?.name === 'AbortError') return;
       if (__DEV__) console.log('[Scan] error:', error);
       const message = error instanceof Error ? error.message : String(error ?? '');
       if (/API (429|503|529)/i.test(message) || /overloaded|high demand/i.test(message)) {
@@ -411,6 +599,7 @@ export default function ScanScreen() {
     } finally {
       scanningRef.current = false;
       setScanning(false);
+      abortControllerRef.current = null;
     }
   }, [showToast]);
 
@@ -534,6 +723,7 @@ export default function ScanScreen() {
     confidence: scenario.confidence,
     isCustom: scenario.isCustom || false,
     ideas: Array.isArray(scenario.ideas) ? scenario.ideas.slice(0, 3) : [],
+    upcycle: Array.isArray(scenario.upcycle) ? scenario.upcycle.slice(0, 3) : [],
     sourceImageUri,
   }), []);
 
@@ -580,11 +770,14 @@ export default function ScanScreen() {
       : existingPhotos;
     const snapshot = createSnapshot(result, newCoverUri || undefined);
     const nextSnapshots = [snapshot, ...(target.scanSnapshots ?? [])].slice(0, SNAPSHOT_CAP);
+    const newResale = result.suggestedResale ?? 0;
+    const resaleUpdate = newResale > (target.resale ?? 0) ? { resale: newResale, name: result.name } : {};
     updateItem(target.id, {
       img: newCoverUri || target.img,
       photos: mergedPhotos.length > 0 ? mergedPhotos : target.photos,
       scanSnapshots: nextSnapshots,
       activeScanSnapshotId: snapshot.id,
+      ...resaleUpdate,
     });
     setDuplicateChoiceVisible(false);
     setDuplicatePickerVisible(false);
@@ -634,6 +827,62 @@ export default function ScanScreen() {
     showToast('Skipped! Keep hunting');
     clearResultAndPhoto();
   }, [showToast, clearResultAndPhoto]);
+
+  const handleConfirmHandmade = useCallback(async () => {
+    if (!capturedPhotoUri || rescanningHandmade) return;
+    setRescanningHandmade(true);
+    try {
+      const updated = await rescanAsHandmade(capturedPhotoUri);
+      setResult((prev) => {
+        const prevLow = prev?.suggestedResaleLow ?? 0;
+        const prevHigh = prev?.suggestedResaleHigh ?? 0;
+        const newLow = Math.max(updated.suggestedResaleLow ?? 0, prevLow);
+        const newHigh = Math.max(updated.suggestedResaleHigh ?? 0, prevHigh);
+        const newResale = newLow > 0 ? Math.round((newLow + newHigh) / 2) : (prev?.suggestedResale ?? 0);
+        return {
+          ...updated,
+          isCustom: true,
+          suggestedResaleLow: newLow,
+          suggestedResaleHigh: newHigh,
+          suggestedResale: newResale,
+          profit: newLow > 0 ? `$${newLow}–$${newHigh}` : (prev?.profit ?? ''),
+        };
+      });
+    } catch {
+      showToast("Couldn't rescan — try again");
+    } finally {
+      setRescanningHandmade(false);
+    }
+  }, [capturedPhotoUri, rescanningHandmade, showToast]);
+
+  const handleRescanWrong = useCallback(async () => {
+    if (!capturedPhotoUri || rescanningWrong) return;
+    setRescanningWrong(true);
+    try {
+      const wasHandmade = result?.isCustom === true;
+      const updated = wasHandmade
+        ? await rescanAsHandmade(capturedPhotoUri)
+        : await scanWithGemini(capturedPhotoUri);
+      setResult({ ...updated, isCustom: wasHandmade || updated.isCustom });
+    } catch {
+      showToast("Couldn't rescan — try again");
+    } finally {
+      setRescanningWrong(false);
+    }
+  }, [capturedPhotoUri, rescanningWrong, result, showToast]);
+
+  const handleRefreshUpcycle = useCallback(async () => {
+    if (!capturedPhotoUri || refreshingUpcycle) return;
+    setRefreshingUpcycle(true);
+    try {
+      const newUpcycle = await refreshUpcycleIdeas(capturedPhotoUri);
+      setResult((prev) => prev ? { ...prev, upcycle: newUpcycle } : null);
+    } catch {
+      showToast("Couldn't refresh — try again");
+    } finally {
+      setRefreshingUpcycle(false);
+    }
+  }, [capturedPhotoUri, refreshingUpcycle, showToast]);
 
   const handleSaveForLater = useCallback(() => {
     if (!result) return;
@@ -754,6 +1003,9 @@ export default function ScanScreen() {
                     <View style={styles.searchingWrap}>
                       <ActivityIndicator size="large" color={theme.colors.white} />
                       <Text style={styles.searchingText}>Searching</Text>
+                      <Pressable onPress={cancelScan} hitSlop={12} style={styles.cancelScanBtn}>
+                        <Text style={styles.cancelScanText}>Cancel</Text>
+                      </Pressable>
                     </View>
                   ) : (
                     <View style={styles.cameraPrompt}>
@@ -781,6 +1033,9 @@ export default function ScanScreen() {
                     <View style={styles.searchingWrap}>
                       <ActivityIndicator size="large" color={theme.colors.white} />
                       <Text style={styles.searchingText}>Searching</Text>
+                      <Pressable onPress={cancelScan} hitSlop={12} style={styles.cancelScanBtn}>
+                        <Text style={styles.cancelScanText}>Cancel</Text>
+                      </Pressable>
                     </View>
                   ) : (
                     <View style={styles.cameraPrompt}>
@@ -798,6 +1053,7 @@ export default function ScanScreen() {
                               <Pressable
                                 style={({ pressed }) => [styles.uploadIconBtn, pressed && styles.cameraPressed]}
                                 onPress={handlePickFromLibrary}
+                                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                               >
                                 <AppIcon name="images-outline" size={26} color={theme.colors.white} />
                               </Pressable>
@@ -832,6 +1088,12 @@ export default function ScanScreen() {
             onSkip={handleSkip}
             onSaveForLater={handleSaveForLater}
             onNameChange={(name) => setResult((prev) => prev ? { ...prev, name } : null)}
+            onConfirmHandmade={handleConfirmHandmade}
+            rescanningHandmade={rescanningHandmade}
+            onRescanWrong={handleRescanWrong}
+            rescanningWrong={rescanningWrong}
+            onRefreshUpcycle={handleRefreshUpcycle}
+            refreshingUpcycle={refreshingUpcycle}
             theme={theme}
             styles={scanStyles}
           />
@@ -1152,7 +1414,7 @@ function createStyles(
     borderRadius: 9999,
     overflow: 'hidden',
     borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.6)',
+    borderColor: theme.colors.overlayWhiteMid,
   },
   clearBtn: {
     flexDirection: 'row',
@@ -1176,7 +1438,7 @@ function createStyles(
   searchingText: {
     ...theme.typography.body,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.9)',
+    color: theme.colors.overlayWhiteStrong,
   },
   cameraPrompt: {
     position: 'absolute',
@@ -1205,7 +1467,7 @@ function createStyles(
     borderRadius: 22,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.5)',
+    borderColor: theme.colors.overlayWhiteMid,
   },
   uploadIconBtn: {
     width: 44,
@@ -1217,7 +1479,7 @@ function createStyles(
     borderRadius: 37,
     overflow: 'hidden',
     borderWidth: 2.5,
-    borderColor: 'rgba(255,255,255,0.9)',
+    borderColor: theme.colors.overlayWhiteStrong,
   },
   shutterRing: {
     width: 66,
@@ -1232,7 +1494,7 @@ function createStyles(
   cameraLabel: {
     ...theme.typography.bodySmall,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.95)',
+    color: theme.colors.overlayWhiteStrong,
   },
   recentsSection: {
     marginTop: 24,

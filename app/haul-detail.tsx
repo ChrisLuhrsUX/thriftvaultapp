@@ -444,36 +444,38 @@ function createStyles(theme: Theme) {
       top: 6,
       left: 6,
       zIndex: 1,
-      backgroundColor: theme.colors.surface,
-      paddingHorizontal: 6,
-      paddingVertical: 2,
+      backgroundColor: theme.colors.vintageBlueDark,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
       borderRadius: theme.radius.sm,
+      ...(theme.shadows.sm ?? {}),
     },
     statusBadgeCloset: {
-      backgroundColor: theme.colors.surface,
+      backgroundColor: theme.colors.vintageBlueDark,
     },
     statusBadgeSold: {
       backgroundColor: theme.colors.profit,
     },
     statusBadgeUnlisted: {
-      backgroundColor: theme.colors.vintageBlueLight,
+      backgroundColor: theme.colors.vintageBlueDark,
     },
     statusBadgeListed: {
       backgroundColor: theme.colors.vintageBlueDark,
     },
     statusBadgeText: {
       ...theme.typography.label,
-      fontSize: 9,
-      color: theme.colors.charcoal,
+      fontSize: 11,
+      fontFamily: 'DMSans_600SemiBold',
+      color: theme.colors.onPrimary,
     },
     statusBadgeTextSold: {
-      color: theme.colors.white,
+      color: theme.colors.onPrimary,
     },
     statusBadgeTextUnlisted: {
-      color: theme.colors.vintageBlueDeep,
+      color: theme.colors.onPrimary,
     },
     statusBadgeTextListed: {
-      color: theme.colors.white,
+      color: theme.colors.onPrimary,
     },
     itemRow: {
       flexDirection: 'row',

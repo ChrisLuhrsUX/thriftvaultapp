@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
@@ -5,6 +6,7 @@ import * as MediaLibrary from 'expo-media-library';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Animated,
   Easing,
@@ -33,6 +35,7 @@ import { useInventory } from '@/context/InventoryContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useToast } from '@/context/ToastContext';
 import { useResponsive } from '@/hooks/useResponsive';
+import { rescanAsHandmade, refreshUpcycleIdeas, scanWithGemini } from '@/services/gemini';
 import { getConfidenceColor } from '@/utils/confidencePresentation';
 import { ITEM_CATEGORIES, type Item, type ItemScanSnapshot, type ItemStatus, type Platform as PlatformType } from '@/types/inventory';
 import type { Theme } from '@/theme';
@@ -106,6 +109,14 @@ export default function DetailScreen() {
   const [resaleStr, setResaleStr] = useState('');
   const [soldStr, setSoldStr] = useState('');
   const [scanInsightsExpanded, setScanInsightsExpanded] = useState(false);
+  const [upcycleExpanded, setUpcycleExpanded] = useState(false);
+  const [customDismissed, setCustomDismissed] = useState(false);
+  const [wrongScanDismissed, setWrongScanDismissed] = useState(false);
+  const promptDismissedLoaded = useRef(false);
+  const [rescanningHandmade, setRescanningHandmade] = useState(false);
+  const [rescanningWrong, setRescanningWrong] = useState(false);
+  const [refreshingUpcycle, setRefreshingUpcycle] = useState(false);
+  const [fullscreenChromeVisible, setFullscreenChromeVisible] = useState(true);
   const [scanHistoryVisible, setScanHistoryVisible] = useState(false);
   const [addPhotoModalVisible, setAddPhotoModalVisible] = useState(false);
   const [editingName, setEditingName] = useState(false);
@@ -122,38 +133,21 @@ export default function DetailScreen() {
   const styles = React.useMemo(() => createStyles(theme, formMaxWidth), [theme, formMaxWidth]);
 
   const lastScrollYRef = useRef(0);
-  const keyboardShowTsRef = useRef(0);
-
-  useEffect(() => {
-    if (Platform.OS === 'web') return undefined;
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const subShow = Keyboard.addListener(showEvent, () => {
-      keyboardShowTsRef.current = Date.now();
-    });
-    const subHide = Keyboard.addListener(hideEvent, () => {
-      keyboardShowTsRef.current = 0;
-    });
-    return () => {
-      subShow.remove();
-      subHide.remove();
-    };
-  }, []);
 
   const handleScrollDismissKeyboard = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const y = e.nativeEvent.contentOffset.y;
-    const t = keyboardShowTsRef.current;
-    if (t > 0 && Date.now() - t < 450) {
-      lastScrollYRef.current = y;
-      return;
-    }
-    if (y > lastScrollYRef.current + 8) {
+    // Only dismiss when user scrolls back UP (y decreasing) — this is intentional
+    // navigation away from the field. Never dismiss on downward scroll, which is
+    // what happens when the view auto-scrolls to bring a focused input into view.
+    if (y < lastScrollYRef.current - 8) {
       Keyboard.dismiss();
     }
     lastScrollYRef.current = y;
   }, []);
 
   const imageFullScreenTranslateY = useRef(new Animated.Value(0)).current;
+  const historySheetTranslateY = useRef(new Animated.Value(500)).current;
+  const galleryScrollRef = useRef<ScrollView>(null);
 
   const handleSaveImageToCameraRoll = useCallback(async () => {
     const currentPhotos = item?.photos && item.photos.length > 0 ? item.photos : (item?.img ? [item.img] : []);
@@ -180,6 +174,54 @@ export default function DetailScreen() {
       showToast('Could not save image');
     }
   }, [item?.id, item?.img, item?.photos, photoIndex, showToast]);
+
+  const dismissHistorySheet = useCallback(() => {
+    Animated.timing(historySheetTranslateY, {
+      toValue: 600,
+      duration: 260,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start(() => {
+      historySheetTranslateY.setValue(500);
+      setScanHistoryVisible(false);
+    });
+  }, [historySheetTranslateY]);
+
+  useEffect(() => {
+    if (scanHistoryVisible) {
+      historySheetTranslateY.setValue(500);
+      Animated.spring(historySheetTranslateY, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 55,
+        friction: 11,
+      }).start();
+    }
+  }, [scanHistoryVisible, historySheetTranslateY]);
+
+  const historySheetPanResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => false,
+        onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dy) > Math.abs(g.dx) && g.dy > 4,
+        onPanResponderMove: (_, g) => {
+          if (g.dy > 0) historySheetTranslateY.setValue(g.dy);
+        },
+        onPanResponderRelease: (_, g) => {
+          if (g.dy > 100 || g.vy > 0.5) {
+            dismissHistorySheet();
+          } else {
+            Animated.spring(historySheetTranslateY, {
+              toValue: 0,
+              useNativeDriver: true,
+              tension: 80,
+              friction: 12,
+            }).start();
+          }
+        },
+      }),
+    [historySheetTranslateY, dismissHistorySheet]
+  );
 
   const imageFullScreenPanResponder = useMemo(
     () =>
@@ -231,10 +273,29 @@ export default function DetailScreen() {
         setEditedName(found.name);
         setEditingName(true);
       }
+      // If any snapshot was ever confirmed handmade, never ask again
+      if (found.scanSnapshots?.some((s) => s.isCustom)) {
+        setCustomDismissed(true);
+      }
     } else {
       setNotFound(true);
     }
   }, [id, getItemById, manual]);
+
+  useEffect(() => {
+    if (Number.isNaN(id) || promptDismissedLoaded.current) return;
+    promptDismissedLoaded.current = true;
+    AsyncStorage.getItem(`tv_prompt_dismissed_${id}`).then((raw) => {
+      if (!raw) return;
+      try {
+        const flags = JSON.parse(raw) as { handmade?: boolean; wrongScan?: boolean };
+        if (flags.handmade) setCustomDismissed(true);
+        if (flags.wrongScan) setWrongScanDismissed(true);
+      } catch {
+        // ignore
+      }
+    });
+  }, [id]);
 
   useEffect(() => {
     if (item && !priceInitialized.current) {
@@ -265,10 +326,18 @@ export default function DetailScreen() {
   }, [updateItem]);
 
   React.useEffect(() => {
-    if (imageFullScreenVisible && screenWidth > 0) {
-      setTimeout(() => {
-        fullScreenScrollRef.current?.scrollTo({ x: photoIndex * screenWidth, animated: false });
-      }, 30);
+    if (imageFullScreenVisible) {
+      setFullscreenChromeVisible(true);
+      if (screenWidth > 0) {
+        setTimeout(() => {
+          fullScreenScrollRef.current?.scrollTo({ x: photoIndex * screenWidth, animated: false });
+        }, 30);
+      }
+    } else {
+      // Sync main carousel to the photo the user was viewing in fullscreen
+      if (galleryWidth > 0) {
+        galleryScrollRef.current?.scrollTo({ x: photoIndex * galleryWidth, animated: false });
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imageFullScreenVisible]);
@@ -306,8 +375,137 @@ export default function DetailScreen() {
     if (!item) return;
     updateItem(item.id, { activeScanSnapshotId: snapshotId });
     update({ activeScanSnapshotId: snapshotId });
-    setScanHistoryVisible(false);
-  }, [item, update, updateItem]);
+    dismissHistorySheet();
+  }, [item, update, updateItem, dismissHistorySheet]);
+
+  const confirmHandmade = useCallback(async () => {
+    if (!item) return;
+    const snapshot = getActiveSnapshot(item);
+    const photoUri = snapshot?.sourceImageUri || item.img;
+    if (!photoUri) {
+      // No photo to rescan — just flag the snapshot
+      if (snapshot) {
+        const updated = item.scanSnapshots?.map((s) =>
+          s.id === snapshot.id ? { ...s, isCustom: true } : s
+        );
+        update({ scanSnapshots: updated });
+        updateItem(item.id, { scanSnapshots: updated });
+      }
+      return;
+    }
+    setRescanningHandmade(true);
+    try {
+      const result = await rescanAsHandmade(photoUri);
+      const newSnapshot: ItemScanSnapshot = {
+        id: `${Date.now()}-handmade`,
+        createdAt: Date.now(),
+        sub: result.sub,
+        profit: result.profit,
+        confidence: result.confidence,
+        isCustom: true,
+        ideas: result.ideas,
+        upcycle: Array.isArray(result.upcycle) ? result.upcycle.slice(0, 3) : [],
+        sourceImageUri: photoUri,
+      };
+      const prev = item.scanSnapshots ?? [];
+      const nextSnapshots = [newSnapshot, ...prev].slice(0, 10);
+      const newLow = Math.max(result.suggestedResaleLow ?? 0, 0);
+      const newHigh = Math.max(result.suggestedResaleHigh ?? 0, 0);
+      const newResale = newLow > 0 ? Math.round((newLow + newHigh) / 2) : 0;
+      const resaleUpdate = newResale > 0 && newResale > (item.resale ?? 0) ? { resale: newResale } : {};
+      // Update snapshot profit to use ratcheted prices
+      if (resaleUpdate.resale) newSnapshot.profit = `$${newLow}–$${newHigh}`;
+      const nameUpdate = result.name ? { name: result.name } : {};
+      const changes = { scanSnapshots: nextSnapshots, activeScanSnapshotId: newSnapshot.id, ...resaleUpdate, ...nameUpdate };
+      update(changes);
+      updateItem(item.id, changes);
+      // Don't reset dismissed states — isCustom:true on the new snapshot shows the pill
+      // instead of the prompt. Preserve wrongScan dismissal so it doesn't reappear.
+      if (wrongScanDismissed) {
+        AsyncStorage.setItem(`tv_prompt_dismissed_${item.id}`, JSON.stringify({ handmade: false, wrongScan: true }));
+      }
+    } catch {
+      showToast("Couldn't rescan — try again");
+    } finally {
+      setRescanningHandmade(false);
+    }
+  }, [item, wrongScanDismissed, getActiveSnapshot, update, updateItem, showToast]);
+
+  const rescanWrong = useCallback(async () => {
+    if (!item) return;
+    const snapshot = getActiveSnapshot(item);
+    const photoUri = snapshot?.sourceImageUri || item.img;
+    if (!photoUri) { showToast('No photo to rescan'); return; }
+    const wasHandmade = snapshot?.isCustom === true;
+    setRescanningWrong(true);
+    try {
+      const result = wasHandmade ? await rescanAsHandmade(photoUri) : await scanWithGemini(photoUri);
+      const newLow = Math.max(result.suggestedResaleLow ?? 0, 0);
+      const newHigh = Math.max(result.suggestedResaleHigh ?? 0, 0);
+      const newResale = newLow > 0 ? Math.round((newLow + newHigh) / 2) : 0;
+      const newSnapshot: ItemScanSnapshot = {
+        id: `${Date.now()}-rescan`,
+        createdAt: Date.now(),
+        sub: result.sub,
+        profit: newLow > 0 ? `$${newLow}–$${newHigh}` : result.profit,
+        confidence: result.confidence,
+        isCustom: wasHandmade || result.isCustom,
+        ideas: result.ideas,
+        upcycle: Array.isArray(result.upcycle) ? result.upcycle.slice(0, 3) : [],
+        sourceImageUri: photoUri,
+      };
+      const nextSnapshots = [newSnapshot, ...(item.scanSnapshots ?? [])].slice(0, 10);
+      const resaleUpdate = newResale > 0 && newResale > (item.resale ?? 0) ? { resale: newResale } : {};
+      const nameUpdate = result.name ? { name: result.name } : {};
+      const changes = { scanSnapshots: nextSnapshots, activeScanSnapshotId: newSnapshot.id, ...resaleUpdate, ...nameUpdate };
+      update(changes);
+      updateItem(item.id, changes);
+      setCustomDismissed(false);
+      setWrongScanDismissed(false);
+      AsyncStorage.removeItem(`tv_prompt_dismissed_${item.id}`);
+    } catch {
+      showToast("Couldn't rescan — try again");
+    } finally {
+      setRescanningWrong(false);
+    }
+  }, [item, getActiveSnapshot, update, updateItem, showToast]);
+
+  const handleRefreshUpcycle = useCallback(async () => {
+    if (!item || refreshingUpcycle) return;
+    const snapshot = getActiveSnapshot(item);
+    const photoUri = snapshot?.sourceImageUri || item.img;
+    if (!photoUri) { showToast('No photo to generate ideas from'); return; }
+    setRefreshingUpcycle(true);
+    try {
+      const newUpcycle = await refreshUpcycleIdeas(photoUri);
+      const updatedSnapshots = item.scanSnapshots?.map((s) =>
+        s.id === snapshot?.id ? { ...s, upcycle: newUpcycle } : s
+      );
+      update({ scanSnapshots: updatedSnapshots });
+      updateItem(item.id, { scanSnapshots: updatedSnapshots });
+    } catch {
+      showToast("Couldn't refresh — try again");
+    } finally {
+      setRefreshingUpcycle(false);
+    }
+  }, [item, refreshingUpcycle, getActiveSnapshot, update, updateItem, showToast]);
+
+  const deleteActiveScan = useCallback(() => {
+    if (!item) return;
+    const snapshot = getActiveSnapshot(item);
+    if (!snapshot) return;
+    Alert.alert('Delete Scan', 'Remove this scan from the item?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete', style: 'destructive', onPress: () => {
+          const remaining = (item.scanSnapshots ?? []).filter((s) => s.id !== snapshot.id);
+          const newActiveId = remaining.length > 0 ? remaining[0].id : undefined;
+          update({ scanSnapshots: remaining, activeScanSnapshotId: newActiveId });
+          updateItem(item.id, { scanSnapshots: remaining, activeScanSnapshotId: newActiveId });
+        },
+      },
+    ]);
+  }, [item, getActiveSnapshot, update, updateItem]);
 
   const handleMarkSold = useCallback(() => {
     if (!item) return;
@@ -542,9 +740,6 @@ export default function DetailScreen() {
               <AppIcon name="pencil" size={14} color={theme.colors.mauve} />
             </Pressable>
           )}
-          {activeSnapshot?.sub ? (
-            <Text style={styles.headerSub} numberOfLines={1}>{activeSnapshot.sub}</Text>
-          ) : null}
         </View>
         <Pressable
           onPress={showItemMenu}
@@ -559,7 +754,7 @@ export default function DetailScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
-        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+        keyboardDismissMode="none"
         onScroll={handleScrollDismissKeyboard}
         scrollEventThrottle={16}
         nestedScrollEnabled
@@ -572,6 +767,7 @@ export default function DetailScreen() {
             return (
               <>
                 <ScrollView
+                  ref={galleryScrollRef}
                   horizontal
                   pagingEnabled
                   scrollEnabled={photos.length > 1}
@@ -607,7 +803,7 @@ export default function DetailScreen() {
                   onPress={handleAddPhoto}
                   accessibilityLabel="Add photo"
                 >
-                  <AppIcon name="camera" size={18} color="rgba(255,255,255,0.85)" />
+                  <AppIcon name="camera" size={18} color={theme.colors.overlayWhiteStrong} />
                 </Pressable>
                 {photos.length > 1 && (
                   <View style={styles.galleryDots}>
@@ -773,11 +969,63 @@ export default function DetailScreen() {
 
             {scanInsightsExpanded && (
               <View style={styles.insightsContent}>
-                {activeSnapshot.isCustom && (
-                  <View style={styles.insightsPillRow}>
-                    <Text style={styles.insightsCustom}>Custom / Reworked</Text>
+                {rescanningHandmade ? (
+                  <View style={styles.insightsCustomPromptRow}>
+                    <ActivityIndicator size="small" color={theme.colors.terra} />
+                    <Text style={styles.insightsCustomPromptText}>Updating scan...</Text>
                   </View>
-                )}
+                ) : activeSnapshot.isCustom ? (
+                  <View style={{ flexDirection: 'row' }}>
+                    <View style={styles.insightsCustomPill}>
+                      <AppIcon name="brush-outline" size={14} color={theme.colors.terra} />
+                      <Text style={styles.insightsCustomPillText}>Handmade</Text>
+                    </View>
+                  </View>
+                ) : !customDismissed ? (
+                  <View style={styles.insightsCustomPromptRow}>
+                    <AppIcon name="brush-outline" size={14} color={theme.colors.mauve} />
+                    <Text style={styles.insightsCustomPromptText}>Is this handmade?</Text>
+                    <Pressable
+                      style={({ pressed }) => [styles.insightsCustomYes, pressed && { opacity: 0.7 }]}
+                      onPress={() => confirmHandmade()}
+                      hitSlop={8}
+                    >
+                      <Text style={styles.insightsCustomYesText}>Yes</Text>
+                    </Pressable>
+                    <Pressable
+                      style={({ pressed }) => [styles.insightsCustomNo, pressed && { opacity: 0.7 }]}
+                      onPress={() => { setCustomDismissed(true); AsyncStorage.setItem(`tv_prompt_dismissed_${id}`, JSON.stringify({ handmade: true, wrongScan: wrongScanDismissed })); }}
+                      hitSlop={8}
+                    >
+                      <Text style={styles.insightsCustomNoText}>No</Text>
+                    </Pressable>
+                  </View>
+                ) : null}
+                {rescanningWrong ? (
+                  <View style={styles.insightsCustomPromptRow}>
+                    <ActivityIndicator size="small" color={theme.colors.vintageBlueDark} />
+                    <Text style={styles.insightsCustomPromptText}>Rescanning...</Text>
+                  </View>
+                ) : !wrongScanDismissed ? (
+                  <View style={styles.insightsCustomPromptRow}>
+                    <AppIcon name="alert-circle-outline" size={14} color={theme.colors.mauve} />
+                    <Text style={styles.insightsCustomPromptText}>Is this scan wrong?</Text>
+                    <Pressable
+                      style={({ pressed }) => [styles.insightsCustomYes, pressed && { opacity: 0.7 }]}
+                      onPress={rescanWrong}
+                      hitSlop={8}
+                    >
+                      <Text style={styles.insightsCustomYesText}>Yes</Text>
+                    </Pressable>
+                    <Pressable
+                      style={({ pressed }) => [styles.insightsCustomNo, pressed && { opacity: 0.7 }]}
+                      onPress={() => { setWrongScanDismissed(true); AsyncStorage.setItem(`tv_prompt_dismissed_${id}`, JSON.stringify({ handmade: customDismissed, wrongScan: true })); }}
+                      hitSlop={8}
+                    >
+                      <Text style={styles.insightsCustomNoText}>No</Text>
+                    </Pressable>
+                  </View>
+                ) : null}
                 {activeSnapshot.sub ? (
                   <Text style={styles.insightsSub}>{activeSnapshot.sub}</Text>
                 ) : (
@@ -797,14 +1045,60 @@ export default function DetailScreen() {
                     <Text style={styles.insightsEmptyIdeas}>No flip suggestions for this scan.</Text>
                   )}
                 </View>
-                {snapshots.length > 1 && (
+                <View style={styles.insightsActions}>
+                  {activeSnapshot.upcycle && activeSnapshot.upcycle.length > 0 && (
+                    <View>
+                      <Pressable
+                        style={styles.insightsUpcycleHeader}
+                        onPress={() => setUpcycleExpanded((v) => !v)}
+                        hitSlop={4}
+                      >
+                        <AppIcon name="color-palette-outline" size={14} color={theme.colors.terra} />
+                        <Text style={styles.insightsUpcycleHeaderText}>Upcycle ideas</Text>
+                        {upcycleExpanded && (refreshingUpcycle ? (
+                          <ActivityIndicator size="small" color={theme.colors.terra} />
+                        ) : (
+                          <Pressable onPress={handleRefreshUpcycle} hitSlop={8} style={({ pressed }) => pressed && { opacity: 0.6 }}>
+                            <AppIcon name="reload-outline" size={14} color={theme.colors.terra} />
+                          </Pressable>
+                        ))}
+                        <AppIcon
+                          name={upcycleExpanded ? 'chevron-up' : 'chevron-down'}
+                          size={13}
+                          color={theme.colors.terra}
+                        />
+                      </Pressable>
+                      {upcycleExpanded && (
+                        <View style={styles.insightsUpcycleRows}>
+                          {activeSnapshot.upcycle.map((tip, i) => (
+                            <View key={i} style={styles.insightsUpcycleRow}>
+                              <View style={styles.insightsUpcycleDot} />
+                              <Text style={styles.insightsUpcycleText}>{tip}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+                  )}
+                  {snapshots.length > 1 && (
+                    <Pressable
+                      style={({ pressed }) => [styles.historyBtn, pressed && styles.btnPressed]}
+                      onPress={() => setScanHistoryVisible(true)}
+                    >
+                      <AppIcon name="time-outline" size={14} color={theme.colors.vintageBlueDark} />
+                      <Text style={styles.historyBtnText}>Scan history</Text>
+                      <AppIcon name="chevron-forward" size={14} color={theme.colors.vintageBlueDark} />
+                    </Pressable>
+                  )}
                   <Pressable
-                    style={({ pressed }) => [styles.historyBtn, pressed && styles.btnPressed]}
-                    onPress={() => setScanHistoryVisible(true)}
+                    style={({ pressed }) => [styles.deleteScanBtn, pressed && { opacity: 0.7 }]}
+                    onPress={deleteActiveScan}
+                    hitSlop={8}
                   >
-                    <Text style={styles.historyBtnText}>Previous scans</Text>
+                    <AppIcon name="trash-outline" size={14} color={theme.colors.terra} />
+                    <Text style={styles.deleteScanBtnText}>Delete scan</Text>
                   </Pressable>
-                )}
+                </View>
               </View>
             )}
           </View>
@@ -1049,6 +1343,7 @@ export default function DetailScreen() {
                 <Text style={styles.itemMenuItemText}>Move to Flips</Text>
               </Pressable>
             )}
+            {/* Share button — not yet wired up
             <Pressable
               style={styles.itemMenuItem}
               onPress={() => {
@@ -1059,6 +1354,7 @@ export default function DetailScreen() {
               <AppIcon name="share-outline" size={20} color={theme.colors.charcoal} />
               <Text style={styles.itemMenuItemText}>Share</Text>
             </Pressable>
+            */}
             <Pressable
               style={[styles.itemMenuItem, styles.itemMenuItemDestructive]}
               onPress={() => { closeItemMenu(); handleDeleteConfirm(); }}
@@ -1077,15 +1373,28 @@ export default function DetailScreen() {
       <Modal
         visible={scanHistoryVisible}
         transparent
-        animationType="fade"
-        onRequestClose={() => setScanHistoryVisible(false)}
+        animationType="none"
+        onRequestClose={dismissHistorySheet}
       >
-        <Pressable style={styles.itemMenuOverlay} onPress={() => setScanHistoryVisible(false)}>
-          <Pressable style={[styles.historyCard, { top: insets.top + 56, right: 12 }]} onPress={(e) => e.stopPropagation()}>
-            <Text style={styles.historyTitle}>Previous scans</Text>
-            <ScrollView style={styles.historyList}>
+        <Pressable style={styles.itemMenuOverlay} onPress={dismissHistorySheet}>
+          <Animated.View
+            style={[styles.historyCard, { transform: [{ translateY: historySheetTranslateY }] }]}
+          >
+            <Pressable onPress={(e) => e.stopPropagation()} style={styles.historySheetInner}>
+            {/* Drag handle — only this area triggers swipe-to-dismiss */}
+            <View style={styles.historyDragArea} {...historySheetPanResponder.panHandlers}>
+              <View style={styles.historyHandle} />
+            </View>
+            <View style={styles.historyHeaderRow}>
+              <Text style={styles.historyTitle}>Scan history</Text>
+              <View style={styles.insightsCountBadge}>
+                <Text style={styles.insightsCountText}>{snapshots.length} scan{snapshots.length === 1 ? '' : 's'}</Text>
+              </View>
+            </View>
+            <ScrollView style={styles.historyList} showsVerticalScrollIndicator={false}>
               {snapshots.map((snapshot) => {
                 const isActive = snapshot.id === activeSnapshot?.id;
+                const confColor = snapshot.confidence ? getConfidenceColor(theme, snapshot.confidence) : theme.colors.mauve;
                 return (
                   <Pressable
                     key={snapshot.id}
@@ -1093,34 +1402,50 @@ export default function DetailScreen() {
                     onPress={() => switchActiveSnapshot(snapshot.id)}
                     accessibilityRole="button"
                   >
-                    <View style={styles.historyRowMain}>
-                      <Text style={styles.historyRowTime}>{formatSnapshotTime(snapshot.createdAt)}</Text>
-                      <Text style={styles.historyRowMeta}>
-                        {snapshot.profit || 'No profit'}
-                        {snapshot.confidence ? (
-                          <Text>
-                            <Text style={styles.historyRowMeta}> · </Text>
-                            <Text
-                              style={[
-                                styles.historyRowMeta,
-                                { color: getConfidenceColor(theme, snapshot.confidence) },
-                              ]}
-                            >
-                              {snapshot.confidence} confidence
-                            </Text>
-                          </Text>
-                        ) : null}
-                      </Text>
+                    <View style={styles.historyRowThumb}>
+                      {snapshot.sourceImageUri ? (
+                        <Image source={{ uri: snapshot.sourceImageUri }} style={styles.historyRowThumbImg} />
+                      ) : (
+                        <AppIcon name="camera-outline" size={20} color={theme.colors.mauve} />
+                      )}
                     </View>
-                    {isActive && <Text style={styles.historyActiveTag}>Active</Text>}
+                    <View style={styles.historyRowMain}>
+                      <View style={styles.historyRowTopLine}>
+                        <Text style={styles.historyRowTime}>{formatSnapshotTime(snapshot.createdAt)}</Text>
+                        {isActive && (
+                          <View style={styles.historyActivePill}>
+                            <Text style={styles.historyActivePillText}>Active</Text>
+                          </View>
+                        )}
+                      </View>
+                      <View style={styles.historyRowMetaRow}>
+                        <Text style={[styles.historyRowProfit]}>{snapshot.profit || '—'}</Text>
+                        {snapshot.confidence ? (
+                          <>
+                            <Text style={styles.historyRowDot}> · </Text>
+                            <View style={[styles.historyConfDot, { backgroundColor: confColor }]} />
+                            <Text style={[styles.historyRowMeta, { color: confColor }]}>
+                              {snapshot.confidence.charAt(0).toUpperCase() + snapshot.confidence.slice(1)} confidence
+                            </Text>
+                          </>
+                        ) : null}
+                        {snapshot.isCustom ? (
+                          <View style={styles.historyIsCustomPill}>
+                            <Text style={styles.historyIsCustomPillText}>Handmade</Text>
+                          </View>
+                        ) : null}
+                      </View>
+                    </View>
+                    <AppIcon name="chevron-forward" size={16} color={theme.colors.mauve} />
                   </Pressable>
                 );
               })}
             </ScrollView>
-            <Pressable style={styles.itemMenuItemCancel} onPress={() => setScanHistoryVisible(false)}>
+            <Pressable style={styles.historyCloseBtn} onPress={dismissHistorySheet}>
               <Text style={styles.itemMenuItemTextSecondary}>Close</Text>
             </Pressable>
-          </Pressable>
+            </Pressable>
+          </Animated.View>
         </Pressable>
       </Modal>
 
@@ -1155,24 +1480,27 @@ export default function DetailScreen() {
                 <Pressable
                   key={`${uri}-${i}`}
                   style={[styles.imageFullScreenContent, { width: screenWidth }]}
-                  onPress={(e) => e.stopPropagation()}
+                  onPress={() => setFullscreenChromeVisible((v) => !v)}
                 >
                   <Image source={{ uri }} style={styles.imageFullScreenImg} resizeMode="contain" />
                 </Pressable>
               ))}
             </ScrollView>
-            {photos.length > 1 && (
+            {fullscreenChromeVisible && photos.length > 1 && (
               <View pointerEvents="none" style={[styles.imageFullScreenCount, { top: (insets.top || 0) + 12 }]}>
                 <Text style={styles.imageFullScreenCountText}>{photoIndex + 1} / {photos.length}</Text>
               </View>
             )}
-            <Pressable
-              style={[styles.imageFullScreenClose, { paddingTop: insets.top + 8 }]}
-              onPress={() => setImageFullScreenVisible(false)}
-              accessibilityLabel="Close"
-            >
-              <AppIcon name="close" size={28} color={theme.colors.cream} />
-            </Pressable>
+            {fullscreenChromeVisible && (
+              <Pressable
+                style={[styles.imageFullScreenClose, { paddingTop: insets.top + 8 }]}
+                onPress={() => setImageFullScreenVisible(false)}
+                accessibilityLabel="Close"
+              >
+                <AppIcon name="close" size={28} color={theme.colors.overlayWhiteStrong} />
+              </Pressable>
+            )}
+            {fullscreenChromeVisible && (
             <View style={[styles.imageFullScreenActions, { paddingBottom: insets.bottom + 16 }]}>
               {photos.length > 1 && photoIndex !== 0 && (
                 <Pressable
@@ -1187,9 +1515,12 @@ export default function DetailScreen() {
                   }}
                   accessibilityLabel="Set as cover photo"
                 >
-                  <AppIcon name="image-outline" size={20} color={theme.colors.cream} />
+                  <AppIcon name="image-outline" size={20} color={theme.colors.overlayWhiteStrong} />
                   <Text style={styles.imageFullScreenSaveText}>Set as cover</Text>
                 </Pressable>
+              )}
+              {photos.length > 1 && photoIndex !== 0 && Platform.OS !== 'web' && (
+                <View style={styles.imageFullScreenActionDivider} />
               )}
               {Platform.OS !== 'web' && (
                 <Pressable
@@ -1197,10 +1528,11 @@ export default function DetailScreen() {
                   onPress={handleSaveImageToCameraRoll}
                   accessibilityLabel="Save to camera roll"
                 >
-                  <AppIcon name="download-outline" size={22} color={theme.colors.cream} />
+                  <AppIcon name="download-outline" size={22} color={theme.colors.overlayWhiteStrong} />
                   <Text style={styles.imageFullScreenSaveText}>Save</Text>
                 </Pressable>
               )}
+              <View style={styles.imageFullScreenActionDivider} />
               <Pressable
                 style={styles.imageFullScreenActionBtn}
                 onPress={() => {
@@ -1209,10 +1541,11 @@ export default function DetailScreen() {
                 }}
                 accessibilityLabel="Delete photo"
               >
-                <AppIcon name="trash-outline" size={20} color={theme.colors.cream} />
-                <Text style={styles.imageFullScreenSaveText}>Delete</Text>
+                <AppIcon name="trash-outline" size={20} color={theme.colors.loss} />
+                <Text style={[styles.imageFullScreenSaveText, { color: theme.colors.loss }]}>Delete</Text>
               </Pressable>
             </View>
+            )}
           </Animated.View>
         </Pressable>
       </Modal>
@@ -1279,7 +1612,8 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     borderBottomColor: theme.colors.lavender,
   },
   headerBtn: {
-    padding: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     minWidth: theme.minTouchTargetSize,
     minHeight: theme.minTouchTargetSize,
     justifyContent: 'center',
@@ -1288,6 +1622,7 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
   headerTitleWrap: {
     flex: 1,
     alignItems: 'center',
+    paddingHorizontal: 8,
   },
   headerTitle: {
     ...theme.typography.body,
@@ -1413,54 +1748,146 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     minHeight: theme.minTouchTargetSize,
   },
   itemMenuItemDestructive: {},
+  historyCloseBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: theme.spacing.lg,
+    marginTop: theme.spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.surfaceVariant,
+    minHeight: theme.minTouchTargetSize,
+  },
   historyCard: {
     position: 'absolute',
-    minWidth: 240,
-    maxWidth: 320,
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.md,
-    paddingTop: 8,
+    borderTopLeftRadius: theme.radius.lg,
+    borderTopRightRadius: theme.radius.lg,
+    paddingTop: 12,
+    maxHeight: '72%',
     ...(theme.shadows.md ?? {}),
+  },
+  historySheetInner: {
+    flex: 1,
+  },
+  historyDragArea: {
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  historyHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: theme.colors.surfaceVariant,
+  },
+  historyHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.surfaceVariant,
   },
   historyTitle: {
     ...theme.typography.bodySmall,
     color: theme.colors.charcoal,
     fontWeight: '600',
-    paddingHorizontal: 16,
-    paddingBottom: 8,
+    flex: 1,
   },
   historyList: {
-    maxHeight: 260,
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
+    paddingTop: 8,
   },
   historyRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     borderRadius: theme.radius.sm,
     paddingVertical: 10,
     paddingHorizontal: 8,
     marginBottom: 4,
+    gap: 10,
   },
   historyRowActive: {
     backgroundColor: theme.colors.surfaceVariant,
   },
+  historyRowThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: theme.radius.sm,
+    backgroundColor: theme.colors.blush,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  historyRowThumbImg: {
+    width: 44,
+    height: 44,
+  },
   historyRowMain: {
     flex: 1,
+    minWidth: 0,
+  },
+  historyRowTopLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   historyRowTime: {
     ...theme.typography.caption,
     color: theme.colors.charcoal,
     fontWeight: '600',
   },
+  historyRowMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 3,
+    flexWrap: 'wrap',
+    gap: 4,
+  },
+  historyRowProfit: {
+    ...theme.typography.caption,
+    color: theme.colors.profit,
+    fontWeight: '600',
+  },
+  historyRowDot: {
+    ...theme.typography.caption,
+    color: theme.colors.mauve,
+  },
+  historyConfDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    flexShrink: 0,
+  },
   historyRowMeta: {
     ...theme.typography.caption,
     color: theme.colors.mauve,
-    marginTop: 2,
   },
-  historyActiveTag: {
+  historyActivePill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.vintageBlueLight,
+  },
+  historyActivePillText: {
     ...theme.typography.label,
     color: theme.colors.vintageBlueDark,
+    fontWeight: '600',
+  },
+  historyIsCustomPill: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.terraLight,
+  },
+  historyIsCustomPillText: {
+    ...theme.typography.label,
+    color: theme.colors.terra,
+    fontWeight: '600',
   },
   itemMenuItemTextDestructive: {
     color: theme.colors.terra,
@@ -1542,7 +1969,7 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     borderRadius: 18,
     backgroundColor: theme.colors.overlayLight,
     borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.85)',
+    borderColor: theme.colors.overlayWhiteStrong,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1558,7 +1985,7 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.55)',
+    backgroundColor: theme.colors.overlayWhiteMid,
   },
   photoDotActive: {
     backgroundColor: theme.colors.onPrimary,
@@ -1577,7 +2004,7 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
   },
   imageFullScreenOverlay: {
     flex: 1,
-    backgroundColor: theme.colors.charcoal,
+    backgroundColor: '#1A1A1A',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1601,7 +2028,7 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
   },
   imageFullScreenCountText: {
     ...theme.typography.caption,
-    color: theme.colors.cream,
+    color: theme.colors.overlayWhiteStrong,
     fontWeight: '600',
     backgroundColor: theme.colors.overlay,
     paddingHorizontal: 10,
@@ -1627,37 +2054,52 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 24,
+    gap: 8,
+    backgroundColor: theme.colors.overlayHeavy,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.md,
   },
   imageFullScreenActionBtn: {
-    flexDirection: 'row',
+    flex: 1,
+    flexDirection: 'column',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
+    paddingVertical: theme.spacing.md,
+    minHeight: 64,
   },
   imageFullScreenSaveText: {
-    ...theme.typography.bodySmall,
-    color: theme.colors.cream,
+    ...theme.typography.caption,
+    color: theme.colors.overlayWhiteStrong,
     fontWeight: '600',
+  },
+  imageFullScreenActionDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: theme.colors.overlayWhiteLight,
+    alignSelf: 'center',
   },
   badge: {
     position: 'absolute',
     top: 20,
     left: 20,
-    backgroundColor: theme.colors.surface,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    backgroundColor: theme.colors.vintageBlueDark,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: theme.radius.sm,
+    ...(theme.shadows.sm ?? {}),
   },
   badgeText: {
-    ...theme.typography.bodySmall,
-    fontWeight: '600',
-    color: theme.colors.charcoal,
+    ...theme.typography.label,
+    fontSize: 11,
+    fontFamily: 'DMSans_600SemiBold',
+    color: theme.colors.onPrimary,
   },
   badgeSold: {
     backgroundColor: theme.colors.profit,
   },
   badgeUnlisted: {
-    backgroundColor: theme.colors.vintageBlueLight,
+    backgroundColor: theme.colors.vintageBlueDark,
   },
   badgeListed: {
     backgroundColor: theme.colors.vintageBlueDark,
@@ -1666,7 +2108,7 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     color: theme.colors.onPrimary,
   },
   badgeTextUnlisted: {
-    color: theme.colors.vintageBlueDeep,
+    color: theme.colors.onPrimary,
   },
   badgeTextListed: {
     color: theme.colors.onPrimary,
@@ -1754,19 +2196,59 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     paddingBottom: theme.spacing.md,
     paddingTop: theme.spacing.sm,
   },
-  insightsPillRow: {
+  insightsCustomPill: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.terraLight,
   },
   insightsConfidence: {
     ...theme.typography.caption,
     fontWeight: '600',
   },
-  insightsCustom: {
+  insightsCustomPillText: {
     ...theme.typography.caption,
     fontWeight: '600',
     color: theme.colors.terra,
+  },
+  insightsCustomPromptRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minHeight: 36,
+    marginBottom: 4,
+  },
+  insightsCustomPromptText: {
+    ...theme.typography.caption,
+    color: theme.colors.mauve,
+  },
+  insightsCustomYes: {
+    minHeight: 36,
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.terraLight,
+  },
+  insightsCustomYesText: {
+    ...theme.typography.body,
+    fontWeight: '600',
+    color: theme.colors.terra,
+  },
+  insightsCustomNo: {
+    minHeight: 36,
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.mauveLight,
+  },
+  insightsCustomNoText: {
+    ...theme.typography.body,
+    fontWeight: '600',
+    color: theme.colors.mauve,
   },
   insightsSub: {
     ...theme.typography.caption,
@@ -1801,21 +2283,74 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     ...theme.typography.caption,
     color: theme.colors.mauve,
   },
-  historyBtn: {
-    marginTop: theme.spacing.sm,
-    alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderColor: theme.colors.surfaceVariant,
-    borderRadius: theme.radius.sm,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.xs,
+  insightsUpcycleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.surfaceVariant,
+    paddingVertical: theme.spacing.sm,
     minHeight: theme.minTouchTargetSize,
-    justifyContent: 'center',
+  },
+  insightsUpcycleHeaderText: {
+    ...theme.typography.caption,
+    color: theme.colors.terra,
+    fontWeight: '600',
+    flex: 1,
+  },
+  insightsUpcycleRows: {
+    gap: 6,
+    paddingBottom: theme.spacing.sm,
+  },
+  insightsUpcycleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  insightsUpcycleDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: theme.colors.terra,
+    marginTop: 5,
+  },
+  insightsUpcycleText: {
+    ...theme.typography.bodySmall,
+    color: theme.colors.charcoal,
+    flex: 1,
+    lineHeight: 20,
+  },
+  insightsActions: {
+    marginTop: theme.spacing.sm,
+    gap: 0,
+  },
+  deleteScanBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.surfaceVariant,
+    paddingVertical: theme.spacing.sm,
+    minHeight: theme.minTouchTargetSize,
+  },
+  deleteScanBtnText: {
+    ...theme.typography.caption,
+    color: theme.colors.terra,
+  },
+  historyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.surfaceVariant,
+    paddingVertical: theme.spacing.sm,
+    minHeight: theme.minTouchTargetSize,
   },
   historyBtnText: {
     ...theme.typography.caption,
     color: theme.colors.vintageBlueDark,
     fontWeight: '600',
+    flex: 1,
   },
   profitStripBlock: {
     alignItems: 'center',
@@ -1902,8 +2437,8 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     borderColor: theme.colors.surfaceVariant,
   },
   platformChipActive: {
-    backgroundColor: theme.colors.vintageBlue,
-    borderColor: theme.colors.vintageBlue,
+    backgroundColor: theme.colors.vintageBlueDark,
+    borderColor: theme.colors.vintageBlueDark,
   },
   platformChipText: {
     ...theme.typography.caption,
@@ -1928,7 +2463,7 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     backgroundColor: theme.colors.vintageBlueDark,
   },
   statusChipActiveUnlisted: {
-    backgroundColor: theme.colors.vintageBlue,
+    backgroundColor: theme.colors.vintageBlueDark,
   },
   statusChipActiveListed: {
     backgroundColor: theme.colors.vintageBlueDark,

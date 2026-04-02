@@ -124,21 +124,6 @@ if (id === 'subscription') {
         <View style={styles.header}>
           <Text style={styles.title}>Profile</Text>
         </View>
-        <View style={styles.statsRow}>
-          <Text style={styles.statBig}>+${stats.totalProfit}</Text>
-          <Text style={styles.statLabel}>Total profit</Text>
-        </View>
-        <Text style={styles.bestFlip}>Best single flip: <Text style={styles.profitGreen}>+${stats.bestFlip}</Text></Text>
-
-        <Pressable
-          style={({ pressed }) => [styles.upgradeBtn, pressed && styles.btnPressed]}
-          onPress={() => setPaywallVisible(true)}
-        >
-          <AppIcon name="sparkles" size={20} color={theme.colors.onPrimary} />
-          <Text style={styles.upgradeBtnText}>Upgrade to Pro</Text>
-        </Pressable>
-        <Text style={styles.trialNote}>{TRIAL_DURATION_DAYS}-day free trial</Text>
-
         {storeStats.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Profit by store</Text>
@@ -177,6 +162,16 @@ if (id === 'subscription') {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Your Stats</Text>
+          <View style={styles.row}>
+            <AppIcon name="cash-outline" size={22} color={theme.colors.profit} />
+            <Text style={styles.rowLabel}>Total Profit</Text>
+            <Text style={[styles.rowValue, styles.profitGreen]}>+${stats.totalProfit}</Text>
+          </View>
+          <View style={styles.row}>
+            <AppIcon name="trending-up-outline" size={22} color={theme.colors.profit} />
+            <Text style={styles.rowLabel}>Best Single Flip</Text>
+            <Text style={[styles.rowValue, styles.profitGreen]}>+${stats.bestFlip}</Text>
+          </View>
           <View style={styles.row}>
             <AppIcon name="cube-outline" size={22} color={theme.colors.mauve} />
             <Text style={styles.rowLabel}>Total Items Tracked</Text>
@@ -227,6 +222,15 @@ if (id === 'subscription') {
             </Pressable>
           ))}
         </View>
+
+        <Pressable
+          style={({ pressed }) => [styles.upgradeBtn, pressed && styles.btnPressed]}
+          onPress={() => setPaywallVisible(true)}
+        >
+          <AppIcon name="sparkles" size={20} color={theme.colors.onPrimary} />
+          <Text style={styles.upgradeBtnText}>Upgrade to Pro</Text>
+        </Pressable>
+        <Text style={styles.trialNote}>{TRIAL_DURATION_DAYS}-day free trial</Text>
         </View>
       </ScrollView>
 
@@ -264,25 +268,6 @@ function createStyles(theme: Theme, headerHPad: number, formMaxWidth?: number) {
   title: {
     ...theme.typography.h1,
     color: theme.colors.charcoal,
-  },
-  statsRow: {
-    paddingHorizontal: 24,
-    marginBottom: 4,
-  },
-  statBig: {
-    ...theme.typography.display,
-    color: theme.colors.profit,
-  },
-  statLabel: {
-    ...theme.typography.caption,
-    color: theme.colors.mauve,
-    marginTop: 2,
-  },
-  bestFlip: {
-    ...theme.typography.bodySmall,
-    color: theme.colors.mauve,
-    paddingHorizontal: 24,
-    marginBottom: 16,
   },
   upgradeBtn: {
     flexDirection: 'row',
