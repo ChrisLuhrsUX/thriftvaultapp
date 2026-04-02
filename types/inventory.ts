@@ -67,6 +67,8 @@ export interface ScanScenarioIdea {
   ideaIcon: string;
 }
 
+export type AuthenticityVerdict = 'likely_authentic' | 'uncertain' | 'likely_fake';
+
 export interface ScanScenario {
   name: string;
   sub: string;
@@ -80,4 +82,8 @@ export interface ScanScenario {
   confidence?: 'high' | 'medium' | 'low';
   /** Detected item category. */
   category?: ItemCategory;
+  /** Brand authenticity assessment from AI scan. */
+  authenticity?: AuthenticityVerdict;
+  /** Brief explanation of the authenticity assessment. */
+  authenticityNote?: string;
 }

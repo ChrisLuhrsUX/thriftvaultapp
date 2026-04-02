@@ -1,5 +1,5 @@
 import * as FileSystem from 'expo-file-system/legacy';
-import { ITEM_CATEGORIES, type ItemCategory, type ScanScenario } from '@/types/inventory';
+import { ITEM_CATEGORIES, type AuthenticityVerdict, type ItemCategory, type ScanScenario } from '@/types/inventory';
 
 const API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY ?? '';
 const MODEL = 'gemini-2.5-flash';
@@ -10,7 +10,7 @@ const VALID_CATEGORIES: ItemCategory[] = ITEM_CATEGORIES;
 /** Gemini 2.5 thinking can consume most of a small output budget; JSON never arrives. */
 const MAX_OUTPUT_TOKENS = 8192;
 
-const PROMPT = `You are an expert thrift reseller. Analyze this photo of a thrift store item.
+const PROMPT = `You are an expert thrift reseller and brand authenticator. Analyze this photo of a thrift store item.
 
 Return ONLY a valid JSON object with this exact structure — no markdown fences, no explanation:
 {
@@ -20,6 +20,8 @@ Return ONLY a valid JSON object with this exact structure — no markdown fences
   "suggestedPaid": <number>,
   "suggestedResale": <number>,
   "confidence": "high|medium|low",
+  "authenticity": "likely_authentic|uncertain|likely_fake",
+  "authenticityNote": "Brief reason for authenticity verdict",
   "ideas": [
     {"t": "Listing/pricing suggestion", "ideaIcon": "pricetag"},
     {"t": "Photography or styling tip", "ideaIcon": "camera"},
@@ -34,7 +36,15 @@ Guidelines:
 - confidence = "low" if brand is obscure/niche or resale comps are sparse
 - suggestedPaid = realistic thrift store price ($3–$30)
 - suggestedResale = realistic price on Depop/Poshmark/eBay
-- ideas[].t = short, actionable tip (no price amounts)`;
+- ideas[].t = short, actionable tip (no price amounts)
+
+Authenticity guidelines:
+- "likely_authentic": brand markers look correct (labels, stitching, hardware, fonts, placement consistent with known authentic items)
+- "uncertain": can't confirm from photo alone (label not visible, unfamiliar brand variant, photo quality too low, or need more angles)
+- "likely_fake": visible red flags (misspelled brand name, wrong logo font/spacing, cheap hardware on a luxury item, inconsistent label design, fantasy colorway that brand never made)
+- authenticityNote: 1 sentence explaining your reasoning (e.g. "Label font and stitching consistent with Nike tags" or "Brand logo spacing appears off — compare with retail" or "No label visible — check interior tags")
+- For unbranded or generic items, set authenticity to "likely_authentic" with note "Unbranded item — no authenticity concerns"
+- Be honest but not alarmist — thrift stores sell mostly authentic goods`;
 
 function inferMimeType(uri: string): string {
   const u = uri.split('?')[0].toLowerCase();
@@ -150,6 +160,9 @@ export async function scanWithGemini(photoUri: string): Promise<ScanScenario> {
   const paid = Number(parsed.suggestedPaid) || 10;
   const resale = Number(parsed.suggestedResale) || 0;
 
+  const VALID_VERDICTS: AuthenticityVerdict[] = ['likely_authentic', 'uncertain', 'likely_fake'];
+  const rawAuth = parsed.authenticity as string | undefined;
+
   return {
     name: String(parsed.name || 'Unknown Item'),
     sub: String(parsed.sub || ''),
@@ -162,6 +175,10 @@ export async function scanWithGemini(photoUri: string): Promise<ScanScenario> {
     confidence: ['high', 'medium', 'low'].includes(parsed.confidence as string)
       ? (parsed.confidence as 'high' | 'medium' | 'low')
       : 'low',
+    authenticity: VALID_VERDICTS.includes(rawAuth as AuthenticityVerdict)
+      ? (rawAuth as AuthenticityVerdict)
+      : undefined,
+    authenticityNote: parsed.authenticityNote ? String(parsed.authenticityNote) : undefined,
     ideas: Array.isArray(parsed.ideas)
       ? parsed.ideas.slice(0, 3).map((idea: Record<string, unknown>) => ({
           e: '',

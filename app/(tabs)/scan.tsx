@@ -7,7 +7,7 @@ import { useResponsive } from '@/hooks/useResponsive';
 import { scanWithGemini } from '@/services/gemini';
 import type { Theme } from '@/theme';
 import type { Item, ItemScanSnapshot, ScanScenario } from '@/types/inventory';
-import { getConfidencePresentation } from '@/utils/confidencePresentation';
+import { getAuthenticityPresentation, getConfidencePresentation } from '@/utils/confidencePresentation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BlurView } from 'expo-blur';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -62,6 +62,10 @@ function ScanResultCard({
   const confPresentation =
     c === 'low' || c === 'medium' || c === 'high' ? getConfidencePresentation(c, theme) : null;
 
+  const authPresentation = scenario.authenticity
+    ? getAuthenticityPresentation(scenario.authenticity, theme)
+    : null;
+
   return (
     <View style={styles.resultCard}>
       <View style={styles.resultHeader}>
@@ -69,6 +73,25 @@ function ScanResultCard({
         <Text style={styles.resultProfit}>{scenario.profit}</Text>
       </View>
       <Text style={styles.resultSub}>{scenario.sub}</Text>
+      {authPresentation ? (
+        <View style={[styles.authenticityBanner, { backgroundColor: authPresentation.bg }]}>
+          <AppIcon
+            name={authPresentation.icon as any}
+            size={16}
+            color={authPresentation.color}
+          />
+          <View style={styles.authenticityBody}>
+            <Text style={[styles.authenticityLabel, { color: authPresentation.color }]}>
+              {authPresentation.label}
+            </Text>
+            {scenario.authenticityNote ? (
+              <Text style={[styles.authenticityNote, { color: authPresentation.color }]}>
+                {scenario.authenticityNote}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+      ) : null}
       {confPresentation ? (
         <View style={[styles.confidenceBanner, { backgroundColor: confPresentation.bg }]}>
           <View style={[styles.confidenceDot, { backgroundColor: confPresentation.color }]} />
@@ -255,6 +278,27 @@ function createScanStyles(theme: Theme, formMaxWidth?: number) {
     confidenceText: {
       ...theme.typography.caption,
       flex: 1,
+    },
+    authenticityBanner: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 8,
+      marginTop: 8,
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      borderRadius: theme.radius.sm,
+    },
+    authenticityBody: {
+      flex: 1,
+      gap: 2,
+    },
+    authenticityLabel: {
+      ...theme.typography.caption,
+      fontWeight: '600',
+    },
+    authenticityNote: {
+      ...theme.typography.caption,
+      lineHeight: 18,
     },
   });
 }
