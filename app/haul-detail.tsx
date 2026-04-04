@@ -14,6 +14,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '@/components/AppIcon';
 import { useInventory } from '@/context/InventoryContext';
@@ -60,7 +61,7 @@ export default function HaulDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const { inventory, removeItem, updateItemsByDate } = useInventory();
+  const { inventory, removeItem, updateItem, updateItemsByDate } = useInventory();
   const { showToast } = useToast();
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   const [storeModalVisible, setStoreModalVisible] = useState(false);
@@ -122,6 +123,21 @@ export default function HaulDetailScreen() {
       ]
     );
   }, [items, removeItem, showToast, router]);
+
+  const handleRemoveFromHaul = useCallback((item: Item) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert(
+      'Remove from haul?',
+      `"${item.name}" stays in your vault — it just won't be part of this haul.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Remove', style: 'destructive', onPress: () => {
+          updateItem(item.id, { date: '' });
+          showToast('Removed from haul');
+        }},
+      ]
+    );
+  }, [updateItem, showToast]);
 
   const openStoreModal = useCallback(() => {
     Haptics.selectionAsync();
@@ -252,6 +268,13 @@ export default function HaulDetailScreen() {
                 </Text>
               </View>
               <AppIcon name="chevron-forward" size={20} color={theme.colors.mauve} />
+              <Pressable
+                onPress={() => handleRemoveFromHaul(item)}
+                hitSlop={8}
+                style={({ pressed }) => [styles.rowRemoveBtn, pressed && { opacity: 0.5 }]}
+              >
+                <AppIcon name="trash-outline" size={18} color={theme.colors.terra} />
+              </Pressable>
             </Pressable>
           ))
         ) : (
@@ -276,6 +299,15 @@ export default function HaulDetailScreen() {
                   <View style={[styles.collageImageBlock, { width: cellSize, height: cellSize }]}>
                     <HaulItemStatusBadge item={item} styles={styles} />
                     <Image source={{ uri: item.img }} style={styles.collageImg} resizeMode="cover" />
+                    <BlurView intensity={40} tint="dark" style={styles.collageRemoveBtn}>
+                      <Pressable
+                        onPress={() => handleRemoveFromHaul(item)}
+                        hitSlop={6}
+                        style={({ pressed }) => [styles.collageRemoveBtnInner, pressed && { opacity: 0.5 }]}
+                      >
+                        <AppIcon name="trash-outline" size={14} color={theme.colors.white} />
+                      </Pressable>
+                    </BlurView>
                   </View>
                   <View style={styles.collageFooter}>
                     <Text style={styles.collageFooterName} numberOfLines={2}>
@@ -417,6 +449,19 @@ function createStyles(theme: Theme) {
       position: 'relative',
       backgroundColor: theme.colors.surfaceVariant,
     },
+    collageRemoveBtn: {
+      position: 'absolute',
+      top: 6,
+      right: 6,
+      borderRadius: 9999,
+      overflow: 'hidden',
+    },
+    collageRemoveBtnInner: {
+      width: 28,
+      height: 28,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     collageImg: {
       width: '100%',
       height: '100%',
@@ -476,6 +521,9 @@ function createStyles(theme: Theme) {
     },
     statusBadgeTextListed: {
       color: theme.colors.onPrimary,
+    },
+    rowRemoveBtn: {
+      marginLeft: 8,
     },
     itemRow: {
       flexDirection: 'row',

@@ -36,8 +36,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const SAVED_LATER_KEY = 'tv_saved_later';
-type SavedScanItem = ScanScenario & { savedAt: number; photoUri?: string | null };
+type SavedScanItem = ScanScenario & { savedAt: number; photoUri?: string | null; photoUris?: string[] };
 const SNAPSHOT_CAP = 5;
+const MAX_STAGED_PHOTOS = 3;
 const OLD_ITEM_DAYS_THRESHOLD = 90;
 
 const RECENTS_COUNT = 7;
@@ -57,6 +58,10 @@ function ScanResultCard({
   rescanningWrong,
   onRefreshUpcycle,
   refreshingUpcycle,
+  customDismissed,
+  onDismissCustom,
+  wrongScanDismissed,
+  onDismissWrongScan,
   theme,
   styles,
 }: {
@@ -72,6 +77,10 @@ function ScanResultCard({
   rescanningWrong: boolean;
   onRefreshUpcycle: () => void;
   refreshingUpcycle: boolean;
+  customDismissed: boolean;
+  onDismissCustom: () => void;
+  wrongScanDismissed: boolean;
+  onDismissWrongScan: () => void;
   theme: Theme;
   styles: ReturnType<typeof createScanStyles>;
 }) {
@@ -81,8 +90,6 @@ function ScanResultCard({
 
   const [editingName, setEditingName] = useState(false);
   const [editedName, setEditedName] = useState(scenario.name);
-  const [customDismissed, setCustomDismissed] = useState(false);
-  const [wrongScanDismissed, setWrongScanDismissed] = useState(false);
   const [upcycleExpanded, setUpcycleExpanded] = useState(false);
 
   const commitNameEdit = () => {
@@ -118,7 +125,14 @@ function ScanResultCard({
             <AppIcon name="pencil" size={16} color={theme.colors.mauve} />
           </Pressable>
         )}
-        <Text style={styles.resultProfit}>{scenario.profit}</Text>
+        <View style={styles.resultPriceWrap}>
+          <Text style={styles.resultProfit}>
+            ${scenario.suggestedResale ?? 0}
+          </Text>
+          {scenario.profit ? (
+            <Text style={styles.resultRange}>{scenario.profit}</Text>
+          ) : null}
+        </View>
       </View>
       <Text style={styles.resultSub}>{scenario.sub}</Text>
       <View style={styles.pillRow}>
@@ -147,7 +161,7 @@ function ScanResultCard({
             </Pressable>
             <Pressable
               style={({ pressed }) => [styles.handmadeNo, pressed && { opacity: 0.7 }]}
-              onPress={() => setCustomDismissed(true)}
+              onPress={onDismissCustom}
               hitSlop={8}
             >
               <Text style={styles.handmadeNoText}>No</Text>
@@ -172,7 +186,7 @@ function ScanResultCard({
             </Pressable>
             <Pressable
               style={({ pressed }) => [styles.handmadeNo, pressed && { opacity: 0.7 }]}
-              onPress={() => setWrongScanDismissed(true)}
+              onPress={onDismissWrongScan}
               hitSlop={8}
             >
               <Text style={styles.handmadeNoText}>No</Text>
@@ -301,10 +315,17 @@ function createScanStyles(theme: Theme, formMaxWidth?: number) {
       borderBottomColor: theme.colors.vintageBlueDark,
       paddingVertical: 2,
     },
+    resultPriceWrap: {
+      alignItems: 'flex-end' as const,
+    },
     resultProfit: {
-      ...theme.typography.body,
+      ...theme.typography.h2,
       fontWeight: '700',
       color: theme.colors.profit,
+    },
+    resultRange: {
+      ...theme.typography.caption,
+      color: theme.colors.mauve,
     },
     resultSub: {
       ...theme.typography.caption,
@@ -495,14 +516,6 @@ function createScanStyles(theme: Theme, formMaxWidth?: number) {
       fontWeight: '600',
       color: theme.colors.mauve,
     },
-    cancelScanBtn: {
-      marginTop: theme.spacing.sm,
-    },
-    cancelScanText: {
-      ...theme.typography.body,
-      color: theme.colors.overlayWhiteMid,
-      fontWeight: '500',
-    },
   });
 }
 
@@ -522,7 +535,7 @@ export default function ScanScreen() {
   const [cameraReady, setCameraReady] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<ScanScenario | null>(null);
-  const [capturedPhotoUri, setCapturedPhotoUri] = useState<string | null>(null);
+  const [stagedPhotos, setStagedPhotos] = useState<string[]>([]);
   const [placeholderImageUri, setPlaceholderImageUri] = useState<string | null>(null);
   const [savedForLater, setSavedForLater] = useState<SavedScanItem[]>([]);
   const [duplicateChoiceVisible, setDuplicateChoiceVisible] = useState(false);
@@ -532,6 +545,9 @@ export default function ScanScreen() {
   const [rescanningHandmade, setRescanningHandmade] = useState(false);
   const [rescanningWrong, setRescanningWrong] = useState(false);
   const [refreshingUpcycle, setRefreshingUpcycle] = useState(false);
+  const [promptCustomDismissed, setPromptCustomDismissed] = useState(false);
+  const [promptWrongScanDismissed, setPromptWrongScanDismissed] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
   const cameraRef = useRef<{ takePictureAsync: (opts?: { quality?: number }) => Promise<{ uri: string }> } | null>(null);
   const scanningRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -566,26 +582,21 @@ export default function ScanScreen() {
   const cancelScan = useCallback(() => {
     abortControllerRef.current?.abort();
     abortControllerRef.current = null;
-    setCapturedPhotoUri(null);
-    setPlaceholderImageUri(null);
     setScanning(false);
     scanningRef.current = false;
   }, []);
 
-  const runScan = useCallback(async (photoUri?: string | null) => {
-    if (scanningRef.current) return;
-    if (!photoUri) {
-      showToast('Scan needs a photo. Use the camera or photo library on your phone.');
-      return;
-    }
+  const handleScanStaged = useCallback(async () => {
+    if (scanningRef.current || stagedPhotos.length === 0) return;
     const controller = new AbortController();
     abortControllerRef.current = controller;
     scanningRef.current = true;
     setResult(null);
-    setCapturedPhotoUri(photoUri);
     setScanning(true);
+    setCameraActive(false);
+    setCameraReady(false);
     try {
-      const geminiResult = await scanWithGemini(photoUri, controller.signal);
+      const geminiResult = await scanWithGemini(stagedPhotos, controller.signal);
       setResult(geminiResult);
     } catch (error) {
       if ((error as Error)?.name === 'AbortError') return;
@@ -601,30 +612,58 @@ export default function ScanScreen() {
       setScanning(false);
       abortControllerRef.current = null;
     }
-  }, [showToast]);
+  }, [stagedPhotos, showToast]);
 
-  const handleCaptureAndScan = useCallback(async () => {
+  const handleCapturePhoto = useCallback(async () => {
     if (!__DEV__ && !isPro) { setPaywallVisible(true); return; }
-    if (!CAMERA_AVAILABLE || scanning || !cameraReady) return;
-    setResult(null);
-    setCapturedPhotoUri(null);
+    if (!CAMERA_AVAILABLE || scanning || !cameraReady || scanningRef.current) return;
     try {
       const photo = await cameraRef.current?.takePictureAsync?.({ quality: 0.8 });
+      if (!photo?.uri) return;
+      setPlaceholderImageUri(photo.uri);
+      setStagedPhotos([photo.uri]);
       setCameraActive(false);
       setCameraReady(false);
-      if (photo?.uri) setPlaceholderImageUri(photo.uri);
-      runScan(photo?.uri ?? null);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+      scanningRef.current = true;
+      setResult(null);
+      setScanning(true);
+      try {
+        const geminiResult = await scanWithGemini([photo.uri], controller.signal);
+        setResult(geminiResult);
+      } catch (error) {
+        if ((error as Error)?.name === 'AbortError') return;
+        const message = error instanceof Error ? error.message : String(error ?? '');
+        if (/API (429|503|529)/i.test(message) || /overloaded|high demand/i.test(message)) {
+          showToast('AI is busy right now — try again in a moment');
+        } else {
+          showToast("Couldn't identify — try getting the label in frame");
+        }
+      } finally {
+        scanningRef.current = false;
+        setScanning(false);
+        abortControllerRef.current = null;
+      }
     } catch {
-      setCameraActive(false);
-      setCameraReady(false);
       showToast("Couldn't capture photo — try again");
     }
-  }, [cameraReady, runScan, scanning]);
+  }, [cameraReady, scanning, isPro, showToast]);
+
+  const handleRemoveStagedPhoto = useCallback((index: number) => {
+    setStagedPhotos(prev => {
+      const next = prev.filter((_, i) => i !== index);
+      if (index === 0) setPlaceholderImageUri(next[0] ?? null);
+      else if (next.length === 0) setPlaceholderImageUri(null);
+      return next;
+    });
+  }, []);
 
   const handleTapToScan = useCallback(async () => {
     if (!__DEV__ && !isPro) { setPaywallVisible(true); return; }
     if (!CAMERA_AVAILABLE) {
-      runScan();
+      showToast('Scan needs a photo. Use the camera or photo library on your phone.');
       return;
     }
     if (cameraActive) return;
@@ -635,7 +674,7 @@ export default function ScanScreen() {
       return;
     }
     setCameraActive(true);
-  }, [CAMERA_AVAILABLE, cameraActive, permission?.granted, requestPermission, runScan, showToast]);
+  }, [CAMERA_AVAILABLE, cameraActive, permission?.granted, requestPermission, showToast]);
 
   const handlePickFromLibrary = useCallback(async () => {
     if (!__DEV__ && !isPro) { setPaywallVisible(true); return; }
@@ -644,53 +683,41 @@ export default function ScanScreen() {
       showToast('Upload is not available on web');
       return;
     }
+    if (stagedPhotos.length >= MAX_STAGED_PHOTOS) {
+      showToast(`Maximum ${MAX_STAGED_PHOTOS} photos per scan`);
+      return;
+    }
     try {
+      const remaining = MAX_STAGED_PHOTOS - stagedPhotos.length;
       const pickResult = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         quality: 0.8,
+        allowsMultipleSelection: remaining > 1,
+        selectionLimit: remaining,
         allowsEditing: false,
       });
-      if (pickResult.canceled || !pickResult.assets?.[0]?.uri) return;
-      const uri = pickResult.assets[0].uri;
-      setPlaceholderImageUri(uri);
-      setCapturedPhotoUri(uri);
-      runScan(uri);
+      if (pickResult.canceled || !pickResult.assets?.length) return;
+      const newUris = pickResult.assets.map(a => a.uri).slice(0, remaining);
+      setStagedPhotos(prev => {
+        if (prev.length === 0) setPlaceholderImageUri(newUris[0]);
+        return [...prev, ...newUris];
+      });
+      if (cameraActive) {
+        setCameraActive(false);
+        setCameraReady(false);
+      }
     } catch {
       showToast('Could not open photo library');
     }
-  }, [runScan, showToast, scanning]);
+  }, [showToast, scanning, stagedPhotos.length, isPro, cameraActive]);
 
   const clearResultAndPhoto = useCallback(() => {
     setResult(null);
-    setCapturedPhotoUri(null);
+    setStagedPhotos([]);
     setPlaceholderImageUri(null);
-  }, []);
-
-  const getItemImageUri = useCallback(async (itemId: number, photoUri: string | null): Promise<string> => {
-    if (!photoUri || !photoUri.startsWith('file:')) return DEFAULT_ITEM_PLACEHOLDER_IMAGE;
-    const docDir = FileSystem.documentDirectory;
-    if (!docDir) return photoUri;
-    try {
-      const dest = `${docDir}item_${itemId}.jpg`;
-      await FileSystem.copyAsync({ from: photoUri, to: dest });
-      return dest;
-    } catch {
-      return photoUri;
-    }
-  }, []);
-
-  const getUpdateImageUri = useCallback(async (itemId: number, photoUri: string | null): Promise<string> => {
-    if (!photoUri) return '';
-    if (!photoUri.startsWith('file:')) return photoUri;
-    const docDir = FileSystem.documentDirectory;
-    if (!docDir) return photoUri;
-    try {
-      const dest = `${docDir}item_${itemId}_${Date.now()}.jpg`;
-      await FileSystem.copyAsync({ from: photoUri, to: dest });
-      return dest;
-    } catch {
-      return photoUri;
-    }
+    setPromptCustomDismissed(false);
+    setPromptWrongScanDismissed(false);
+    setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: true }), 50);
   }, []);
 
   const normalizeName = useCallback((name: string) => name.trim().toLowerCase(), []);
@@ -715,7 +742,22 @@ export default function ScanScreen() {
     return overlap >= Math.ceil(shorter * 0.6);
   }, [normalizeName, tokenize]);
 
-  const createSnapshot = useCallback((scenario: ScanScenario, sourceImageUri?: string): ItemScanSnapshot => ({
+  const persistPhotos = useCallback(async (itemId: number, uris: string[]): Promise<string[]> => {
+    const docDir = FileSystem.documentDirectory;
+    if (!docDir) return uris;
+    return Promise.all(
+      uris.map(async (uri, i) => {
+        if (!uri.startsWith('file:')) return uri;
+        try {
+          const dest = `${docDir}item_${itemId}_${Date.now()}_${i}.jpg`;
+          await FileSystem.copyAsync({ from: uri, to: dest });
+          return dest;
+        } catch { return uri; }
+      })
+    );
+  }, []);
+
+  const createSnapshot = useCallback((scenario: ScanScenario, sourceImageUris?: string[]): ItemScanSnapshot => ({
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     createdAt: Date.now(),
     sub: scenario.sub ?? '',
@@ -724,7 +766,8 @@ export default function ScanScreen() {
     isCustom: scenario.isCustom || false,
     ideas: Array.isArray(scenario.ideas) ? scenario.ideas.slice(0, 3) : [],
     upcycle: Array.isArray(scenario.upcycle) ? scenario.upcycle.slice(0, 3) : [],
-    sourceImageUri,
+    sourceImageUri: sourceImageUris?.[0],
+    sourceImageUris,
   }), []);
 
   const createItemFromScan = useCallback(async (intent: 'flip' | 'closet') => {
@@ -732,8 +775,11 @@ export default function ScanScreen() {
     const id = Date.now();
     const paid = null;
     const resale = intent === 'flip' ? (result.suggestedResale ?? 45) : 0;
-    const imgUri = await getItemImageUri(id, capturedPhotoUri);
-    const snapshot = createSnapshot(result, imgUri || undefined);
+    const persistedUris = stagedPhotos.length > 0
+      ? await persistPhotos(id, stagedPhotos)
+      : [];
+    const coverUri = persistedUris[0] || DEFAULT_ITEM_PLACEHOLDER_IMAGE;
+    const snapshot = createSnapshot(result, persistedUris.length > 0 ? persistedUris : undefined);
     const newItem: Item = {
       id,
       name: result.name,
@@ -750,33 +796,39 @@ export default function ScanScreen() {
       platform: '',
       notes: '',
       soldPrice: null,
-      img: imgUri || DEFAULT_ITEM_PLACEHOLDER_IMAGE,
-      photos: imgUri ? [imgUri] : undefined,
+      img: coverUri,
+      photos: persistedUris.length > 0 ? persistedUris : undefined,
       intent,
       scanSnapshots: [snapshot],
       activeScanSnapshotId: snapshot.id,
     };
     addItem(newItem);
+    if (promptCustomDismissed || promptWrongScanDismissed) {
+      AsyncStorage.setItem(`tv_prompt_dismissed_${id}`, JSON.stringify({ handmade: promptCustomDismissed, wrongScan: promptWrongScanDismissed }));
+    }
     clearResultAndPhoto();
     router.push({ pathname: '/detail', params: { itemId: String(id), fromScan: '1' } });
-  }, [result, getItemImageUri, capturedPhotoUri, createSnapshot, addItem, clearResultAndPhoto, router]);
+  }, [result, persistPhotos, stagedPhotos, createSnapshot, addItem, promptCustomDismissed, promptWrongScanDismissed, clearResultAndPhoto, router]);
 
   const updateExistingFromScan = useCallback(async (target: Item) => {
     if (!result) return;
-    const newCoverUri = await getUpdateImageUri(target.id, capturedPhotoUri);
+    const newUris = stagedPhotos.length > 0
+      ? await persistPhotos(target.id, stagedPhotos)
+      : [];
     const existingPhotos = target.photos && target.photos.length > 0 ? target.photos : (target.img ? [target.img] : []);
-    const mergedPhotos = newCoverUri
-      ? [newCoverUri, ...existingPhotos.filter((uri) => uri !== newCoverUri)]
+    const mergedPhotos = newUris.length > 0
+      ? [...newUris, ...existingPhotos.filter((uri) => !newUris.includes(uri))]
       : existingPhotos;
-    const snapshot = createSnapshot(result, newCoverUri || undefined);
+    const snapshot = createSnapshot(result, newUris.length > 0 ? newUris : undefined);
     const nextSnapshots = [snapshot, ...(target.scanSnapshots ?? [])].slice(0, SNAPSHOT_CAP);
     const newResale = result.suggestedResale ?? 0;
     const resaleUpdate = newResale > (target.resale ?? 0) ? { resale: newResale, name: result.name } : {};
     updateItem(target.id, {
-      img: newCoverUri || target.img,
+      img: newUris[0] || target.img,
       photos: mergedPhotos.length > 0 ? mergedPhotos : target.photos,
       scanSnapshots: nextSnapshots,
       activeScanSnapshotId: snapshot.id,
+      updatedAt: Date.now(),
       ...resaleUpdate,
     });
     setDuplicateChoiceVisible(false);
@@ -785,7 +837,7 @@ export default function ScanScreen() {
     setDuplicateCandidates([]);
     clearResultAndPhoto();
     router.push({ pathname: '/detail', params: { itemId: String(target.id), fromScan: '1' } });
-  }, [result, getUpdateImageUri, capturedPhotoUri, createSnapshot, updateItem, clearResultAndPhoto, router]);
+  }, [result, persistPhotos, stagedPhotos, createSnapshot, updateItem, clearResultAndPhoto, router]);
 
   const isOldOrSold = useCallback((item: Item) => {
     if (item.status === 'sold') return true;
@@ -829,10 +881,11 @@ export default function ScanScreen() {
   }, [showToast, clearResultAndPhoto]);
 
   const handleConfirmHandmade = useCallback(async () => {
-    if (!capturedPhotoUri || rescanningHandmade) return;
+    const photoUri = stagedPhotos[0];
+    if (!photoUri || rescanningHandmade) return;
     setRescanningHandmade(true);
     try {
-      const updated = await rescanAsHandmade(capturedPhotoUri);
+      const updated = await rescanAsHandmade(photoUri);
       setResult((prev) => {
         const prevLow = prev?.suggestedResaleLow ?? 0;
         const prevHigh = prev?.suggestedResaleHigh ?? 0;
@@ -853,41 +906,46 @@ export default function ScanScreen() {
     } finally {
       setRescanningHandmade(false);
     }
-  }, [capturedPhotoUri, rescanningHandmade, showToast]);
+  }, [stagedPhotos, rescanningHandmade, showToast]);
 
   const handleRescanWrong = useCallback(async () => {
-    if (!capturedPhotoUri || rescanningWrong) return;
+    const photoUri = stagedPhotos[0];
+    if (!photoUri || rescanningWrong) return;
     setRescanningWrong(true);
     try {
       const wasHandmade = result?.isCustom === true;
       const updated = wasHandmade
-        ? await rescanAsHandmade(capturedPhotoUri)
-        : await scanWithGemini(capturedPhotoUri);
+        ? await rescanAsHandmade(photoUri)
+        : await scanWithGemini(photoUri);
       setResult({ ...updated, isCustom: wasHandmade || updated.isCustom });
     } catch {
       showToast("Couldn't rescan — try again");
     } finally {
       setRescanningWrong(false);
     }
-  }, [capturedPhotoUri, rescanningWrong, result, showToast]);
+  }, [stagedPhotos, rescanningWrong, result, showToast]);
 
   const handleRefreshUpcycle = useCallback(async () => {
-    if (!capturedPhotoUri || refreshingUpcycle) return;
+    const photoUri = stagedPhotos[0];
+    if (!photoUri || refreshingUpcycle) return;
     setRefreshingUpcycle(true);
     try {
-      const newUpcycle = await refreshUpcycleIdeas(capturedPhotoUri);
+      const newUpcycle = await refreshUpcycleIdeas(
+        photoUri,
+        result ? { name: result.name, category: result.category } : undefined
+      );
       setResult((prev) => prev ? { ...prev, upcycle: newUpcycle } : null);
     } catch {
       showToast("Couldn't refresh — try again");
     } finally {
       setRefreshingUpcycle(false);
     }
-  }, [capturedPhotoUri, refreshingUpcycle, showToast]);
+  }, [stagedPhotos, refreshingUpcycle, showToast]);
 
   const handleSaveForLater = useCallback(() => {
     if (!result) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const saved: SavedScanItem = { ...result, savedAt: Date.now(), photoUri: capturedPhotoUri };
+    const saved: SavedScanItem = { ...result, savedAt: Date.now(), photoUri: stagedPhotos[0] ?? null, photoUris: stagedPhotos };
     setSavedForLater((prev) => {
       const next = [...prev, saved];
       persistSavedForLater(next);
@@ -895,7 +953,7 @@ export default function ScanScreen() {
     });
     showToast('Saved for later');
     clearResultAndPhoto();
-  }, [result, showToast, clearResultAndPhoto, persistSavedForLater]);
+  }, [result, stagedPhotos, showToast, clearResultAndPhoto, persistSavedForLater]);
 
   const openSavedItem = useCallback((saved: SavedScanItem) => {
     setSavedForLater((prev) => {
@@ -903,8 +961,9 @@ export default function ScanScreen() {
       persistSavedForLater(next);
       return next;
     });
-    setCapturedPhotoUri(saved.photoUri ?? null);
-    setPlaceholderImageUri(saved.photoUri ?? null);
+    const restoredPhotos = saved.photoUris ?? (saved.photoUri ? [saved.photoUri] : []);
+    setStagedPhotos(restoredPhotos);
+    setPlaceholderImageUri(restoredPhotos[0] ?? null);
     setResult(saved);
   }, [persistSavedForLater]);
 
@@ -916,6 +975,7 @@ export default function ScanScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView
+        ref={scrollRef}
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -972,7 +1032,7 @@ export default function ScanScreen() {
                   <BlurView intensity={50} tint="light" style={styles.shutterBlur}>
                     <Pressable
                       style={({ pressed }) => [styles.shutterRing, styles.shutterRingLive, pressed && styles.cameraPressed]}
-                      onPress={handleCaptureAndScan}
+                      onPress={handleCapturePhoto}
                       disabled={scanning || !cameraReady}
                     >
                       {scanning ? (
@@ -989,7 +1049,7 @@ export default function ScanScreen() {
             <Pressable
               style={({ pressed }) => [styles.cameraBgWrap, pressed && styles.cameraPressed]}
               onPress={handleTapToScan}
-              disabled={scanning || !!result}
+              disabled={scanning || !!result || stagedPhotos.length > 0}
             >
               {isDesktop ? (
                 <View style={styles.cameraBg}>
@@ -1003,9 +1063,11 @@ export default function ScanScreen() {
                     <View style={styles.searchingWrap}>
                       <ActivityIndicator size="large" color={theme.colors.white} />
                       <Text style={styles.searchingText}>Searching</Text>
-                      <Pressable onPress={cancelScan} hitSlop={12} style={styles.cancelScanBtn}>
-                        <Text style={styles.cancelScanText}>Cancel</Text>
-                      </Pressable>
+                      <BlurView intensity={40} tint="dark" style={styles.cancelPill}>
+                        <Pressable style={({ pressed }) => [styles.clearBtn, pressed && styles.cameraPressed]} onPress={cancelScan} hitSlop={12}>
+                          <Text style={styles.clearBtnText}>Cancel</Text>
+                        </Pressable>
+                      </BlurView>
                     </View>
                   ) : (
                     <View style={styles.cameraPrompt}>
@@ -1033,13 +1095,15 @@ export default function ScanScreen() {
                     <View style={styles.searchingWrap}>
                       <ActivityIndicator size="large" color={theme.colors.white} />
                       <Text style={styles.searchingText}>Searching</Text>
-                      <Pressable onPress={cancelScan} hitSlop={12} style={styles.cancelScanBtn}>
-                        <Text style={styles.cancelScanText}>Cancel</Text>
-                      </Pressable>
+                      <BlurView intensity={40} tint="dark" style={styles.cancelPill}>
+                        <Pressable style={({ pressed }) => [styles.clearBtn, pressed && styles.cameraPressed]} onPress={cancelScan} hitSlop={12}>
+                          <Text style={styles.clearBtnText}>Cancel</Text>
+                        </Pressable>
+                      </BlurView>
                     </View>
                   ) : (
                     <View style={styles.cameraPrompt}>
-                      <Text style={styles.cameraLabel}>Tap to scan</Text>
+                      <Text style={styles.cameraLabel}>{stagedPhotos.length > 0 ? '' : 'Tap to scan'}</Text>
                       <View style={styles.cameraActions}>
                         <View style={styles.cameraActionSlot} />
                         <BlurView intensity={50} tint="light" style={styles.shutterBlur}>
@@ -1066,6 +1130,47 @@ export default function ScanScreen() {
                 </ImageBackground>
               )}
             </Pressable>
+          )}
+          {stagedPhotos.length > 0 && !cameraActive && !scanning && !result && (
+            <View style={styles.stagedStripOverlay}>
+              {stagedPhotos.map((uri, i) => (
+                <View key={`${uri}-${i}`} style={styles.stagedThumb}>
+                  <Image source={{ uri }} style={styles.stagedThumbImg} />
+                  {!result && (
+                    <Pressable
+                      style={styles.stagedThumbRemove}
+                      onPress={() => handleRemoveStagedPhoto(i)}
+                      hitSlop={6}
+                    >
+                      <AppIcon name="close-circle" size={18} color={theme.colors.white} />
+                    </Pressable>
+                  )}
+                </View>
+              ))}
+
+              {!result && (
+                <BlurView intensity={40} tint="dark" style={styles.stagedClearBlur}>
+                  <Pressable
+                    style={({ pressed }) => [styles.stagedClearBtn, pressed && styles.cameraPressed]}
+                    onPress={clearResultAndPhoto}
+                    hitSlop={6}
+                  >
+                    <AppIcon name="close" size={18} color={theme.colors.white} />
+                  </Pressable>
+                </BlurView>
+              )}
+              {!result && (
+                <BlurView intensity={50} tint="dark" style={styles.scanPillBlur}>
+                  <Pressable
+                    style={({ pressed }) => [styles.scanPill, pressed && styles.cameraPressed]}
+                    onPress={handleScanStaged}
+                  >
+                    <AppIcon name="search" size={16} color={theme.colors.white} />
+                    <Text style={styles.scanPillText}>Scan ({stagedPhotos.length})</Text>
+                  </Pressable>
+                </BlurView>
+              )}
+            </View>
           )}
           {result && !scanning && !cameraActive && (
             <BlurView intensity={50} tint="light" style={styles.clearBtnBlur}>
@@ -1094,6 +1199,10 @@ export default function ScanScreen() {
             rescanningWrong={rescanningWrong}
             onRefreshUpcycle={handleRefreshUpcycle}
             refreshingUpcycle={refreshingUpcycle}
+            customDismissed={promptCustomDismissed}
+            onDismissCustom={() => setPromptCustomDismissed(true)}
+            wrongScanDismissed={promptWrongScanDismissed}
+            onDismissWrongScan={() => setPromptWrongScanDismissed(true)}
             theme={theme}
             styles={scanStyles}
           />
@@ -1407,6 +1516,12 @@ function createStyles(
     backgroundColor: theme.colors.overlay,
     borderRadius: 24,
   },
+  cancelPill: {
+    borderRadius: 9999,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: theme.colors.overlayWhiteMid,
+  },
   clearBtnBlur: {
     position: 'absolute',
     bottom: 16,
@@ -1430,6 +1545,102 @@ function createStyles(
   },
   cameraPressed: {
     opacity: 0.95,
+  },
+  stagedCounterPos: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    zIndex: 10,
+  },
+  stagedCounterInner: {
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+  },
+  stagedCounterText: {
+    ...theme.typography.caption,
+    fontWeight: '700',
+    color: theme.colors.white,
+  },
+  stagedStripCamera: {
+    position: 'absolute',
+    bottom: 90,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    zIndex: 10,
+  },
+  stagedStripOverlay: {
+    position: 'absolute',
+    bottom: 16,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    zIndex: 10,
+  },
+  stagedThumb: {
+    width: 48,
+    height: 48,
+    borderRadius: 10,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: theme.colors.overlayWhiteStrong,
+  },
+  stagedThumbImg: {
+    width: '100%',
+    height: '100%',
+  },
+  stagedThumbRemove: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+  },
+  stagedAddMore: {
+    width: 48,
+    height: 48,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: theme.colors.overlayWhiteMid,
+    borderStyle: 'dashed' as const,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.overlay,
+  },
+  stagedClearBlur: {
+    borderRadius: 9999,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: theme.colors.overlayWhiteMid,
+  },
+  stagedClearBtn: {
+    width: 38,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scanPillBlur: {
+    borderRadius: 9999,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: theme.colors.overlayWhiteMid,
+  },
+  scanPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  scanPillText: {
+    ...theme.typography.bodySmall,
+    fontWeight: '700',
+    color: theme.colors.white,
   },
   searchingWrap: {
     alignItems: 'center',

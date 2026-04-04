@@ -41,6 +41,7 @@ export interface ItemScanSnapshot {
   ideas: ScanScenarioIdea[];
   upcycle?: string[];
   sourceImageUri?: string;
+  sourceImageUris?: string[];
 }
 
 export interface Item {
@@ -60,6 +61,7 @@ export interface Item {
   intent: ItemIntent;
   scanSnapshots?: ItemScanSnapshot[];
   activeScanSnapshotId?: string;
+  updatedAt?: number;
 }
 
 export interface ScanScenarioIdea {

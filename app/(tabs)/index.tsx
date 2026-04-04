@@ -395,7 +395,7 @@ export default function InventoryScreen() {
       }
     }
     if (view === 'closet' || view === 'flips') {
-      list = [...list].sort((a, b) => b.id - a.id);
+      list = [...list].sort((a, b) => (b.updatedAt ?? b.id) - (a.updatedAt ?? a.id));
     }
     return list;
   }, [listByView, search, filter, view]);

@@ -197,6 +197,24 @@ interface ScanScenario {
 
 ## Session Notes
 
+### Session — 2026-04-04
+
+- **Multi-photo scan UX fixes** — removed empty dotted placeholder square from staged strip (upload button is enough); cancel button during scanning now uses frosted glass pill matching design system; staged photo thumbnails hidden after scan completes (strip is pre-scan only); X button added to clear all staged photos; first selected photo is always the thumbnail; auto-scroll to top when result is cleared.
+- **Camera = single-shot, library = multi-photo** — shutter now scans immediately on capture (no staging); upload button (library picker) is the only multi-photo path; removed upload button, staged counter, staged strip, and Scan pill from live camera overlay.
+- **"Is this scan wrong?" dismiss persists to detail** — lifted `customDismissed` and `wrongScanDismissed` out of `ScanResultCard` into `ScanScreen`; on item creation, flags are written to `tv_prompt_dismissed_<id>` so detail screen loads with correct dismissed state.
+- **Toast hugs text** — replaced `left: 40, right: 40` with `alignSelf: 'center'` + `maxWidth: 80%` in `Toast.tsx`.
+- **Cost field UX fixes** — cost input auto-saves on back navigation (flushes `paidStr`/`resaleStr`/`soldStr` in `saveAndBack`); cost input auto-scrolls into view on focus using `measureLayout` against `mainScrollRef`.
+- **Haul remove item** — per-item remove button in haul detail (list: `trash-outline` in terra; grid: frosted glass circle). Removes item from haul by clearing `item.date` — item stays in vault.
+- **Improved scan pricing** — replaced vague pricing guidance with brand-tier benchmarks (fast fashion → luxury), platform-specific context (Depop/Poshmark/eBay/Etsy), trend premiums (+20–40%), and explicit "do not default to low end" instruction. Handmade pricing now uses labor-hours × hourly rate ($15–$25/hr) + materials + uniqueness premium instead of crude "2–4x materials" heuristic.
+- **Upcycle prompt hardening** — banned bleach dye, tie-dye, cropping, patches, pins, generic embroidery. Added internal 4-question reasoning step (material, construction, era, trend) before writing ideas. Ideas must only be suggestable because of the specific photo.
+- **Rescan bumps item to top** — `updateExistingFromScan` sets `updatedAt: Date.now()` on the item; flips/closet sort uses `updatedAt ?? id` so rescanned items float to top.
+- **Scan price display fix** — scan card now shows midpoint (`$39`) as headline with range (`$25–$52`) as smaller secondary text, matching what gets saved as `item.resale` on the detail page.
+
+### Session — 2026-04-03
+
+- **Upcycle ideas improved** — rewrote both the inline `upcycle[]` instruction in `PROMPT` and the standalone `UPCYCLE_PROMPT` (now `buildUpcyclePrompt()`) to remove example technique lists (which caused Gemini to anchor and recycle the same 3 ideas). New prompts instruct Gemini to reason about the item's specific material, construction, and era before suggesting. Refresh uses temperature 0.9 for creative variety; main scan stays at 0.1. `refreshUpcycleIdeas()` now accepts optional `itemContext: { name?, category? }` so the model has text context alongside the image. Call sites in `scan.tsx` and `detail.tsx` pass item name/category on refresh.
+- **Multi-photo scan** — users can now stage 1–3 photos of the same item before scanning. Selecting a photo no longer auto-triggers a scan; instead photos accumulate in a `stagedPhotos: string[]` array. A thumbnail strip appears in the camera box showing staged photos with remove buttons and a "Scan (N)" button. Counter badge shows "1/3", "2/3", "3/3". Camera stays open between captures for quick front/back/label shots. Library picker supports multi-select up to remaining slots. `scanWithGemini()` now accepts `string | string[]`; Gemini and OpenAI API calls receive all images as multiple `inline_data`/`image_url` parts in a single request. When >1 photo is provided, a multi-photo context suffix is injected. All staged photos are persisted to document directory and saved to `item.photos[]`. `ItemScanSnapshot` gains `sourceImageUris?: string[]` alongside the existing `sourceImageUri` for backward compat. `sanitizeSnapshot` updated to parse `sourceImageUris` and migrate old data.
+
 ### Session — 2026-04-02
 
 - **Share button commented out** — removed from kebab menu until wired up. Added to Post-Launch in `MVP.md`.

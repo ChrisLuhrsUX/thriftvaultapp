@@ -30,7 +30,14 @@ const sanitizeSnapshot = (raw: unknown): ItemScanSnapshot | null => {
     )
     : [];
   const sourceImageUri = typeof source.sourceImageUri === 'string' ? source.sourceImageUri : undefined;
-  return { id, createdAt, sub, profit, confidence, ideas, sourceImageUri };
+  const sourceImageUris = Array.isArray(source.sourceImageUris)
+    ? source.sourceImageUris.filter((u): u is string => typeof u === 'string')
+    : sourceImageUri ? [sourceImageUri] : undefined;
+  const upcycle = Array.isArray(source.upcycle)
+    ? source.upcycle.filter((u): u is string => typeof u === 'string')
+    : undefined;
+  const isCustom = typeof source.isCustom === 'boolean' ? source.isCustom : undefined;
+  return { id, createdAt, sub, profit, confidence, isCustom, ideas, upcycle, sourceImageUri, sourceImageUris };
 };
 
 

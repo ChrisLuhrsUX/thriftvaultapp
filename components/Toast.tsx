@@ -48,8 +48,8 @@ export function Toast() {
 const styles = StyleSheet.create({
   toast: {
     position: 'absolute',
-    left: 40,
-    right: 40,
+    alignSelf: 'center',
+    maxWidth: '80%',
     backgroundColor: theme.colors.charcoal,
     paddingVertical: 10,
     paddingHorizontal: 20,

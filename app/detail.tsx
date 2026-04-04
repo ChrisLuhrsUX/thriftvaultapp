@@ -124,6 +124,7 @@ export default function DetailScreen() {
   const hasEdited = useRef(false);
   const priceInitialized = useRef(false);
   const paidInputRef = useRef<TextInput>(null);
+  const profitStripRef = useRef<View>(null);
   const resaleInputRef = useRef<TextInput>(null);
   const soldInputRef = useRef<TextInput>(null);
   const { width: screenWidth } = useWindowDimensions();
@@ -347,11 +348,14 @@ export default function DetailScreen() {
       if (manual === '1' && !hasEdited.current) {
         removeItem(item.id);
       } else {
-        updateItem(item.id, item);
+        const paidVal = paidStr.trim() === '' ? null : (isNaN(parseFloat(paidStr)) ? null : parseFloat(paidStr));
+        const resaleVal = isNaN(parseFloat(resaleStr)) ? item.resale : parseFloat(resaleStr);
+        const soldVal = soldStr.trim() === '' ? null : (isNaN(parseFloat(soldStr)) ? null : parseFloat(soldStr));
+        updateItem(item.id, { ...item, paid: paidVal, resale: resaleVal, soldPrice: soldVal });
       }
     }
     router.back();
-  }, [item, manual, updateItem, removeItem, router]);
+  }, [item, paidStr, resaleStr, soldStr, manual, updateItem, removeItem, router]);
 
   const getActiveSnapshot = useCallback((targetItem: Item): ItemScanSnapshot | null => {
     const snapshots = targetItem.scanSnapshots;
@@ -381,7 +385,7 @@ export default function DetailScreen() {
   const confirmHandmade = useCallback(async () => {
     if (!item) return;
     const snapshot = getActiveSnapshot(item);
-    const photoUri = snapshot?.sourceImageUri || item.img;
+    const photoUri = snapshot?.sourceImageUri || snapshot?.sourceImageUris?.[0] || item.img;
     if (!photoUri) {
       // No photo to rescan — just flag the snapshot
       if (snapshot) {
@@ -477,7 +481,10 @@ export default function DetailScreen() {
     if (!photoUri) { showToast('No photo to generate ideas from'); return; }
     setRefreshingUpcycle(true);
     try {
-      const newUpcycle = await refreshUpcycleIdeas(photoUri);
+      const newUpcycle = await refreshUpcycleIdeas(
+        photoUri,
+        { name: item.name, category: item.cat }
+      );
       const updatedSnapshots = item.scanSnapshots?.map((s) =>
         s.id === snapshot?.id ? { ...s, upcycle: newUpcycle } : s
       );
@@ -843,7 +850,7 @@ export default function DetailScreen() {
             </View>
           </View>
         ) : (
-          <View style={styles.profitStrip}>
+          <View ref={profitStripRef} style={styles.profitStrip}>
             <View style={styles.profitStripBlock}>
               <View style={styles.profitStripInputRow}>
                 <Text style={styles.profitStripVal}>$</Text>
@@ -856,6 +863,15 @@ export default function DetailScreen() {
                     setPaidStr(s);
                     const val = parseFloat(s);
                     if (!isNaN(val)) update({ paid: val });
+                  }}
+                  onFocus={() => {
+                    setTimeout(() => {
+                      profitStripRef.current?.measureLayout(
+                        mainScrollRef.current as any,
+                        (_x, y) => { mainScrollRef.current?.scrollTo({ y: y - 16, animated: true }); },
+                        () => {}
+                      );
+                    }, 300);
                   }}
                   onBlur={() => {
                     const val = parseFloat(paidStr);
