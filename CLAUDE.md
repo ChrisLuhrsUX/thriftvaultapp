@@ -197,6 +197,14 @@ interface ScanScenario {
 
 ## Session Notes
 
+### Session — 2026-04-06
+
+- **Authenticity detection (detail.tsx)** — added "Verify authenticity" section to item detail AI Insights accordion, matching scan card pattern; shows `authFlags` from active snapshot between upcycle section and scan history button; uses `vintageBlueDark` color scheme with bullet rows.
+- **Saved toast bug fixed** — `saveAndBack()` in `detail.tsx` was always showing "Saved" toast on back navigation even with no changes; now only calls `updateItem` and shows toast when `hasEdited` is true or prices actually changed.
+- **Haul detail UX overhaul** — removed chevron arrow from list rows (trash was already rightmost); removed per-item delete buttons from both list and grid views (delete from item detail instead); status badge hidden in list view (72px image too small); resale price moved to right side of list row in green (`profit` color); grid footer shows green resale amount only (no "Resale" label); no cost shown in either view.
+- **Scan state persistence** — confirmed already implemented: `tv_pending_scan` key persists result, stagedPhotos, placeholderImageUri, and prompt dismiss flags; restored on mount, cleared on any terminal action (Buy & Track, Add to Closet, Save for Later, Skip).
+- **Expo version locked** — staying on Expo 54; cannot upgrade to 55 due to Expo Go version ceiling on iPhone 13.
+
 ### Session — 2026-04-05
 
 - **Performance audit + fixes** — full app-wide performance review; all HIGH and MEDIUM issues resolved.

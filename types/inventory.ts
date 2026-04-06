@@ -40,6 +40,8 @@ export interface ItemScanSnapshot {
   isCustom?: boolean;
   ideas: ScanScenarioIdea[];
   upcycle?: string[];
+  /** Authenticity checks for luxury/designer items the buyer should verify. */
+  authFlags?: string[];
   sourceImageUri?: string;
   sourceImageUris?: string[];
 }
@@ -86,6 +88,8 @@ export interface ScanScenario {
   ideas: ScanScenarioIdea[];
   /** AI-generated upcycle/customization ideas to increase resale value. */
   upcycle?: string[];
+  /** Authenticity checks for luxury/designer items the buyer should verify. */
+  authFlags?: string[];
   /** Confidence in resale pricing — low means sparse comps. */
   confidence?: 'high' | 'medium' | 'low';
   /** Detected item category. */

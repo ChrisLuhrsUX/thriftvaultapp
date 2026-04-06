@@ -39,7 +39,8 @@ Return ONLY a valid JSON object with this exact structure — no markdown fences
     "First distinct upcycle idea (technique + aesthetic)",
     "Second distinct upcycle idea using a different technique",
     "Third distinct upcycle idea using a different technique"
-  ]
+  ],
+  "authFlags": ["Specific physical check to verify authenticity (only for items prone to counterfeiting)"]
 }
 
 Guidelines:
@@ -80,6 +81,19 @@ Guidelines:
 - If multiple items are visible, identify only the most prominent one
 - If the photo appears to be AI-generated, a screenshot, or not a real physical item, set name to "Not a real item" and confidence to "low"
 - For Sanrio characters (Hello Kitty, Kuromi, My Melody, Cinnamoroll, Pompompurin, etc.) or other collectible character brands, the bundle idea should suggest pairing with related items from the same universe — e.g. "Bundle with other Sanrio items for a themed lot — character bundles sell 30-50% higher on Depop"
+- authFlags: 0–3 short authenticity checks ONLY for items where counterfeits commonly exist:
+  luxury brands (Louis Vuitton, Gucci, Chanel, Prada, Burberry, Hermès, Dior, Fendi, Balenciaga, Saint Laurent),
+  designer goods (Coach, Kate Spade, Tory Burch, Michael Kors, Marc Jacobs),
+  brand-name sneakers (Nike Dunk, Jordan, Yeezy, New Balance 550/2002R),
+  designer sunglasses, premium denim (True Religion, Diesel), branded watches, precious stones/fine jewelry.
+  Each flag = a specific, actionable physical check the buyer can do in-store — e.g.:
+  "Check stitching evenness — authentic LV uses single continuous thread, no loose ends"
+  "Verify heat stamp depth and font — counterfeits have shallow or inconsistent stamping"
+  "Look for a date code inside the interior pocket or under the flap"
+  "Inspect zipper pulls — should be branded hardware with smooth action, no rough edges"
+  "Feel the leather — genuine should be supple with natural grain, not plasticky or uniform"
+  Empty array [] for: unbranded items, fast fashion, mall brands, handmade items, basic athletic wear, or anything where counterfeits are uncommon.
+  Frame as verification tips, not accusations — the goal is to help the buyer verify before purchasing.
 - upcycle[]: exactly 3 short, specific ideas for transforming this item to increase resale value. Before writing, identify: (1) exact material and texture, (2) specific construction details like hardware, seams, collar, lining, silhouette, (3) the era or subculture it references, (4) what niche aesthetic or current resale trend it could tap into if transformed. Use those observations to write ideas that could ONLY apply to this exact item — not any other. Each idea names a specific technique AND the niche aesthetic it creates. BANNED regardless of item: bleach dye, tie-dye, cropping, patches, pins, buttons, generic embroidery — if you catch yourself writing one, think harder about what makes this item unique. Keep each under 15 words. Do not mention platforms or where to sell. Do not say "not applicable"`;
 
 function inferMimeType(uri: string): string {
@@ -316,6 +330,9 @@ async function runScanPipeline(photoUris: string[], promptSuffix = '', signal?: 
       : [],
     upcycle: Array.isArray(parsed.upcycle)
       ? parsed.upcycle.slice(0, 3).map((u: unknown) => String(u || '')).filter(Boolean)
+      : [],
+    authFlags: Array.isArray(parsed.authFlags)
+      ? parsed.authFlags.slice(0, 3).map((f: unknown) => String(f || '')).filter(Boolean)
       : [],
   };
 }

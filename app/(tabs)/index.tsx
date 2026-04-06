@@ -23,6 +23,7 @@ import { useToast } from '@/context/ToastContext';
 import { useResponsive } from '@/hooks/useResponsive';
 import type { Item, ItemCategory, ItemStatus } from '@/types/inventory';
 import type { Theme } from '@/theme';
+import { formatMoney, formatMoneyWithSign } from '@/utils/currency';
 
 interface Haul {
   date: string;
@@ -142,9 +143,9 @@ const HaulCard = React.memo(function HaulCard({
       <View style={styles.haulCardCaption}>
         <Text style={styles.haulDate}>{haul.date}</Text>
         <Text style={styles.haulCaptionLine} numberOfLines={2}>
-          {`${storesLabel ? `${storesLabel} · ` : ''}$${haul.totalSpent} spent`}
+          {`${storesLabel ? `${storesLabel} · ` : ''}${formatMoney(haul.totalSpent)} spent`}
           {haul.profit > 0 ? (
-            <Text style={styles.haulCaptionProfit}> · +${haul.profit} profit</Text>
+            <Text style={styles.haulCaptionProfit}> · {formatMoneyWithSign(haul.profit)} profit</Text>
           ) : null}
         </Text>
       </View>
@@ -171,8 +172,8 @@ const ItemCard = React.memo(function ItemCard({
   const estProfit = resale - paid;
   const profitLabel =
     !isCloset && item.status === 'sold' && soldPrice != null
-      ? `Sold $${soldPrice}`
-      : `${estProfit >= 0 ? '+' : '-'}$${Math.abs(estProfit)} profit`;
+      ? `Sold ${formatMoney(soldPrice)}`
+      : `${formatMoneyWithSign(estProfit)} profit`;
   return (
     <Pressable
       style={({ pressed }) => [
@@ -206,12 +207,19 @@ const ItemCard = React.memo(function ItemCard({
           </Text>
         </View>
       )}
+      {isCloset && !!item.cat && (
+        <View style={[styles.cardBadge, styles.cardBadgeCloset]}>
+          <Text style={[styles.badgeText, styles.badgeTextCloset]}>
+            {item.cat.charAt(0).toUpperCase() + item.cat.slice(1)}
+          </Text>
+        </View>
+      )}
       <Text style={styles.cardName} numberOfLines={2}>{item.name}</Text>
       {!isCloset && (
         <Text style={[styles.cardProfit, item.status === 'sold' && styles.cardProfitSold]}>{profitLabel}</Text>
       )}
       {isCloset && (
-        <Text style={styles.cardPaid}>{item.paid != null ? `Cost $${item.paid}` : 'Cost —'}</Text>
+        <Text style={styles.cardPaid}>{item.paid != null ? `Cost ${formatMoney(item.paid)}` : 'Cost —'}</Text>
       )}
     </Pressable>
   );
@@ -427,6 +435,7 @@ export default function InventoryScreen() {
   const hauls = useMemo(() => {
     const byDate = new Map<string, Item[]>();
     for (const i of inventory) {
+      if (!i.date.trim()) continue;
       const list = byDate.get(i.date) ?? [];
       list.push(i);
       byDate.set(i.date, list);
@@ -508,12 +517,12 @@ export default function InventoryScreen() {
       {view === 'flips' && (
         <View style={styles.statsStrip}>
           <View style={styles.statBlock}>
-            <Text style={styles.statVal}>${Math.round(stats.invested)}</Text>
+            <Text style={styles.statVal}>{formatMoney(stats.invested)}</Text>
             <Text style={styles.statLabel}>Invested</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statBlock}>
-            <Text style={[styles.statVal, styles.statValProfit]}>+${stats.profit}</Text>
+            <Text style={[styles.statVal, styles.statValProfit]}>{formatMoneyWithSign(stats.profit)}</Text>
             <Text style={styles.statLabel}>Profit</Text>
           </View>
           <View style={styles.statDivider} />
@@ -555,7 +564,7 @@ export default function InventoryScreen() {
               styles.chip,
               filter === item.key && styles.chipActive,
             ]}
-            onPress={() => setFilter(item.key)}
+            onPress={() => { Haptics.selectionAsync(); setFilter(item.key); }}
           >
             <Text
               style={[
@@ -676,7 +685,7 @@ export default function InventoryScreen() {
                       styles.chip,
                       haulFilter === item.key && styles.chipActive,
                     ]}
-                    onPress={() => setHaulFilter(item.key as HaulFilterKey)}
+                    onPress={() => { Haptics.selectionAsync(); setHaulFilter(item.key as HaulFilterKey); }}
                   >
                     <Text
                       style={[
@@ -1294,6 +1303,9 @@ function createStyles(theme: Theme, hPad: number, headerHPad: number, numColumns
   },
   badgeTextListed: {
     color: theme.colors.onPrimary,
+  },
+  badgeTextCloset: {
+    color: theme.colors.mauve,
   },
   cardName: {
     ...theme.typography.caption,

@@ -54,6 +54,24 @@
           "photosPermission": "ThriftVault needs access to save item photos to your camera roll.",
           "savePhotosPermission": "Allow ThriftVault to save photos to your camera roll."
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "privacyManifests": {
+              "NSPrivacyTracking": false,
+              "NSPrivacyTrackingDomains": [],
+              "NSPrivacyCollectedDataTypes": [],
+              "NSPrivacyAccessedAPITypes": [
+                {
+                  "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+                  "NSPrivacyAccessedAPITypeReasons": ["CA92.1"]
+                }
+              ]
+            }
+          }
+        }
       ]
     ],
     "experiments": {

@@ -29,6 +29,8 @@ export const lightColors = {
   overlayWhiteMid: 'rgba(255,255,255,0.55)',
   overlayWhiteLight: 'rgba(255,255,255,0.2)',
   shadow: '#000000',
+  /** Near-black used as background in fullscreen photo viewer. */
+  photoBackground: '#1A1A1A',
 } as const;
 
 export const darkColors = {
@@ -62,6 +64,8 @@ export const darkColors = {
   overlayWhiteMid: 'rgba(255,255,255,0.55)',
   overlayWhiteLight: 'rgba(255,255,255,0.2)',
   shadow: '#000000',
+  /** Near-black used as background in fullscreen photo viewer. */
+  photoBackground: '#1A1A1A',
 } as const;
 
 export type ThemeColors = typeof lightColors | typeof darkColors;

@@ -20,18 +20,21 @@ import { AppIcon } from '@/components/AppIcon';
 import { useInventory } from '@/context/InventoryContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useToast } from '@/context/ToastContext';
+import { formatMoney, formatMoneyWithSign } from '@/utils/currency';
 import type { Item } from '@/types/inventory';
 import type { Theme } from '@/theme';
 
 function HaulItemStatusBadge({
   item,
   styles,
+  hide,
 }: {
   item: Item;
   styles: ReturnType<typeof createStyles>;
+  hide?: boolean;
 }) {
   const isCloset = item.intent === 'closet';
-  if (isCloset) return null;
+  if (isCloset || hide) return null;
   const label = item.status === 'sold' ? 'Sold' : item.status === 'unlisted' ? 'Unlisted' : 'Listed';
   return (
     <View
@@ -230,9 +233,9 @@ export default function HaulDetailScreen() {
             {date}
           </Text>
           <Text style={styles.headerMetaLine}>
-            {items.length} find{items.length !== 1 ? 's' : ''} · ${totalSpent} spent
+            {items.length} find{items.length !== 1 ? 's' : ''} · {formatMoney(totalSpent)} spent
             {haulProfit > 0 ? (
-              <Text style={styles.headerProfit}> · +${haulProfit} profit</Text>
+              <Text style={styles.headerProfit}> · {formatMoneyWithSign(haulProfit)} profit</Text>
             ) : null}
           </Text>
         </View>
@@ -253,28 +256,19 @@ export default function HaulDetailScreen() {
               }
             >
               <View style={styles.itemRowImageWrap}>
-                <HaulItemStatusBadge item={item} styles={styles} />
+                <HaulItemStatusBadge item={item} styles={styles} hide />
                 <Image source={{ uri: item.img }} style={styles.itemRowImage} resizeMode="cover" />
               </View>
               <View style={styles.itemRowBody}>
                 <Text style={styles.itemRowName} numberOfLines={2}>
                   {item.name}
                 </Text>
-                <Text style={styles.itemRowMeta}>
-                  {item.paid != null ? `Cost $${Number(item.paid)}` : 'Cost —'}
-                  {item.intent === 'flip' && Number(item.resale) > 0
-                    ? ` · Resale $${Number(item.resale) || 0}`
-                    : ''}
-                </Text>
               </View>
-              <AppIcon name="chevron-forward" size={20} color={theme.colors.mauve} />
-              <Pressable
-                onPress={() => handleRemoveFromHaul(item)}
-                hitSlop={8}
-                style={({ pressed }) => [styles.rowRemoveBtn, pressed && { opacity: 0.5 }]}
-              >
-                <AppIcon name="trash-outline" size={18} color={theme.colors.terra} />
-              </Pressable>
+              {item.intent === 'flip' && Number(item.resale) > 0 && (
+                <Text style={styles.itemRowResale}>
+                  {formatMoney(Number(item.resale))}
+                </Text>
+              )}
             </Pressable>
           ))
         ) : (
@@ -299,26 +293,16 @@ export default function HaulDetailScreen() {
                   <View style={[styles.collageImageBlock, { width: cellSize, height: cellSize }]}>
                     <HaulItemStatusBadge item={item} styles={styles} />
                     <Image source={{ uri: item.img }} style={styles.collageImg} resizeMode="cover" />
-                    <BlurView intensity={40} tint="dark" style={styles.collageRemoveBtn}>
-                      <Pressable
-                        onPress={() => handleRemoveFromHaul(item)}
-                        hitSlop={6}
-                        style={({ pressed }) => [styles.collageRemoveBtnInner, pressed && { opacity: 0.5 }]}
-                      >
-                        <AppIcon name="trash-outline" size={14} color={theme.colors.white} />
-                      </Pressable>
-                    </BlurView>
                   </View>
                   <View style={styles.collageFooter}>
                     <Text style={styles.collageFooterName} numberOfLines={2}>
                       {item.name}
                     </Text>
-                    <Text style={styles.collageFooterMeta} numberOfLines={1}>
-                      {item.paid != null ? `Cost $${Number(item.paid)}` : 'Cost —'}
-                      {item.intent === 'flip' && Number(item.resale) > 0
-                        ? ` · $${Number(item.resale) || 0} resale`
-                        : ''}
-                    </Text>
+                    {item.intent === 'flip' && Number(item.resale) > 0 && (
+                      <Text style={styles.collageFooterResale} numberOfLines={1}>
+                        {formatMoney(Number(item.resale))}
+                      </Text>
+                    )}
                   </View>
                 </Pressable>
               );
@@ -457,8 +441,8 @@ function createStyles(theme: Theme) {
       overflow: 'hidden',
     },
     collageRemoveBtnInner: {
-      width: 28,
-      height: 28,
+      width: 36,
+      height: 36,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -479,9 +463,10 @@ function createStyles(theme: Theme) {
       fontWeight: '600',
       color: theme.colors.charcoal,
     },
-    collageFooterMeta: {
+    collageFooterResale: {
       ...theme.typography.caption,
-      color: theme.colors.mauve,
+      fontWeight: '600',
+      color: theme.colors.profit,
       marginTop: 2,
     },
     statusBadge: {
@@ -523,7 +508,12 @@ function createStyles(theme: Theme) {
       color: theme.colors.onPrimary,
     },
     rowRemoveBtn: {
-      marginLeft: 8,
+      marginLeft: 4,
+      padding: 8,
+      minWidth: 36,
+      minHeight: 36,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     itemRow: {
       flexDirection: 'row',
@@ -561,10 +551,11 @@ function createStyles(theme: Theme) {
       fontWeight: '500',
       color: theme.colors.charcoal,
     },
-    itemRowMeta: {
-      ...theme.typography.caption,
-      color: theme.colors.mauve,
-      marginTop: 2,
+    itemRowResale: {
+      ...theme.typography.body,
+      fontWeight: '600',
+      color: theme.colors.profit,
+      marginLeft: theme.spacing.sm,
     },
     emptyWrap: {
       flex: 1,

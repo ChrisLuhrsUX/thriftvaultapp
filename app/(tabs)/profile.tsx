@@ -18,6 +18,7 @@ import { useToast } from '@/context/ToastContext';
 import { usePurchases } from '@/hooks/usePurchases';
 import { useResponsive } from '@/hooks/useResponsive';
 import type { Theme } from '@/theme';
+import { formatMoney, formatMoneyWithSign } from '@/utils/currency';
 
 const SETTINGS_ROWS = [
   { id: 'subscription', label: 'Subscription', icon: 'card-outline' as const },
@@ -149,10 +150,10 @@ if (id === 'subscription') {
                         </View>
                       )}
                     </View>
-                    <Text style={styles.storeMeta}>{s.count} sold · ${s.totalSpent} spent</Text>
+                    <Text style={styles.storeMeta}>{s.count} sold · {formatMoney(s.totalSpent)} spent</Text>
                   </View>
                   <Text style={[styles.storeProfit, s.profit >= 0 && styles.profitGreen]}>
-                    +${s.profit}
+                    {formatMoneyWithSign(s.profit)}
                   </Text>
                 </View>
               ))}
@@ -165,12 +166,16 @@ if (id === 'subscription') {
           <View style={styles.row}>
             <AppIcon name="cash-outline" size={22} color={theme.colors.profit} />
             <Text style={styles.rowLabel}>Total Profit</Text>
-            <Text style={[styles.rowValue, styles.profitGreen]}>+${stats.totalProfit}</Text>
+            <Text style={[styles.rowValue, stats.soldCount > 0 && styles.profitGreen]}>
+              {stats.soldCount > 0 ? formatMoneyWithSign(stats.totalProfit) : '—'}
+            </Text>
           </View>
           <View style={styles.row}>
             <AppIcon name="trending-up-outline" size={22} color={theme.colors.profit} />
             <Text style={styles.rowLabel}>Best Single Flip</Text>
-            <Text style={[styles.rowValue, styles.profitGreen]}>+${stats.bestFlip}</Text>
+            <Text style={[styles.rowValue, stats.soldCount > 0 && styles.profitGreen]}>
+              {stats.soldCount > 0 ? formatMoneyWithSign(stats.bestFlip) : '—'}
+            </Text>
           </View>
           <View style={styles.row}>
             <AppIcon name="cube-outline" size={22} color={theme.colors.mauve} />

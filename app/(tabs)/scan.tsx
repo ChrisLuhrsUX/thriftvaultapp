@@ -10,6 +10,7 @@ import { scanWithGemini, rescanAsHandmade, refreshUpcycleIdeas } from '@/service
 import type { Theme } from '@/theme';
 import type { Item, ItemScanSnapshot, ScanScenario } from '@/types/inventory';
 import { getConfidencePresentation } from '@/utils/confidencePresentation';
+import { formatMoney } from '@/utils/currency';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BlurView } from 'expo-blur';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -36,6 +37,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const SAVED_LATER_KEY = 'tv_saved_later';
+const TV_PENDING_SCAN_KEY = 'tv_pending_scan';
 type SavedScanItem = ScanScenario & { savedAt: number; photoUri?: string | null; photoUris?: string[] };
 const SNAPSHOT_CAP = 5;
 const MAX_STAGED_PHOTOS = 3;
@@ -127,7 +129,7 @@ function ScanResultCard({
         )}
         <View style={styles.resultPriceWrap}>
           <Text style={styles.resultProfit}>
-            ${scenario.suggestedResale ?? 0}
+            {formatMoney(scenario.suggestedResale ?? 0)}
           </Text>
           {scenario.profit ? (
             <Text style={styles.resultRange}>{scenario.profit}</Text>
@@ -248,6 +250,22 @@ function ScanResultCard({
               ))}
             </View>
           )}
+        </View>
+      )}
+      {scenario.authFlags && scenario.authFlags.length > 0 && (
+        <View style={styles.authSection}>
+          <View style={styles.authHeader}>
+            <AppIcon name="shield-checkmark-outline" size={15} color={theme.colors.vintageBlueDark} />
+            <Text style={styles.authHeaderText}>Verify authenticity</Text>
+          </View>
+          <View style={styles.authRows}>
+            {scenario.authFlags.map((flag, i) => (
+              <View key={i} style={styles.authRow}>
+                <View style={styles.authDot} />
+                <Text style={styles.authText}>{flag}</Text>
+              </View>
+            ))}
+          </View>
         </View>
       )}
       <View style={styles.resultActions}>
@@ -389,6 +407,44 @@ function createScanStyles(theme: Theme, formMaxWidth?: number) {
       marginTop: 6,
     },
     upcycleText: {
+      ...theme.typography.bodySmall,
+      color: theme.colors.charcoal,
+      flex: 1,
+      lineHeight: 20,
+    },
+    authSection: {
+      marginTop: theme.spacing.md,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.surfaceVariant,
+      paddingTop: theme.spacing.sm,
+    },
+    authHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginBottom: theme.spacing.sm,
+    },
+    authHeaderText: {
+      ...theme.typography.caption,
+      color: theme.colors.vintageBlueDark,
+      fontWeight: '600',
+    },
+    authRows: {
+      gap: 6,
+    },
+    authRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 8,
+    },
+    authDot: {
+      width: 5,
+      height: 5,
+      borderRadius: 3,
+      backgroundColor: theme.colors.vintageBlueDark,
+      marginTop: 6,
+    },
+    authText: {
       ...theme.typography.bodySmall,
       color: theme.colors.charcoal,
       flex: 1,
@@ -573,11 +629,41 @@ export default function ScanScreen() {
         // ignore
       }
     });
+    AsyncStorage.getItem(TV_PENDING_SCAN_KEY).then((raw) => {
+      try {
+        const parsed = raw ? JSON.parse(raw) : null;
+        if (parsed?.result) {
+          setResult(parsed.result);
+          if (Array.isArray(parsed.stagedPhotos) && parsed.stagedPhotos.length > 0)
+            setStagedPhotos(parsed.stagedPhotos);
+          if (parsed.placeholderImageUri)
+            setPlaceholderImageUri(parsed.placeholderImageUri);
+          if (parsed.promptCustomDismissed)
+            setPromptCustomDismissed(true);
+          if (parsed.promptWrongScanDismissed)
+            setPromptWrongScanDismissed(true);
+        }
+      } catch {
+        // ignore corrupt data
+      }
+    });
   }, []);
 
   const persistSavedForLater = useCallback((list: SavedScanItem[]) => {
     AsyncStorage.setItem(SAVED_LATER_KEY, JSON.stringify(list));
   }, []);
+
+  useEffect(() => {
+    if (result) {
+      AsyncStorage.setItem(TV_PENDING_SCAN_KEY, JSON.stringify({
+        result,
+        stagedPhotos,
+        placeholderImageUri,
+        promptCustomDismissed,
+        promptWrongScanDismissed,
+      }));
+    }
+  }, [result, stagedPhotos, placeholderImageUri, promptCustomDismissed, promptWrongScanDismissed]);
 
   const cancelScan = useCallback(() => {
     abortControllerRef.current?.abort();
@@ -592,6 +678,8 @@ export default function ScanScreen() {
     abortControllerRef.current = controller;
     scanningRef.current = true;
     setResult(null);
+    setPromptCustomDismissed(false);
+    setPromptWrongScanDismissed(false);
     setScanning(true);
     setCameraActive(false);
     setCameraReady(false);
@@ -629,6 +717,8 @@ export default function ScanScreen() {
       abortControllerRef.current = controller;
       scanningRef.current = true;
       setResult(null);
+      setPromptCustomDismissed(false);
+      setPromptWrongScanDismissed(false);
       setScanning(true);
       try {
         const geminiResult = await scanWithGemini([photo.uri], controller.signal);
@@ -717,6 +807,7 @@ export default function ScanScreen() {
     setPlaceholderImageUri(null);
     setPromptCustomDismissed(false);
     setPromptWrongScanDismissed(false);
+    AsyncStorage.removeItem(TV_PENDING_SCAN_KEY);
     setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: true }), 50);
   }, []);
 
@@ -766,6 +857,7 @@ export default function ScanScreen() {
     isCustom: scenario.isCustom || false,
     ideas: Array.isArray(scenario.ideas) ? scenario.ideas.slice(0, 3) : [],
     upcycle: Array.isArray(scenario.upcycle) ? scenario.upcycle.slice(0, 3) : [],
+    authFlags: Array.isArray(scenario.authFlags) ? scenario.authFlags.slice(0, 3) : [],
     sourceImageUri: sourceImageUris?.[0],
     sourceImageUris,
   }), []);
@@ -883,6 +975,7 @@ export default function ScanScreen() {
   const handleConfirmHandmade = useCallback(async () => {
     const photoUri = stagedPhotos[0];
     if (!photoUri || rescanningHandmade) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setRescanningHandmade(true);
     try {
       const updated = await rescanAsHandmade(photoUri);
@@ -911,6 +1004,7 @@ export default function ScanScreen() {
   const handleRescanWrong = useCallback(async () => {
     const photoUri = stagedPhotos[0];
     if (!photoUri || rescanningWrong) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setRescanningWrong(true);
     try {
       const wasHandmade = result?.isCustom === true;
@@ -956,6 +1050,7 @@ export default function ScanScreen() {
   }, [result, stagedPhotos, showToast, clearResultAndPhoto, persistSavedForLater]);
 
   const openSavedItem = useCallback((saved: SavedScanItem) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSavedForLater((prev) => {
       const next = prev.filter((s) => s.savedAt !== saved.savedAt);
       persistSavedForLater(next);
@@ -968,7 +1063,9 @@ export default function ScanScreen() {
   }, [persistSavedForLater]);
 
   const recents = useMemo(
-    () => inventory.slice(-RECENTS_COUNT).reverse(),
+    () => [...inventory]
+      .sort((a, b) => (b.updatedAt ?? b.id) - (a.updatedAt ?? a.id))
+      .slice(0, RECENTS_COUNT),
     [inventory]
   );
 
@@ -1208,6 +1305,10 @@ export default function ScanScreen() {
           />
         )}
 
+        {!result && savedForLater.length === 0 && recents.length === 0 && (
+          <Text style={styles.emptyNudge}>Scan an item to see it here</Text>
+        )}
+
         {savedForLater.length > 0 && (
           <View style={styles.recentsSection}>
             <View style={styles.recentsHeader}>
@@ -1344,7 +1445,7 @@ export default function ScanScreen() {
                     accessibilityState={{ disabled: blocked }}
                     disabled={blocked}
                   >
-                    <Image source={{ uri: candidate.img }} style={styles.duplicateThumb} />
+                    <Image source={{ uri: candidate.img }} style={styles.duplicateThumb} resizeMode="cover" />
                     <View style={styles.duplicateMeta}>
                       <Text numberOfLines={1} style={styles.duplicateName}>{candidate.name}</Text>
                       <Text style={styles.duplicateInfo}>
@@ -1706,6 +1807,13 @@ function createStyles(
     ...theme.typography.bodySmall,
     fontWeight: '600',
     color: theme.colors.overlayWhiteStrong,
+  },
+  emptyNudge: {
+    ...theme.typography.caption,
+    color: theme.colors.mauve,
+    textAlign: 'center' as const,
+    paddingTop: 24,
+    paddingBottom: 8,
   },
   recentsSection: {
     marginTop: 24,

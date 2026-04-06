@@ -80,7 +80,7 @@ export function usePurchases(): PurchasesState {
           setLoading(false);
         }
 
-        rc.addCustomerInfoUpdateListener((info) => {
+        rc.addCustomerInfoUpdateListener((info: { entitlements: { active: Record<string, unknown> } }) => {
           if (!cancelled) setIsPro(!!info.entitlements.active['pro']);
         });
       } catch (e) {
@@ -102,7 +102,7 @@ export function usePurchases(): PurchasesState {
       const current = offerings.current;
       if (!current) return { success: false, error: 'No offerings available' };
 
-      const pkg = current.availablePackages.find((p) => p.identifier === packageId)
+      const pkg = current.availablePackages.find((p: { identifier: string }) => p.identifier === packageId)
         ?? current.availablePackages[0];
       if (!pkg) return { success: false, error: 'Plan not found' };
 

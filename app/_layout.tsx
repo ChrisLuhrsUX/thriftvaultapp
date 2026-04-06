@@ -7,7 +7,7 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { Platform, StatusBar as RNStatusBar, View } from 'react-native';
+import { Platform, StatusBar as RNStatusBar, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
 
@@ -49,7 +49,7 @@ export default function RootLayout() {
         <InventoryProvider>
           <ToastProvider>
           {Platform.OS !== 'web' && <RNStatusBar hidden={false} />}
-          <View style={{ flex: 1 }}>
+          <View style={rootStyles.flex}>
             {Platform.OS !== 'web' && <StatusBar />}
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="index" />
@@ -76,3 +76,7 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
+
+const rootStyles = StyleSheet.create({
+  flex: { flex: 1 },
+});

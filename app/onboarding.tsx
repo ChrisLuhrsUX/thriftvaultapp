@@ -32,7 +32,7 @@ const SLIDES = [
   {
     title: "Your vault awaits,\nlet's start flipping",
     titleEm: "let's start flipping",
-    sub: 'Turn secondhand treasures into serious side income. Scan, track, and flip — free to start.',
+    sub: 'Turn secondhand treasures into serious side income. Start with a 30-day free trial, then from $4.99/mo.',
   },
 ];
 
@@ -112,7 +112,7 @@ export default function OnboardingScreen() {
             onPress={next}
           >
             <Text style={styles.btnPrimaryText}>
-              {index < SLIDES.length - 1 ? 'Continue' : 'Start Flipping'}
+              {index < SLIDES.length - 1 ? 'Continue' : 'Start Free Trial'}
             </Text>
           </Pressable>
           <Pressable

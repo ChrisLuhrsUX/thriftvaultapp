@@ -36,8 +36,11 @@ const sanitizeSnapshot = (raw: unknown): ItemScanSnapshot | null => {
   const upcycle = Array.isArray(source.upcycle)
     ? source.upcycle.filter((u): u is string => typeof u === 'string')
     : undefined;
+  const authFlags = Array.isArray((source as { authFlags?: unknown[] }).authFlags)
+    ? (source as { authFlags?: unknown[] }).authFlags?.filter((f): f is string => typeof f === 'string')
+    : undefined;
   const isCustom = typeof source.isCustom === 'boolean' ? source.isCustom : undefined;
-  return { id, createdAt, sub, profit, confidence, isCustom, ideas, upcycle, sourceImageUri, sourceImageUris };
+  return { id, createdAt, sub, profit, confidence, isCustom, ideas, upcycle, authFlags, sourceImageUri, sourceImageUris };
 };
 
 

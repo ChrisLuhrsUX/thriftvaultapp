@@ -37,6 +37,7 @@ import { useToast } from '@/context/ToastContext';
 import { useResponsive } from '@/hooks/useResponsive';
 import { rescanAsHandmade, refreshUpcycleIdeas, scanWithGemini } from '@/services/gemini';
 import { getConfidenceColor } from '@/utils/confidencePresentation';
+import { formatMoney } from '@/utils/currency';
 import { ITEM_CATEGORIES, type Item, type ItemScanSnapshot, type ItemStatus, type Platform as PlatformType } from '@/types/inventory';
 import type { Theme } from '@/theme';
 
@@ -54,13 +55,13 @@ function buildShareMessage(item: Item): string {
   const name = item.name;
   if (item.intent === 'closet') {
     const paid = Number(item.paid) || 0;
-    return `From my closet: ${name} (cost $${paid}). I track pieces with ThriftVault.`;
+    return `From my closet: ${name} (cost ${formatMoney(paid)}). I track pieces with ThriftVault.`;
   }
   if (item.status === 'sold' && item.soldPrice != null) {
-    return `Sold this flip: ${name} for $${Number(item.soldPrice)}. Tracked with ThriftVault.`;
+    return `Sold this flip: ${name} for ${formatMoney(Number(item.soldPrice))}. Tracked with ThriftVault.`;
   }
   const resale = Number(item.resale) || 0;
-  return `Thrift find: ${name} — targeting $${resale} resale. Track your flips with ThriftVault.`;
+  return `Thrift find: ${name} — targeting ${formatMoney(resale)} resale. Track your flips with ThriftVault.`;
 }
 
 function isUserCanceledShareError(e: unknown): boolean {
@@ -356,11 +357,15 @@ export default function DetailScreen() {
         const paidVal = paidStr.trim() === '' ? null : (isNaN(parseFloat(paidStr)) ? null : parseFloat(paidStr));
         const resaleVal = isNaN(parseFloat(resaleStr)) ? item.resale : parseFloat(resaleStr);
         const soldVal = soldStr.trim() === '' ? null : (isNaN(parseFloat(soldStr)) ? null : parseFloat(soldStr));
-        updateItem(item.id, { ...item, paid: paidVal, resale: resaleVal, soldPrice: soldVal });
+        const pricesChanged = paidVal !== item.paid || resaleVal !== item.resale || soldVal !== item.soldPrice;
+        if (hasEdited.current || pricesChanged) {
+          updateItem(item.id, { ...item, paid: paidVal, resale: resaleVal, soldPrice: soldVal });
+          showToast('Saved');
+        }
       }
     }
     router.back();
-  }, [item, paidStr, resaleStr, soldStr, manual, updateItem, removeItem, router]);
+  }, [item, paidStr, resaleStr, soldStr, manual, updateItem, removeItem, router, showToast]);
 
   const getActiveSnapshot = useCallback((targetItem: Item): ItemScanSnapshot | null => {
     const snapshots = targetItem.scanSnapshots;
@@ -524,7 +529,8 @@ export default function DetailScreen() {
     const soldPrice = item.resale;
     updateItem(item.id, { status: 'sold', soldPrice });
     setItem((prev) => prev ? { ...prev, status: 'sold', soldPrice } : null);
-    showToast(`Sold for $${soldPrice}`);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    showToast(`Marked sold at ${formatMoney(soldPrice)} — tap to edit`);
   }, [item, updateItem, showToast]);
 
   const executeAddPhoto = useCallback(
@@ -849,7 +855,7 @@ export default function DetailScreen() {
         {isCloset ? (
           <View style={styles.profitStrip}>
             <View style={styles.profitStripBlock}>
-              <Text style={styles.profitStripVal}>${paidNum}</Text>
+              <Text style={styles.profitStripVal}>{formatMoney(paidNum)}</Text>
               <Text style={styles.profitStripLabel}>Cost</Text>
             </View>
           </View>
@@ -929,7 +935,7 @@ export default function DetailScreen() {
             <View style={styles.profitStripDivider} />
             <View style={styles.profitStripBlock}>
               <Text style={[styles.profitStripVal, profit >= 0 ? styles.profitPos : styles.profitNeg]}>
-                {profit >= 0 ? '+' : ''}${profit.toFixed(0)}
+                {profit >= 0 ? '+' : '-'}{formatMoney(Math.abs(profit))}
               </Text>
               <Text style={styles.profitStripLabel}>{soldNum != null ? 'Profit' : 'Est. Profit'}</Text>
             </View>
@@ -1100,6 +1106,22 @@ export default function DetailScreen() {
                       )}
                     </View>
                   )}
+                  {activeSnapshot.authFlags && activeSnapshot.authFlags.length > 0 && (
+                    <View style={styles.insightsAuthSection}>
+                      <View style={styles.insightsAuthHeader}>
+                        <AppIcon name="shield-checkmark-outline" size={14} color={theme.colors.vintageBlueDark} />
+                        <Text style={styles.insightsAuthHeaderText}>Verify authenticity</Text>
+                      </View>
+                      <View style={styles.insightsAuthRows}>
+                        {activeSnapshot.authFlags.map((flag, i) => (
+                          <View key={i} style={styles.insightsAuthRow}>
+                            <View style={styles.insightsAuthDot} />
+                            <Text style={styles.insightsAuthText}>{flag}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  )}
                   {snapshots.length > 1 && (
                     <Pressable
                       style={({ pressed }) => [styles.historyBtn, pressed && styles.btnPressed]}
@@ -1138,7 +1160,7 @@ export default function DetailScreen() {
                 <Pressable
                   key={c}
                   style={[styles.platformChip, item.cat === c && styles.platformChipActive]}
-                  onPress={() => update({ cat: item.cat === c ? '' as any : c })}
+                  onPress={() => { Haptics.selectionAsync(); update({ cat: item.cat === c ? '' as any : c }); }}
                 >
                   <Text style={[styles.platformChipText, item.cat === c && styles.platformChipTextActive]}>
                     {c.charAt(0).toUpperCase() + c.slice(1)}
@@ -1169,7 +1191,7 @@ export default function DetailScreen() {
                     <Pressable
                       key={p}
                       style={[styles.platformChip, item.platform === p && styles.platformChipActive]}
-                      onPress={() => update({ platform: item.platform === p ? '' : p })}
+                      onPress={() => { Haptics.selectionAsync(); update({ platform: item.platform === p ? '' : p }); }}
                     >
                       <Text style={[styles.platformChipText, item.platform === p && styles.platformChipTextActive]}>{p}</Text>
                     </Pressable>
@@ -1204,7 +1226,7 @@ export default function DetailScreen() {
                         item.status === s && s === 'listed' && styles.statusChipActiveListed,
                         item.status === s && s === 'sold' && styles.statusChipActiveSold,
                       ]}
-                      onPress={() => update({ status: item.status === s ? '' as any : s })}
+                      onPress={() => { Haptics.selectionAsync(); update({ status: item.status === s ? '' as any : s }); }}
                     >
                       <Text style={[styles.statusChipText, item.status === s && styles.statusChipTextActive]}>
                         {s === 'unlisted' ? 'Unlisted' : s === 'listed' ? 'Listed' : 'Sold'}
@@ -2024,7 +2046,7 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
   },
   imageFullScreenOverlay: {
     flex: 1,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: theme.colors.photoBackground,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -2338,6 +2360,43 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     marginTop: 5,
   },
   insightsUpcycleText: {
+    ...theme.typography.bodySmall,
+    color: theme.colors.charcoal,
+    flex: 1,
+    lineHeight: 20,
+  },
+  insightsAuthSection: {
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.surfaceVariant,
+    paddingVertical: theme.spacing.sm,
+  },
+  insightsAuthHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  insightsAuthHeaderText: {
+    ...theme.typography.caption,
+    color: theme.colors.vintageBlueDark,
+    fontWeight: '600',
+  },
+  insightsAuthRows: {
+    gap: 6,
+  },
+  insightsAuthRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  insightsAuthDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: theme.colors.vintageBlueDark,
+    marginTop: 5,
+  },
+  insightsAuthText: {
     ...theme.typography.bodySmall,
     color: theme.colors.charcoal,
     flex: 1,
