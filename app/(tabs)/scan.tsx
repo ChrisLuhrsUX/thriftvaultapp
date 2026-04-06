@@ -142,7 +142,7 @@ function ScanResultCard({
             <Text style={styles.handmadePromptText}>Updating scan...</Text>
           </View>
         ) : scenario.isCustom ? (
-          <View style={{ flexDirection: 'row' }}>
+          <View style={styles.handmadePromptRow}>
             <View style={styles.customBanner}>
               <AppIcon name="brush-outline" size={14} color={theme.colors.terra} />
               <Text style={styles.customBannerText}>Handmade</Text>
@@ -1135,7 +1135,7 @@ export default function ScanScreen() {
             <View style={styles.stagedStripOverlay}>
               {stagedPhotos.map((uri, i) => (
                 <View key={`${uri}-${i}`} style={styles.stagedThumb}>
-                  <Image source={{ uri }} style={styles.stagedThumbImg} />
+                  <Image source={{ uri }} style={styles.stagedThumbImg} resizeMode="cover" />
                   {!result && (
                     <Pressable
                       style={styles.stagedThumbRemove}
@@ -1225,7 +1225,7 @@ export default function ScanScreen() {
                 >
                   <View style={styles.savedImgWrap}>
                     {item.photoUri ? (
-                      <Image source={{ uri: item.photoUri }} style={styles.recentImg} />
+                      <Image source={{ uri: item.photoUri }} style={styles.recentImg} resizeMode="cover" />
                     ) : (
                       <View style={styles.savedPlaceholder} />
                     )}
@@ -1257,9 +1257,9 @@ export default function ScanScreen() {
                   onPress={() => router.push({ pathname: '/detail', params: { itemId: String(item.id) } })}
                 >
                   {item.img ? (
-                    <Image source={{ uri: item.img }} style={styles.recentImg} />
+                    <Image source={{ uri: item.img }} style={styles.recentImg} resizeMode="cover" />
                   ) : (
-                    <View style={[styles.recentImg, { alignItems: 'center', justifyContent: 'center' }]}>
+                    <View style={styles.recentImgPlaceholder}>
                       <AppIcon name="camera-outline" size={22} color={theme.colors.mauve} />
                     </View>
                   )}
@@ -1739,6 +1739,14 @@ function createStyles(
     height: 100,
     borderRadius: theme.radius.sm,
     backgroundColor: theme.colors.surfaceVariant,
+  },
+  recentImgPlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: theme.radius.sm,
+    backgroundColor: theme.colors.surfaceVariant,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
   },
   recentName: {
     ...theme.typography.caption,

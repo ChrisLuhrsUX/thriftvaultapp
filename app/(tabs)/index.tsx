@@ -120,7 +120,7 @@ const HaulCard = React.memo(function HaulCard({
             <AppIcon name="images-outline" size={32} color={theme.colors.mauve} />
           </View>
         ) : count === 1 && thumbItems[0].img ? (
-          <Image source={{ uri: thumbItems[0].img }} style={styles.haulCardImg} />
+          <Image source={{ uri: thumbItems[0].img }} style={styles.haulCardImg} resizeMode="cover" />
         ) : (
           <View style={styles.haulCardGridOuter}>
             <View style={styles.haulCardGrid}>
@@ -183,7 +183,7 @@ const ItemCard = React.memo(function ItemCard({
       onPress={() => onPress(item.id)}
     >
       {item.img ? (
-        <Image source={{ uri: item.img }} style={styles.cardImg} />
+        <Image source={{ uri: item.img }} style={styles.cardImg} resizeMode="cover" />
       ) : (
         <View style={styles.cardImgPlaceholder}>
           <AppIcon name="camera-outline" size={28} color={theme.colors.mauve} />
@@ -402,20 +402,26 @@ export default function InventoryScreen() {
 
   const stats = useMemo(() => {
     if (view === 'hauls') return { count: 0, invested: 0, profit: 0, active: 0 };
-    const list = view === 'flips' ? inventory.filter((i) => i.intent === 'flip') : inventory.filter((i) => i.intent === 'closet');
-    if (view === 'closet') {
-      return { count: list.length, invested: list.reduce((s, i) => s + (Number(i.paid) || 0), 0), profit: 0, active: 0 };
+    const targetIntent = view === 'flips' ? 'flip' : 'closet';
+    let count = 0;
+    let invested = 0;
+    let profit = 0;
+    let active = 0;
+    for (const i of inventory) {
+      if (i.intent !== targetIntent) continue;
+      count++;
+      if (view === 'closet') {
+        invested += Number(i.paid) || 0;
+        continue;
+      }
+      if (i.status === 'sold' && i.soldPrice != null) {
+        profit += Number(i.soldPrice) - (Number(i.paid) || 0);
+      } else if (i.status === 'unlisted' || i.status === 'listed') {
+        active++;
+        invested += Number(i.paid) || 0;
+      }
     }
-    const sold = list.filter((i) => i.status === 'sold' && i.soldPrice != null);
-    const activeItems = list.filter(
-      (i) => i.status === 'unlisted' || i.status === 'listed'
-    );
-    const invested = activeItems.reduce((s, i) => s + (Number(i.paid) || 0), 0);
-    const profit = sold.reduce(
-      (s, i) => s + (Number(i.soldPrice) - (Number(i.paid) || 0)),
-      0
-    );
-    return { invested, profit, active: activeItems.length, count: list.length };
+    return { count, invested, profit, active };
   }, [inventory, view]);
 
   const hauls = useMemo(() => {
@@ -605,9 +611,17 @@ export default function InventoryScreen() {
 
   const isFiltering = search.trim().length > 0 || filter !== 'all';
 
-  const centeredContent: object | undefined = isTablet && contentMaxWidth
-    ? { maxWidth: contentMaxWidth, alignSelf: 'center' as const, width: '100%' as const }
-    : undefined;
+  const centeredContent = useMemo(() =>
+    isTablet && contentMaxWidth
+      ? { maxWidth: contentMaxWidth, alignSelf: 'center' as const, width: '100%' as const }
+      : undefined,
+    [isTablet, contentMaxWidth]
+  );
+
+  const flatListStyle = useMemo(() =>
+    centeredContent ? [{ flex: 1 as const }, centeredContent] : [{ flex: 1 as const }],
+    [centeredContent]
+  );
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -620,7 +634,7 @@ export default function InventoryScreen() {
           key={`hauls-${numColumns}`}
           numColumns={numColumns}
           keyExtractor={(haul) => `haul-${haul.date}`}
-          style={[{ flex: 1 }, centeredContent]}
+          style={flatListStyle}
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
           initialNumToRender={12}
@@ -722,7 +736,7 @@ export default function InventoryScreen() {
           key={`items-${numColumns}`}
           numColumns={numColumns}
           keyExtractor={(item) => String(item.id)}
-          style={[{ flex: 1 }, centeredContent]}
+          style={flatListStyle}
           contentContainerStyle={styles.gridContent}
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"

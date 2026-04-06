@@ -40,6 +40,11 @@ import { getConfidenceColor } from '@/utils/confidencePresentation';
 import { ITEM_CATEGORIES, type Item, type ItemScanSnapshot, type ItemStatus, type Platform as PlatformType } from '@/types/inventory';
 import type { Theme } from '@/theme';
 
+function getItemPhotos(item: Item | null | undefined): string[] {
+  if (!item) return [];
+  return item.photos && item.photos.length > 0 ? item.photos : (item.img ? [item.img] : []);
+}
+
 const STATUS_OPTIONS: ItemStatus[] = ['unlisted', 'listed', 'sold'];
 const KNOWN_PLATFORMS: PlatformType[] = ['Poshmark', 'Depop', 'eBay', 'Mercari', 'Facebook Marketplace', 'Vinted', 'Shopify'];
 /** iOS: decimal-pad has no Done key; pairs with InputAccessoryView on profit fields */
@@ -151,7 +156,7 @@ export default function DetailScreen() {
   const galleryScrollRef = useRef<ScrollView>(null);
 
   const handleSaveImageToCameraRoll = useCallback(async () => {
-    const currentPhotos = item?.photos && item.photos.length > 0 ? item.photos : (item?.img ? [item.img] : []);
+    const currentPhotos = getItemPhotos(item);
     const activePhoto = currentPhotos[photoIndex] ?? currentPhotos[0];
     if (!activePhoto) return;
     if (Platform.OS === 'web') {
@@ -538,8 +543,7 @@ export default function DetailScreen() {
           return;
         }
       }
-      const currentPhotos =
-        item.photos && item.photos.length > 0 ? item.photos : (item.img ? [item.img] : []);
+      const currentPhotos = getItemPhotos(item);
       const opts: ImagePicker.ImagePickerOptions = {
         mediaTypes: ['images'],
         allowsEditing: true,
@@ -595,7 +599,7 @@ export default function DetailScreen() {
 
   const handleRemovePhoto = useCallback((index: number) => {
     if (!item) return;
-    const currentPhotos = item.photos && item.photos.length > 0 ? item.photos : (item.img ? [item.img] : []);
+    const currentPhotos = getItemPhotos(item);
     const doRemove = () => {
       const newPhotos = currentPhotos.filter((_, i) => i !== index);
       const newImg = newPhotos[0] ?? '';
@@ -691,7 +695,7 @@ export default function DetailScreen() {
 
   if (!item) return null;
 
-  const photos = item.photos && item.photos.length > 0 ? item.photos : (item.img ? [item.img] : []);
+  const photos = getItemPhotos(item);
   const snapshots = item.scanSnapshots ?? [];
   const activeSnapshot = getActiveSnapshot(item);
 
@@ -790,7 +794,7 @@ export default function DetailScreen() {
                         onPress={() => { setPhotoIndex(i); setImageFullScreenVisible(true); }}
                         accessibilityLabel="View image full screen"
                       >
-                        <Image source={{ uri }} style={styles.img} />
+                        <Image source={{ uri }} style={styles.img} resizeMode="cover" />
                       </Pressable>
                     </View>
                   )) : (
@@ -991,7 +995,7 @@ export default function DetailScreen() {
                     <Text style={styles.insightsCustomPromptText}>Updating scan...</Text>
                   </View>
                 ) : activeSnapshot.isCustom ? (
-                  <View style={{ flexDirection: 'row' }}>
+                  <View style={styles.insightsCustomPillWrap}>
                     <View style={styles.insightsCustomPill}>
                       <AppIcon name="brush-outline" size={14} color={theme.colors.terra} />
                       <Text style={styles.insightsCustomPillText}>Handmade</Text>
@@ -1420,7 +1424,7 @@ export default function DetailScreen() {
                   >
                     <View style={styles.historyRowThumb}>
                       {snapshot.sourceImageUri ? (
-                        <Image source={{ uri: snapshot.sourceImageUri }} style={styles.historyRowThumbImg} />
+                        <Image source={{ uri: snapshot.sourceImageUri }} style={styles.historyRowThumbImg} resizeMode="cover" />
                       ) : (
                         <AppIcon name="camera-outline" size={20} color={theme.colors.mauve} />
                       )}
@@ -2211,6 +2215,9 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     paddingHorizontal: theme.spacing.md,
     paddingBottom: theme.spacing.md,
     paddingTop: theme.spacing.sm,
+  },
+  insightsCustomPillWrap: {
+    flexDirection: 'row',
   },
   insightsCustomPill: {
     flexDirection: 'row',

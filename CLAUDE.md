@@ -197,6 +197,17 @@ interface ScanScenario {
 
 ## Session Notes
 
+### Session — 2026-04-05
+
+- **Performance audit + fixes** — full app-wide performance review; all HIGH and MEDIUM issues resolved.
+- **InventoryContext single-pass migration** — replaced 5 sequential `.map()` passes (intent, status, date, sanitize, activeSnapshot) with a single combined pass; eliminates 4 redundant full-array traversals on every load.
+- **Stats single-pass** — replaced multi-filter `useMemo` in `index.tsx` with a single `for...of` loop computing `count`, `invested`, `profit`, and `active` in one pass.
+- **Stable style references** — memoized `centeredContent` and `flatListStyle` in `index.tsx` to prevent new object references each render; removed inline style objects from JSX in `scan.tsx` and `detail.tsx`.
+- **`resizeMode="cover"` audit** — added missing prop to all `<Image>` components across `index.tsx`, `scan.tsx`, and `detail.tsx` to prevent runtime scaling overhead.
+- **`getItemPhotos()` helper** — extracted repeated 4x photo URI ternary in `detail.tsx` into a single top-of-file helper function; eliminates duplicate logic.
+- **StyleSheet entries for inline styles** — moved inline `flexDirection: 'row'` wrappers and `recentImgPlaceholder` style into `StyleSheet.create` blocks in `scan.tsx` and `detail.tsx`.
+- **TypeScript clean** — `npx tsc --noEmit` confirmed zero new errors introduced; only pre-existing `react-native-purchases` module errors remain (RevenueCat not yet installed).
+
 ### Session — 2026-04-04
 
 - **Multi-photo scan UX fixes** — removed empty dotted placeholder square from staged strip (upload button is enough); cancel button during scanning now uses frosted glass pill matching design system; staged photo thumbnails hidden after scan completes (strip is pre-scan only); X button added to clear all staged photos; first selected photo is always the thumbnail; auto-scroll to top when result is cleared.

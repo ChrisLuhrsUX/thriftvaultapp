@@ -1,6 +1,6 @@
 import { LEGACY_DEMO_ITEM_NAMES } from '@/constants/seedItems';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { ITEM_CATEGORIES, type Item, type ItemCategory, type ItemIntent, type ItemScanSnapshot } from '@/types/inventory';
 
 const TV_INV_KEY = 'tv_inv';
@@ -65,69 +65,58 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         if (raw) {
           const parsed = JSON.parse(raw) as Item[];
           const stored = Array.isArray(parsed) ? parsed : [];
-          const withIntent = stored.map((i) =>
-            'intent' in i && (i.intent === 'flip' || i.intent === 'closet')
-              ? i
-              : { ...i, intent: 'flip' as ItemIntent }
-          );
-          const withStatus = withIntent.map((i) => {
-            const status = String(i.status);
-            if (status === 'in-progress' || status === 'needs-work') {
-              return { ...i, status: 'unlisted' as const };
-            }
-            return i;
-          });
           const currentYear = new Date().getFullYear();
-          const withDates = withStatus.map((i) => {
+          const migrated = stored.map((i) => {
+            const intent: ItemIntent = ('intent' in i && (i.intent === 'flip' || i.intent === 'closet'))
+              ? i.intent : 'flip';
+            const rawStatus = String(i.status);
+            const status = (rawStatus === 'in-progress' || rawStatus === 'needs-work')
+              ? 'unlisted' as const : i.status;
+            let date = i.date;
             const d = new Date(i.date);
-            if (Number.isNaN(d.getTime()) || d.getFullYear() <= currentYear) return i;
-            const normalized = new Date(currentYear, d.getMonth(), d.getDate());
-            return {
-              ...i,
-              date: normalized.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-            };
-          });
-          const sanitized = withDates.map((i) => {
+            if (!Number.isNaN(d.getTime()) && d.getFullYear() > currentYear) {
+              const normalized = new Date(currentYear, d.getMonth(), d.getDate());
+              date = normalized.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            }
             const rawCat = (i as { cat?: unknown }).cat;
             const cat: ItemCategory =
               typeof rawCat === 'string' && ITEM_CATEGORIES.includes(rawCat as ItemCategory)
-                ? (rawCat as ItemCategory)
-                : 'other';
-            return {
-            ...i,
-            id: Number(i.id),
-            paid: i.paid != null ? Number(i.paid) : null,
-            resale: Number(i.resale),
-            soldPrice: i.soldPrice != null ? Number(i.soldPrice) : null,
-            name: String(i.name),
-            store: String(i.store),
-            notes: String(i.notes),
-            cat,
-            scanSnapshots: Array.isArray((i as { scanSnapshots?: unknown[] }).scanSnapshots)
+                ? (rawCat as ItemCategory) : 'other';
+            const scanSnapshots = Array.isArray((i as { scanSnapshots?: unknown[] }).scanSnapshots)
               ? (i as { scanSnapshots?: unknown[] }).scanSnapshots
-                ?.map(sanitizeSnapshot)
-                .filter((snap): snap is ItemScanSnapshot => !!snap)
-                .sort((a, b) => b.createdAt - a.createdAt)
-              : undefined,
-            activeScanSnapshotId:
-              typeof (i as { activeScanSnapshotId?: unknown }).activeScanSnapshotId === 'string'
-                ? (i as { activeScanSnapshotId: string }).activeScanSnapshotId
-                : undefined,
-          };
-          });
-          const withValidActiveSnapshot = sanitized.map((i) => {
-            if (!i.scanSnapshots || i.scanSnapshots.length === 0) {
-              return { ...i, scanSnapshots: undefined, activeScanSnapshotId: undefined };
+                  ?.map(sanitizeSnapshot)
+                  .filter((snap): snap is ItemScanSnapshot => !!snap)
+                  .sort((a, b) => b.createdAt - a.createdAt)
+              : undefined;
+            const rawActiveId = typeof (i as { activeScanSnapshotId?: unknown }).activeScanSnapshotId === 'string'
+              ? (i as { activeScanSnapshotId: string }).activeScanSnapshotId : undefined;
+            let activeScanSnapshotId: string | undefined;
+            if (!scanSnapshots || scanSnapshots.length === 0) {
+              activeScanSnapshotId = undefined;
+            } else {
+              const hasActive = rawActiveId
+                ? scanSnapshots.some((snapshot) => snapshot.id === rawActiveId)
+                : false;
+              activeScanSnapshotId = hasActive ? rawActiveId : scanSnapshots[0].id;
             }
-            const hasActive = i.activeScanSnapshotId
-              ? i.scanSnapshots.some((snapshot) => snapshot.id === i.activeScanSnapshotId)
-              : false;
             return {
               ...i,
-              activeScanSnapshotId: hasActive ? i.activeScanSnapshotId : i.scanSnapshots[0].id,
+              id: Number(i.id),
+              intent,
+              status,
+              date,
+              cat,
+              paid: i.paid != null ? Number(i.paid) : null,
+              resale: Number(i.resale),
+              soldPrice: i.soldPrice != null ? Number(i.soldPrice) : null,
+              name: String(i.name),
+              store: String(i.store),
+              notes: String(i.notes),
+              scanSnapshots: scanSnapshots && scanSnapshots.length > 0 ? scanSnapshots : undefined,
+              activeScanSnapshotId,
             };
           });
-          const withoutLegacyDemos = withValidActiveSnapshot.filter((i) => !LEGACY_DEMO_ITEM_NAMES.has(i.name));
+          const withoutLegacyDemos = migrated.filter((i) => !LEGACY_DEMO_ITEM_NAMES.has(i.name));
           setInventoryState(withoutLegacyDemos);
           persist(withoutLegacyDemos);
         } else {
@@ -218,7 +207,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     [inventory]
   );
 
-  const value: InventoryContextValue = {
+  const value = useMemo<InventoryContextValue>(() => ({
     inventory,
     addItem,
     addItems,
@@ -227,7 +216,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     removeItem,
     setInventory,
     getItemById,
-  };
+  }), [inventory, addItem, addItems, updateItem, updateItemsByDate, removeItem, setInventory, getItemById]);
 
   if (!hydrated) {
     return null;
