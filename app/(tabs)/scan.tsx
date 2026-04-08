@@ -93,6 +93,7 @@ function ScanResultCard({
   const [editingName, setEditingName] = useState(false);
   const [editedName, setEditedName] = useState(scenario.name);
   const [upcycleExpanded, setUpcycleExpanded] = useState(false);
+  const [authExpanded, setAuthExpanded] = useState(false);
 
   const commitNameEdit = () => {
     const trimmed = editedName.trim();
@@ -254,18 +255,29 @@ function ScanResultCard({
       )}
       {scenario.authFlags && scenario.authFlags.length > 0 && (
         <View style={styles.authSection}>
-          <View style={styles.authHeader}>
+          <Pressable
+            style={styles.authHeader}
+            onPress={() => setAuthExpanded((v) => !v)}
+            hitSlop={4}
+          >
             <AppIcon name="shield-checkmark-outline" size={15} color={theme.colors.vintageBlueDark} />
             <Text style={styles.authHeaderText}>Verify authenticity</Text>
-          </View>
-          <View style={styles.authRows}>
-            {scenario.authFlags.map((flag, i) => (
-              <View key={i} style={styles.authRow}>
-                <View style={styles.authDot} />
-                <Text style={styles.authText}>{flag}</Text>
-              </View>
-            ))}
-          </View>
+            <AppIcon
+              name={authExpanded ? 'chevron-up' : 'chevron-down'}
+              size={13}
+              color={theme.colors.vintageBlueDark}
+            />
+          </Pressable>
+          {authExpanded && (
+            <View style={[styles.authRows, styles.authRowsExpanded]}>
+              {scenario.authFlags.map((flag, i) => (
+                <View key={i} style={styles.authRow}>
+                  <View style={styles.authDot} />
+                  <Text style={styles.authText}>{flag}</Text>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
       )}
       <View style={styles.resultActions}>
@@ -414,20 +426,23 @@ function createScanStyles(theme: Theme, formMaxWidth?: number) {
     },
     authSection: {
       marginTop: theme.spacing.md,
-      borderTopWidth: 1,
-      borderTopColor: theme.colors.surfaceVariant,
-      paddingTop: theme.spacing.sm,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.surfaceVariant,
+      paddingBottom: theme.spacing.sm,
     },
     authHeader: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      marginBottom: theme.spacing.sm,
+    },
+    authRowsExpanded: {
+      marginTop: theme.spacing.sm,
     },
     authHeaderText: {
       ...theme.typography.caption,
       color: theme.colors.vintageBlueDark,
       fontWeight: '600',
+      flex: 1,
     },
     authRows: {
       gap: 6,

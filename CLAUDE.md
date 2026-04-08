@@ -197,6 +197,16 @@ interface ScanScenario {
 
 ## Session Notes
 
+### Session — 2026-04-07
+
+- **Verify authenticity collapsed by default** — section was always-expanded on both scan card (`scan.tsx`) and item detail (`detail.tsx`); now collapses by default matching the upcycle ideas pattern. Added `authExpanded` state (default `false`) to both screens with chevron toggle.
+- **Auth chevron moved to far side** — added `flex: 1` to `authHeaderText`/`insightsAuthHeaderText` so the chevron pushes to the right edge, consistent with the upcycle ideas accordion.
+- **Auth section divider moved below** — changed `borderTopWidth`/`borderTopColor` to `borderBottomWidth`/`borderBottomColor` on both `authSection` (scan.tsx) and `insightsAuthSection` (detail.tsx).
+- **Gemstone & fine jewelry pricing** — rewrote Gemini scan prompt (`services/gemini.ts`) to add 13 jewelry/gemstone-specific pricing tiers: costume jewelry ($5–$20), sterling silver ($15–$60), gold-filled ($20–$65), solid gold ($40–$200+), fine jewelry with diamonds ($80–$500+), precious gemstones ($60–$400+), platinum (+30–50%), designer jewelry houses like Tiffany/Cartier ($100–$2000+), accessible designer ($25–$120), estate/antique (+40–80%), celebrity collabs (+20–50%), and crystal-embellished clothing (+30–60% over brand base).
+- **Jewelry suggestedPaid guidance** — added note that thrift stores underprice precious metals/stones; jewelry `suggestedPaid` can be $5–$100+ even when resale is high.
+- **Platform context updated** — eBay now includes fine jewelry (GIA certs, brand boxes); Etsy now includes estate jewelry.
+- **Jewelry auth flag examples** — added 3 jewelry-specific authenticity checks: hallmark stamps, stone inclusions (real vs. CZ/glass), and metal weight test.
+
 ### Session — 2026-04-06
 
 - **Authenticity detection (detail.tsx)** — added "Verify authenticity" section to item detail AI Insights accordion, matching scan card pattern; shows `authFlags` from active snapshot between upcycle section and scan history button; uses `vintageBlueDark` color scheme with bullet rows.

@@ -63,7 +63,7 @@ Guidelines:
   Set isCustom = false for: factory distressing (uniform, repeated across units), mass-produced tie-dye (consistent patterns), standard brand embroidery, screen prints with barcode/SKU tags, machine-knit garments with uniform tension and factory tags, factory leather tooling (uniform depth, repeated pattern), mass-produced jewelry with brand markings
   When uncertain, lean toward isCustom = true — it's better to flag a potential custom piece than to miss one
 - PRICING — mentally benchmark against comparable recently-sold listings on Depop, Poshmark, eBay, and Etsy before setting any price. Do not default to the low end of a range — price for what the item actually sells for in current market.
-  suggestedPaid: typical thrift store shelf price ($3–$30) or materials cost if isCustom ($10–$60).
+  suggestedPaid: typical thrift store shelf price ($3–$30) or materials cost if isCustom ($10–$60). For jewelry: thrift stores often underprice precious metals/stones — if gold, gemstones, or designer marks are visible, suggestedPaid can be $5–$100+.
   suggestedResaleLow: realistic sold-price floor. Use these brand-tier benchmarks:
     Fast fashion (Shein, H&M, Zara, Forever 21): $10–$20
     Mall brands (Gap, J.Crew, Banana Republic, Abercrombie, Madewell): $18–$40
@@ -73,7 +73,19 @@ Guidelines:
     Luxury (Burberry, Gucci, Louis Vuitton, Chanel, Prada): $80–$500+
     Vintage (20+ years, good condition): add 30–60% over what comparable modern items sell for
     Unknown/unbranded: price by material quality, construction, and visual appeal — $10–$30
-  Platform context: Depop runs higher for Y2K, vintage, trendy aesthetics, and unique pieces; Poshmark higher for workwear, contemporary brands, and NWT items; eBay for sportswear, collectibles, and authenticated luxury; Etsy for handmade, vintage 20yr+, and cottagecore/artisan aesthetics.
+    Costume/fashion jewelry (no precious metal or stones, unbranded): $5–$20
+    Sterling silver jewelry (925 stamp, with semi-precious stones — amethyst, turquoise, garnet, opal, citrine): $15–$60
+    Gold-filled or gold-plated jewelry (vermeil, GF stamp): $20–$65
+    Solid gold jewelry (10k/14k/18k/24k — price by karat and weight; heavier = higher): $40–$200+
+    Fine jewelry with diamonds (solitaire, halo, pavé — evaluate visible size, cut, setting quality): $80–$500+
+    Fine jewelry with precious gemstones (ruby, sapphire, emerald — evaluate color saturation, size, setting): $60–$400+
+    Platinum jewelry: add 30–50% over equivalent gold piece
+    Designer jewelry houses (Tiffany, Cartier, Van Cleef & Arpels, David Yurman, Bulgari, Harry Winston): $100–$2000+
+    Accessible designer jewelry (Pandora, Kendra Scott, Lagos, John Hardy, James Avery): $25–$120
+    Estate/antique jewelry (Art Deco, Victorian, Edwardian, signed vintage): add 40–80% over base material value
+    Celebrity-associated or trending designer collabs: add 20–50% trend premium
+    Gemstone/crystal-embellished clothing (Swarovski crystals, rhinestone detailing, beaded gowns, crystal appliqués, gem-studded denim): price using the garment's brand tier as base, then add 30–60% for embellishment quality and density. Intact, densely-set crystals on designer pieces command top premiums. Missing stones or loose settings reduce value.
+  Platform context: Depop runs higher for Y2K, vintage, trendy aesthetics, and unique pieces; Poshmark higher for workwear, contemporary brands, and NWT items; eBay for sportswear, collectibles, authenticated luxury, and fine jewelry (especially with GIA certs or brand boxes); Etsy for handmade, vintage 20yr+, cottagecore/artisan aesthetics, and estate jewelry.
   Trend premiums (+20–40% to base): gorpcore/outdoor, quiet luxury, coquette, vintage collegiate, 90s minimalism, western/Americana, mesh/sheer, ballet/balletcore. Apply when the item clearly fits.
   suggestedResaleHigh: best-case sold price, typically 40–60% above low. For hyped items (trending brand + trending aesthetic), can reach 2x low.
   If isCustom: estimate labor hours by technique complexity — simple mods/rework 1–2hr, intermediate crochet/knit/sewing 4–8hr, complex fiber art/tapestry/quilting 10–20hr. Rate: $15–$25/hr. suggestedResaleLow = materials + (hours × $15). suggestedResaleHigh = materials + (hours × $25) + 30% uniqueness premium. Trending handmade categories (crochet tops, patchwork, visible mending, handmade jewelry, polymer clay) add another 20–30%. Benchmark against Etsy sold listings.
@@ -92,6 +104,9 @@ Guidelines:
   "Look for a date code inside the interior pocket or under the flap"
   "Inspect zipper pulls — should be branded hardware with smooth action, no rough edges"
   "Feel the leather — genuine should be supple with natural grain, not plasticky or uniform"
+  "Check for hallmarks inside the band or clasp — 10k/14k/18k/750/925/PLAT stamps indicate real precious metal"
+  "Examine stones closely — real gemstones have natural inclusions; glass and CZ appear flawless and overly brilliant"
+  "Test metal weight — genuine gold and platinum feel noticeably heavier than plated or costume metals"
   Empty array [] for: unbranded items, fast fashion, mall brands, handmade items, basic athletic wear, or anything where counterfeits are uncommon.
   Frame as verification tips, not accusations — the goal is to help the buyer verify before purchasing.
 - upcycle[]: exactly 3 short, specific ideas for transforming this item to increase resale value. Before writing, identify: (1) exact material and texture, (2) specific construction details like hardware, seams, collar, lining, silhouette, (3) the era or subculture it references, (4) what niche aesthetic or current resale trend it could tap into if transformed. Use those observations to write ideas that could ONLY apply to this exact item — not any other. Each idea names a specific technique AND the niche aesthetic it creates. BANNED regardless of item: bleach dye, tie-dye, cropping, patches, pins, buttons, generic embroidery — if you catch yourself writing one, think harder about what makes this item unique. Keep each under 15 words. Do not mention platforms or where to sell. Do not say "not applicable"`;

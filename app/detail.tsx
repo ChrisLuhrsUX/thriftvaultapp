@@ -116,6 +116,7 @@ export default function DetailScreen() {
   const [soldStr, setSoldStr] = useState('');
   const [scanInsightsExpanded, setScanInsightsExpanded] = useState(false);
   const [upcycleExpanded, setUpcycleExpanded] = useState(false);
+  const [authExpanded, setAuthExpanded] = useState(false);
   const [customDismissed, setCustomDismissed] = useState(false);
   const [wrongScanDismissed, setWrongScanDismissed] = useState(false);
   const promptDismissedLoaded = useRef(false);
@@ -1108,18 +1109,29 @@ export default function DetailScreen() {
                   )}
                   {activeSnapshot.authFlags && activeSnapshot.authFlags.length > 0 && (
                     <View style={styles.insightsAuthSection}>
-                      <View style={styles.insightsAuthHeader}>
+                      <Pressable
+                        style={styles.insightsAuthHeader}
+                        onPress={() => setAuthExpanded((v) => !v)}
+                        hitSlop={4}
+                      >
                         <AppIcon name="shield-checkmark-outline" size={14} color={theme.colors.vintageBlueDark} />
                         <Text style={styles.insightsAuthHeaderText}>Verify authenticity</Text>
-                      </View>
-                      <View style={styles.insightsAuthRows}>
-                        {activeSnapshot.authFlags.map((flag, i) => (
-                          <View key={i} style={styles.insightsAuthRow}>
-                            <View style={styles.insightsAuthDot} />
-                            <Text style={styles.insightsAuthText}>{flag}</Text>
-                          </View>
-                        ))}
-                      </View>
+                        <AppIcon
+                          name={authExpanded ? 'chevron-up' : 'chevron-down'}
+                          size={13}
+                          color={theme.colors.vintageBlueDark}
+                        />
+                      </Pressable>
+                      {authExpanded && (
+                        <View style={styles.insightsAuthRows}>
+                          {activeSnapshot.authFlags.map((flag, i) => (
+                            <View key={i} style={styles.insightsAuthRow}>
+                              <View style={styles.insightsAuthDot} />
+                              <Text style={styles.insightsAuthText}>{flag}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
                     </View>
                   )}
                   {snapshots.length > 1 && (
@@ -2366,23 +2378,24 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     lineHeight: 20,
   },
   insightsAuthSection: {
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.surfaceVariant,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.surfaceVariant,
     paddingVertical: theme.spacing.sm,
   },
   insightsAuthHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 6,
   },
   insightsAuthHeaderText: {
     ...theme.typography.caption,
     color: theme.colors.vintageBlueDark,
     fontWeight: '600',
+    flex: 1,
   },
   insightsAuthRows: {
     gap: 6,
+    marginTop: 6,
   },
   insightsAuthRow: {
     flexDirection: 'row',
