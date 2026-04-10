@@ -16,7 +16,7 @@ function detectCustomFromText(...fields: unknown[]): boolean {
 }
 
 /** Gemini 2.5 thinking can consume most of a small output budget; JSON never arrives. */
-const MAX_OUTPUT_TOKENS = 8192;
+const MAX_OUTPUT_TOKENS = 16384;
 
 const PROMPT = `You are an expert thrift reseller. Analyze this photo of a thrift store item.
 
@@ -43,25 +43,27 @@ Return ONLY a valid JSON object with this exact structure — no markdown fences
   "authFlags": ["Specific physical check to verify authenticity (only for items prone to counterfeiting)"]
 }
 
+CRITICAL — isCustom detection (evaluate FIRST before anything else):
+Carefully examine the item for ANY sign it was handmade, modified, reworked, or upcycled. This is one of the most important fields — getting it wrong means the user misprices the item. When in doubt, set isCustom = true. Missing a handmade item is far worse than over-flagging.
+Set isCustom = true if you see ONE OR MORE of:
+  • Structural rework: raw/unfinished cut edges, cropped hems, tapering, deconstruction/reconstruction, two garments combined (franken-pieces), asymmetric cuts, non-original seams, altered silhouette that doesn't match the original design
+  • Mismatched or repurposed materials: different fabric panels sewn together, non-original lining, repurposed textiles (curtain/blanket/tablecloth/quilt fabric turned into garment), denim patchwork from mixed washes, bandana fabric reworked
+  • Hand-applied elements: fabric paint, puff paint, rhinestones, studs, patches (sewn or ironed), safety pins as decoration, beadwork, decorative buttons
+  • Hand dye work: irregular tie-dye (uneven saturation, wobbly spirals), bleach splatter/patterns, custom overdyeing, ombre dip-dye
+  • Surface decoration: hand-painted designs, DIY screen prints (slightly uneven), hand embroidery (irregular stitches vs machine-perfect), marker/pen artwork, block/lino prints
+  • Distressing: hand-distressed holes/fraying at irregular placement (not factory-uniform), hand-sanded areas
+  • Fiber arts (ALWAYS true): crochet, hand-knit, macrame, weaving, punch needle, tufting, latch hook
+  • Visible mending/sashiko (ALWAYS true): contrasting-thread running stitches, decorative darning, patchwork repairs as design
+  • Leather/shoe customization: hand-tooled, pyrography, hand-stitched (angled saddle stitch), hand-painted sneakers, custom-dyed leather/suede, spike/stud additions
+  • Handmade jewelry: wire-wrapped, resin, polymer clay, hand-stamped metal, spoon/fork rings, friendship bracelets, beaded straps
+  • Key visual tells for clothing upcycles: seams that don't match (different thread color/weight), hems at unexpected lengths, hardware that doesn't match the garment era/brand, fabric grain running in different directions on the same panel, waistbands added or removed, collars reshaped, sleeves that don't match the body
+Set isCustom = false ONLY when you are confident the item is entirely factory-made: factory distressing (uniform across units), mass-produced tie-dye (consistent patterns), standard brand embroidery, machine-knit with uniform tension and factory tags, mass-produced jewelry with brand stamps
+
 Guidelines:
 - category: use "bottoms" for pants, leggings, joggers, athletic bottoms, shorts (non-denim); "denim" for jeans; "outerwear" for jackets and coats; "tops" for shirts, sweatshirts worn as tops, hoodies when not outerwear
 - Include brand in name if clearly visible; if brand is unknown, describe by type, color, and material (e.g. "Black Cropped Hoodie" not "Generic Hoodie")
 - Never use the word "generic" in the name field
-- Be conservative with prices
 - confidence = "low" if brand is obscure/niche or resale comps are sparse
-- isCustom detection — examine the item carefully for ANY sign of modification before deciding. Set isCustom = true if you see ONE OR MORE of these:
-  • Hand-applied elements: fabric paint, puff paint, rhinestones, studs, patches sewn or ironed on, safety pins as decoration, beadwork, buttons added decoratively
-  • Dye/color work: hand tie-dye (irregular spirals, uneven saturation), bleach splatter, bleach-dyed patterns, custom overdyeing, ombre dip-dye
-  • Structural rework: cropped/cut hems (raw or unfinished edges), tapering, deconstruction/reconstruction, franken-pieces (two garments combined), asymmetric cuts
-  • Surface decoration: hand-painted designs, screen prints that look DIY (slightly uneven, small-batch feel), hand embroidery (irregular stitch patterns vs machine-perfect), marker/pen artwork, block/lino prints (slight ink inconsistency, repeated motif with minor variations)
-  • Distressing: hand-distressed holes/fraying (irregular placement, not factory-uniform), hand-sanded areas, patchwork repairs used as design
-  • Handcrafted fiber arts: crochet (any gauge — granny squares, lace, amigurumi, bead crochet), hand-knit, macrame, weaving, punch needle, rug hooking, tufting (dense loop pile in non-industrial patterns), latch hook. These are ALWAYS isCustom = true
-  • Visible mending and sashiko: Japanese-style running stitches in contrasting thread, decorative darning, patchwork repairs intended as design. Always isCustom = true
-  • Leather and shoe customization: hand-tooled or pyrography-burned leather, hand-stitched leather goods (angled saddle stitch), hand-painted sneakers/shoes (paint on typically unpainted surfaces), custom-dyed leather or suede, spike/stud additions to boots
-  • Handmade jewelry and accessories: wire-wrapped stones/crystals, resin jewelry (pressed flowers, pigment, glitter), polymer clay earrings/pendants, hand-stamped metal (hammer marks, slightly uneven letters), spoon/fork rings from bent flatware, friendship bracelets, beaded phone/bag straps
-  • Upcycling indicators: mismatched fabric panels, visible re-stitching, non-original hardware, repurposed materials (e.g. curtain fabric as lining, blanket turned into garment, tablecloth into skirt, vintage quilt turned into jacket/coat, vintage tee cut into tote bag, denim patchwork from multiple washes, bandana fabric reworked into tops/scrunchies)
-  Set isCustom = false for: factory distressing (uniform, repeated across units), mass-produced tie-dye (consistent patterns), standard brand embroidery, screen prints with barcode/SKU tags, machine-knit garments with uniform tension and factory tags, factory leather tooling (uniform depth, repeated pattern), mass-produced jewelry with brand markings
-  When uncertain, lean toward isCustom = true — it's better to flag a potential custom piece than to miss one
 - PRICING — mentally benchmark against comparable recently-sold listings on Depop, Poshmark, eBay, and Etsy before setting any price. Do not default to the low end of a range — price for what the item actually sells for in current market.
   suggestedPaid: typical thrift store shelf price ($3–$30) or materials cost if isCustom ($10–$60). For jewelry: thrift stores often underprice precious metals/stones — if gold, gemstones, or designer marks are visible, suggestedPaid can be $5–$100+.
   suggestedResaleLow: realistic sold-price floor. Use these brand-tier benchmarks:

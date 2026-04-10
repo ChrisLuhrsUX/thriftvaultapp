@@ -1009,7 +1009,8 @@ export default function ScanScreen() {
           profit: newLow > 0 ? `$${newLow}–$${newHigh}` : (prev?.profit ?? ''),
         };
       });
-    } catch {
+    } catch (err) {
+      if (__DEV__) console.log('[Handmade rescan] error:', err);
       showToast("Couldn't rescan — try again");
     } finally {
       setRescanningHandmade(false);
@@ -1027,7 +1028,8 @@ export default function ScanScreen() {
         ? await rescanAsHandmade(photoUri)
         : await scanWithGemini(photoUri);
       setResult({ ...updated, isCustom: wasHandmade || updated.isCustom });
-    } catch {
+    } catch (err) {
+      if (__DEV__) console.log('[Wrong rescan] error:', err);
       showToast("Couldn't rescan — try again");
     } finally {
       setRescanningWrong(false);
@@ -1714,8 +1716,8 @@ function createStyles(
   },
   stagedThumbRemove: {
     position: 'absolute',
-    top: -4,
-    right: -4,
+    top: 2,
+    right: 2,
   },
   stagedAddMore: {
     width: 48,

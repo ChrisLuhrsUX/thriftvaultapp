@@ -710,22 +710,22 @@ export default function InventoryScreen() {
           ListEmptyComponent={
             <View style={styles.empty}>
               <AppIcon
-                name="cart-outline"
+                name="bag-handle-outline"
                 size={48}
                 color={theme.colors.mauve}
               />
               <Text style={styles.emptyTitle}>
                 {hauls.length === 0
-                  ? 'No hauls yet'
+                  ? 'Your haul history lives here'
                   : haulFilter === 'recent'
                     ? 'No hauls in the last 30 days'
                     : haulFilter === 'this_month'
                       ? 'No hauls this month'
-                      : 'No hauls yet'}
+                      : 'Your haul history lives here'}
               </Text>
               <Text style={styles.emptySub}>
                 {hauls.length === 0
-                  ? 'Tap "New Haul" to add photos from your last thrift trip. Each photo becomes an item you can name and price.'
+                  ? 'Tap "New Haul" to log items from your last thrift trip.'
                   : 'Tap All to see all your hauls.'}
               </Text>
             </View>
@@ -756,24 +756,33 @@ export default function InventoryScreen() {
           ListHeaderComponent={flipsClosetListHeader}
           ListEmptyComponent={
             <View style={styles.empty}>
-              <AppIcon
-                name={isFiltering
-                  ? 'search-outline'
-                  : view === 'closet' ? 'shirt-outline' : 'folder-open-outline'}
-                size={48}
-                color={theme.colors.mauve}
-              />
+              {isFiltering ? (
+                <AppIcon name="search-outline" size={48} color={theme.colors.mauve} />
+              ) : (
+                <View style={styles.emptyGhostRow}>
+                  <View style={styles.emptyGhostCard}>
+                    <View style={styles.emptyGhostImg} />
+                    <View style={styles.emptyGhostLine} />
+                    <View style={styles.emptyGhostLineSm} />
+                  </View>
+                  <View style={styles.emptyGhostCard}>
+                    <View style={styles.emptyGhostImg} />
+                    <View style={[styles.emptyGhostLine, { width: '55%' }]} />
+                    <View style={[styles.emptyGhostLineSm, { width: '70%' }]} />
+                  </View>
+                </View>
+              )}
               <Text style={styles.emptyTitle}>
                 {isFiltering
                   ? 'No results'
-                  : view === 'closet' ? 'Your closet is empty' : 'Your vault is empty'}
+                  : view === 'closet' ? 'Keep what you love in one place' : 'Your first find is one scan away'}
               </Text>
               <Text style={styles.emptySub}>
                 {isFiltering
                   ? 'Try a different search or filter.'
                   : view === 'closet'
-                    ? 'Add pieces you\'re holding onto — scan with AI or add manually.'
-                    : 'Every flip starts with a find. Scan with AI or add an item manually.'}
+                    ? 'Add pieces from your personal wardrobe to track their value.'
+                    : 'Scan an item with AI to see its resale value instantly.'}
               </Text>
               {!isFiltering && (
                 <>
@@ -1333,7 +1342,43 @@ function createStyles(theme: Theme, hPad: number, headerHPad: number, numColumns
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 40,
+    paddingTop: 40,
     paddingBottom: 60,
+  },
+  emptyGhostRow: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+    marginBottom: theme.spacing.xl,
+    opacity: 0.45,
+  },
+  emptyGhostCard: {
+    flex: 1,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.md,
+    overflow: 'hidden',
+    ...(theme.shadows.sm ?? {}),
+  },
+  emptyGhostImg: {
+    width: '100%',
+    aspectRatio: 1,
+    backgroundColor: theme.colors.surfaceVariant,
+  },
+  emptyGhostLine: {
+    height: 10,
+    width: '75%',
+    backgroundColor: theme.colors.lavender,
+    borderRadius: theme.radius.full,
+    margin: 8,
+    marginBottom: 4,
+  },
+  emptyGhostLineSm: {
+    height: 8,
+    width: '45%',
+    backgroundColor: theme.colors.lavender,
+    borderRadius: theme.radius.full,
+    marginHorizontal: 8,
+    marginBottom: 8,
   },
   emptyTitle: {
     ...theme.typography.h2,
