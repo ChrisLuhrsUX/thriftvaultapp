@@ -919,19 +919,58 @@ export default function ScanScreen() {
 
   const updateExistingFromScan = useCallback(async (target: Item) => {
     if (!result) return;
-    const newUris = stagedPhotos.length > 0
-      ? await persistPhotos(target.id, stagedPhotos)
-      : [];
     const existingPhotos = target.photos && target.photos.length > 0 ? target.photos : (target.img ? [target.img] : []);
-    const mergedPhotos = newUris.length > 0
-      ? [...newUris, ...existingPhotos.filter((uri) => !newUris.includes(uri))]
+
+    const sizeToExistingUri = new Map<number, string>();
+    await Promise.all(existingPhotos.map(async (uri) => {
+      try {
+        const info = await FileSystem.getInfoAsync(uri);
+        if (info.exists && typeof (info as any).size === 'number') {
+          sizeToExistingUri.set((info as any).size, uri);
+        }
+      } catch { /* ignore */ }
+    }));
+
+    const seenSizes = new Set<number>();
+    const uniqueNewStaged: string[] = [];
+    const snapshotReuseUris: string[] = [];
+    for (const uri of stagedPhotos) {
+      let size: number | null = null;
+      try {
+        const info = await FileSystem.getInfoAsync(uri);
+        if (info.exists && typeof (info as any).size === 'number') size = (info as any).size;
+      } catch { /* ignore */ }
+      if (size != null) {
+        if (seenSizes.has(size)) {
+          const existingDupe = sizeToExistingUri.get(size);
+          if (existingDupe && !snapshotReuseUris.includes(existingDupe)) {
+            snapshotReuseUris.push(existingDupe);
+          }
+          continue;
+        }
+        seenSizes.add(size);
+        const existingMatch = sizeToExistingUri.get(size);
+        if (existingMatch) {
+          snapshotReuseUris.push(existingMatch);
+          continue;
+        }
+      }
+      uniqueNewStaged.push(uri);
+    }
+
+    const persistedNew = uniqueNewStaged.length > 0
+      ? await persistPhotos(target.id, uniqueNewStaged)
+      : [];
+    const snapshotUris = [...persistedNew, ...snapshotReuseUris];
+    const mergedPhotos = persistedNew.length > 0
+      ? [...persistedNew, ...existingPhotos]
       : existingPhotos;
-    const snapshot = createSnapshot(result, newUris.length > 0 ? newUris : undefined);
+    const snapshot = createSnapshot(result, snapshotUris.length > 0 ? snapshotUris : undefined);
     const nextSnapshots = [snapshot, ...(target.scanSnapshots ?? [])].slice(0, SNAPSHOT_CAP);
     const newResale = result.suggestedResale ?? 0;
     const resaleUpdate = newResale > (target.resale ?? 0) ? { resale: newResale, name: result.name } : {};
     updateItem(target.id, {
-      img: newUris[0] || target.img,
+      img: persistedNew[0] || target.img,
       photos: mergedPhotos.length > 0 ? mergedPhotos : target.photos,
       scanSnapshots: nextSnapshots,
       activeScanSnapshotId: snapshot.id,

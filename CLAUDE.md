@@ -197,6 +197,13 @@ interface ScanScenario {
 
 ## Session Notes
 
+### Session — 2026-04-12
+
+- **Sold-state zombie bug fixed** — marking a flip sold via "Mark as Sold" (or via the status chip) wasn't updating Flips stats correctly. Root cause in `app/detail.tsx`: `saveAndBack` parsed the stale `soldStr` text-field (still `''` from initial mount) and overwrote the just-set `soldPrice` with `null`, leaving `status: 'sold'` + `soldPrice: null` — a zombie state the stats reducer skipped in both branches. Fix: sync the text-field strings at every programmatic write site — `handleMarkSold` sets `soldStr`, `confirmHandmade`/`rescanWrong` set `resaleStr` when ratcheting, and the 'sold' status chip's select/deselect path now mirrors `handleMarkSold` (defaults soldPrice to resale on select, clears both on deselect).
+- **Invested = lifetime cost basis** — `app/(tabs)/index.tsx` stats reducer changed: `invested += paid` now runs for every flip regardless of status, so selling a $10 item for $20 leaves Invested at $10 and adds $10 to Profit. Previously invested dropped by `paid` on sell.
+- **Duplicate photos on rescan fixed** — `updateExistingFromScan` in `app/(tabs)/scan.tsx` was merging photos with `existingPhotos.filter(uri => !newUris.includes(uri))`, which could never match because `persistPhotos` copies each staged photo to a freshly timestamped file in docDir. Rewrote to dedup staged photos by **file size** (via `FileSystem.getInfoAsync`) before persisting — against existing item photos AND against other staged photos. Dupes of existing photos get reused in the snapshot's `sourceImageUris` instead of re-persisted.
+- **My Vault tab icon** — `components/CustomTabBar.tsx` changed from `folder-open` to `shirt` (Ionicons) to match the thrift/clothing context.
+
 ### Session — 2026-04-10
 
 - **Handmade detection overhaul** — restructured `isCustom` prompt in `services/gemini.ts` to evaluate FIRST before other guidelines; added clothing-specific upcycle visual tells (mismatched seam thread, unexpected hem lengths, hardware mismatch, fabric grain direction, altered waistbands/collars/sleeves); flipped false-case logic to "confident factory-made only"; removed "be conservative with prices" which was suppressing detection.

@@ -429,7 +429,10 @@ export default function DetailScreen() {
       const newResale = newLow > 0 ? Math.round((newLow + newHigh) / 2) : 0;
       const resaleUpdate = newResale > 0 && newResale > (item.resale ?? 0) ? { resale: newResale } : {};
       // Update snapshot profit to use ratcheted prices
-      if (resaleUpdate.resale) newSnapshot.profit = `$${newLow}–$${newHigh}`;
+      if (resaleUpdate.resale) {
+        newSnapshot.profit = `$${newLow}–$${newHigh}`;
+        setResaleStr(String(newResale));
+      }
       const nameUpdate = result.name ? { name: result.name } : {};
       const changes = { scanSnapshots: nextSnapshots, activeScanSnapshotId: newSnapshot.id, ...resaleUpdate, ...nameUpdate };
       update(changes);
@@ -471,6 +474,7 @@ export default function DetailScreen() {
       };
       const nextSnapshots = [newSnapshot, ...(item.scanSnapshots ?? [])].slice(0, 10);
       const resaleUpdate = newResale > 0 && newResale > (item.resale ?? 0) ? { resale: newResale } : {};
+      if (resaleUpdate.resale) setResaleStr(String(newResale));
       const nameUpdate = result.name ? { name: result.name } : {};
       const changes = { scanSnapshots: nextSnapshots, activeScanSnapshotId: newSnapshot.id, ...resaleUpdate, ...nameUpdate };
       update(changes);
@@ -530,6 +534,7 @@ export default function DetailScreen() {
     const soldPrice = item.resale;
     updateItem(item.id, { status: 'sold', soldPrice });
     setItem((prev) => prev ? { ...prev, status: 'sold', soldPrice } : null);
+    setSoldStr(String(soldPrice));
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     showToast(`Marked sold at ${formatMoney(soldPrice)} — tap to edit`);
   }, [item, updateItem, showToast]);
@@ -1238,7 +1243,19 @@ export default function DetailScreen() {
                         item.status === s && s === 'listed' && styles.statusChipActiveListed,
                         item.status === s && s === 'sold' && styles.statusChipActiveSold,
                       ]}
-                      onPress={() => { Haptics.selectionAsync(); update({ status: item.status === s ? '' as any : s }); }}
+                      onPress={() => {
+                        Haptics.selectionAsync();
+                        if (s === 'sold' && item.status !== 'sold') {
+                          const soldPrice = item.resale;
+                          update({ status: 'sold', soldPrice });
+                          setSoldStr(String(soldPrice));
+                        } else if (s === 'sold' && item.status === 'sold') {
+                          update({ status: '' as any, soldPrice: null });
+                          setSoldStr('');
+                        } else {
+                          update({ status: item.status === s ? '' as any : s });
+                        }
+                      }}
                     >
                       <Text style={[styles.statusChipText, item.status === s && styles.statusChipTextActive]}>
                         {s === 'unlisted' ? 'Unlisted' : s === 'listed' ? 'Listed' : 'Sold'}

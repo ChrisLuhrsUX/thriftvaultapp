@@ -422,11 +422,11 @@ export default function InventoryScreen() {
         invested += Number(i.paid) || 0;
         continue;
       }
+      invested += Number(i.paid) || 0;
       if (i.status === 'sold' && i.soldPrice != null) {
         profit += Number(i.soldPrice) - (Number(i.paid) || 0);
       } else if (i.status === 'unlisted' || i.status === 'listed') {
         active++;
-        invested += Number(i.paid) || 0;
       }
     }
     return { count, invested, profit, active };

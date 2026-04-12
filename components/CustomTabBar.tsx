@@ -15,8 +15,8 @@ const TAB_LABELS: Record<string, string> = {
   profile: 'Profile',
 };
 
-const TAB_ICONS: Record<string, 'folder-open' | 'camera' | 'person'> = {
-  index: 'folder-open',
+const TAB_ICONS: Record<string, 'shirt' | 'camera' | 'person'> = {
+  index: 'shirt',
   scan: 'camera',
   profile: 'person',
 };
@@ -160,7 +160,7 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
             accessibilityLabel={label}
           >
             <AppIcon
-              name={iconName as 'folder-open' | 'person'}
+              name={iconName as 'shirt' | 'person'}
               size={isTablet ? 28 : 24}
               color={color}
             />
