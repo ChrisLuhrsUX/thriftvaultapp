@@ -59,13 +59,12 @@ const CLOSET_FILTERS: { key: string; label: string }[] = [
 ];
 
 const HAUL_FILTERS: { key: string; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'recent', label: 'Recent' },
-  { key: 'this_month', label: 'This month' },
+  { key: 'newest', label: 'Newest' },
+  { key: 'oldest', label: 'Oldest' },
 ];
 
 type VaultView = 'flips' | 'closet' | 'hauls';
-type HaulFilterKey = 'all' | 'recent' | 'this_month';
+type HaulFilterKey = 'newest' | 'oldest';
 
 const MONTH_SHORT: Record<string, number> = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11 };
 
@@ -236,7 +235,7 @@ export default function InventoryScreen() {
   const [search, setSearch] = useState('');
   const [haulSearch, setHaulSearch] = useState('');
   const [filter, setFilter] = useState('all');
-  const [haulFilter, setHaulFilter] = useState<HaulFilterKey>('all');
+  const [haulFilter, setHaulFilter] = useState<HaulFilterKey>('newest');
   const numColumns = gridColumns;
   const styles = useMemo(
     () => createStyles(theme, hPad, headerHPad, numColumns),
@@ -466,11 +465,6 @@ export default function InventoryScreen() {
       return parseDateToDayStart(haul.date);
     };
 
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth();
-
     const FULL_TO_SHORT_MONTH: Record<string, string> = {
       january: 'jan', february: 'feb', march: 'mar', april: 'apr',
       may: 'may', june: 'jun', july: 'jul', august: 'aug',
@@ -489,26 +483,11 @@ export default function InventoryScreen() {
           haul.items.some((i) => i.name.toLowerCase().includes(q))
       );
     }
-    if (haulFilter === 'recent') {
-      const thirtyDaysAgo = todayStart - 30 * 24 * 60 * 60 * 1000;
-      list = hauls.filter((haul) => {
-        const dayStart = getHaulDayStart(haul);
-        if (dayStart == null) return false;
-        return dayStart >= thirtyDaysAgo && dayStart <= todayStart;
-      });
-    } else if (haulFilter === 'this_month') {
-      list = hauls.filter((haul) => {
-        const dayStart = getHaulDayStart(haul);
-        if (dayStart == null) return false;
-        const d = new Date(dayStart);
-        return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
-      });
-    }
 
     return [...list].sort((a, b) => {
       const tA = getHaulDayStart(a) ?? 0;
       const tB = getHaulDayStart(b) ?? 0;
-      return tB - tA;
+      return haulFilter === 'oldest' ? tA - tB : tB - tA;
     });
   }, [hauls, haulFilter, haulSearch]);
 
@@ -610,7 +589,7 @@ export default function InventoryScreen() {
         </Pressable>
         <Pressable
           style={[styles.switcherTab, view === 'hauls' && styles.switcherTabActive]}
-          onPress={() => { Haptics.selectionAsync(); setView('hauls'); setHaulFilter('all'); }}
+          onPress={() => { Haptics.selectionAsync(); setView('hauls'); setHaulFilter('newest'); }}
         >
           <Text style={[styles.switcherText, view === 'hauls' && styles.switcherTextActive]}>Hauls</Text>
         </Pressable>
@@ -717,16 +696,12 @@ export default function InventoryScreen() {
               <Text style={styles.emptyTitle}>
                 {hauls.length === 0
                   ? 'Your haul history lives here'
-                  : haulFilter === 'recent'
-                    ? 'No hauls in the last 30 days'
-                    : haulFilter === 'this_month'
-                      ? 'No hauls this month'
-                      : 'Your haul history lives here'}
+                  : 'No hauls match your search'}
               </Text>
               <Text style={styles.emptySub}>
                 {hauls.length === 0
                   ? 'Tap "New Haul" to log items from your last thrift trip.'
-                  : 'Tap All to see all your hauls.'}
+                  : 'Try clearing the search.'}
               </Text>
             </View>
           }
