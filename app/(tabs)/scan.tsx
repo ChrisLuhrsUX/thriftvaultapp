@@ -6,7 +6,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useToast } from '@/context/ToastContext';
 import { usePurchases } from '@/hooks/usePurchases';
 import { useResponsive } from '@/hooks/useResponsive';
-import { scanWithGemini, rescanAsHandmade, refreshUpcycleIdeas } from '@/services/gemini';
+import { scanWithGemini, rescanAsHandmade, refreshUpcycleIdeas, isOverloadError } from '@/services/gemini';
 import type { Theme } from '@/theme';
 import type { Item, ItemScanSnapshot, ScanScenario } from '@/types/inventory';
 import { getConfidencePresentation } from '@/utils/confidencePresentation';
@@ -308,6 +308,9 @@ function ScanResultCard({
           <Text style={styles.btnTertiaryText}>Skip</Text>
         </Pressable>
       </View>
+      <Text style={styles.resultDisclaimer}>
+        AI estimates — actual resale and authenticity not guaranteed
+      </Text>
     </View>
   );
 }
@@ -356,6 +359,15 @@ function createScanStyles(theme: Theme, formMaxWidth?: number) {
     resultRange: {
       ...theme.typography.caption,
       color: theme.colors.mauve,
+    },
+    resultDisclaimer: {
+      fontFamily: 'DMSans_400Regular',
+      fontSize: 10,
+      lineHeight: 14,
+      color: theme.colors.mauve,
+      textAlign: 'center',
+      marginTop: 14,
+      opacity: 0.8,
     },
     resultSub: {
       ...theme.typography.caption,
@@ -1050,7 +1062,7 @@ export default function ScanScreen() {
       });
     } catch (err) {
       if (__DEV__) console.log('[Handmade rescan] error:', err);
-      showToast("Couldn't rescan — try again");
+      showToast(isOverloadError(err) ? 'AI is busy — try again in a moment' : "Couldn't rescan — try again");
     } finally {
       setRescanningHandmade(false);
     }
@@ -1069,7 +1081,7 @@ export default function ScanScreen() {
       setResult({ ...updated, isCustom: wasHandmade || updated.isCustom });
     } catch (err) {
       if (__DEV__) console.log('[Wrong rescan] error:', err);
-      showToast("Couldn't rescan — try again");
+      showToast(isOverloadError(err) ? 'AI is busy — try again in a moment' : "Couldn't rescan — try again");
     } finally {
       setRescanningWrong(false);
     }

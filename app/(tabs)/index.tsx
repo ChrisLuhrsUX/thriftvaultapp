@@ -717,7 +717,7 @@ export default function InventoryScreen() {
       ) : (
         <FlatList
           data={filtered}
-          key={`items-${numColumns}`}
+          key={`items-${view}-${numColumns}`}
           numColumns={numColumns}
           keyExtractor={(item) => String(item.id)}
           style={flatListStyle}

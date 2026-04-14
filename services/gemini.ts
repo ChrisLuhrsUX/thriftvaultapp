@@ -4,7 +4,10 @@ import { ITEM_CATEGORIES, type ItemCategory, type ScanScenario } from '@/types/i
 const GEMINI_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY ?? '';
 const OPENAI_KEY = process.env.EXPO_PUBLIC_OPENAI_API_KEY ?? '';
 const GEMINI_MODEL = 'gemini-2.5-flash';
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_KEY}`;
+const GEMINI_MODEL_FALLBACK = 'gemini-2.0-flash';
+const geminiUrl = (model: string) => `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`;
+const GEMINI_URL = geminiUrl(GEMINI_MODEL);
+const GEMINI_URL_FALLBACK = geminiUrl(GEMINI_MODEL_FALLBACK);
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
 
 const VALID_CATEGORIES: ItemCategory[] = ITEM_CATEGORIES;
@@ -22,7 +25,7 @@ const PROMPT = `You are an expert thrift reseller. Analyze this photo of a thrif
 
 Return ONLY a valid JSON object with this exact structure — no markdown fences, no explanation:
 {
-  "name": "Brand + Item Name",
+  "name": "Descriptive item name; prepend brand ONLY if a label/logo/tag is visibly readable in the photo",
   "sub": "Brief description (size guess, color, material, condition)",
   "category": "denim|bottoms|tops|dresses|outerwear|shoes|bags|accessories|other",
   "isCustom": <boolean>,
@@ -61,8 +64,18 @@ Set isCustom = false ONLY when you are confident the item is entirely factory-ma
 
 Guidelines:
 - category: use "bottoms" for pants, leggings, joggers, athletic bottoms, shorts (non-denim); "denim" for jeans; "outerwear" for jackets and coats; "tops" for shirts, sweatshirts worn as tops, hoodies when not outerwear
-- Include brand in name if clearly visible; if brand is unknown, describe by type, color, and material (e.g. "Black Cropped Hoodie" not "Generic Hoodie")
-- Never use the word "generic" in the name field
+- BRAND IN NAME — HARD RULE: Only include a brand word in "name" if you can see an actual LOGO, WORDMARK, PRINTED TAG, EMBROIDERED LABEL, WOVEN LABEL, or STAMPED HARDWARE bearing that brand's text or recognized logomark, and it is legible enough to read. You must be able to point to the specific region of the photo where the brand marking appears. DO NOT infer brand from silhouette, cut, aesthetic, era, embellishment pattern, stitching style, fabric weight, hardware style, or resemblance to brands known for a similar look. Inference from aesthetic is a guess, not identification.
+- COMMON HALLUCINATION TRAPS — do NOT assume these brands without a visible label:
+  • Y2K low-rise flare jeans with rhinestone swirls, butterflies, crosses, or decorative back-pocket embellishments → NOT Vigoss, Miss Me, Rock Revival, Affliction, True Religion, Buckle, Silver Jeans, Grace in LA, or any "fashion denim" brand
+  • Chunky white or beige sneakers → NOT Nike, Adidas, New Balance, Asics, Hoka, On Cloud
+  • Brown/tan workwear jackets or double-knee pants → NOT Carhartt, Dickies, Wrangler, Duluth
+  • Plain ringer tees, baby tees, or graphic tees → NOT Urban Outfitters, Brandy Melville, Abercrombie, Aeropostale
+  • Tan trench coats → NOT Burberry
+  • Flannel shirts → NOT Pendleton, LL Bean, Eddie Bauer
+  • Gorpcore fleece or shell jackets → NOT Patagonia, Arc'teryx, North Face, Columbia
+  • Square-toe knee-high boots → NOT Frye, Steve Madden, Jeffrey Campbell
+- When no brand marking is visible, name the item by its distinctive features — silhouette, wash or color, material, era, embellishment, or notable construction. Examples: "Y2K Rhinestone Flare Jeans", "Dark Wash Low Rise Swirl-Embellished Flares", "Chunky Cream Dad Sneakers", "Tan Canvas Double-Knee Work Pants". Never use the word "generic" in the name.
+- For upcycled or handmade items: the base garment's brand does NOT transfer to the upcycled piece unless the base brand's label is still visibly intact on the garment. Describe the upcycle itself, not a guessed source brand.
 - confidence = "low" if brand is obscure/niche or resale comps are sparse
 - PRICING — mentally benchmark against comparable recently-sold listings on Depop, Poshmark, eBay, and Etsy before setting any price. Do not default to the low end of a range — price for what the item actually sells for in current market.
   suggestedPaid: typical thrift store shelf price ($3–$30) or materials cost if isCustom ($10–$60). For jewelry: thrift stores often underprice precious metals/stones — if gold, gemstones, or designer marks are visible, suggestedPaid can be $5–$100+.
@@ -73,6 +86,12 @@ Guidelines:
     Contemporary (Free People, Anthropologie, Reformation, Patagonia, Aritzia): $35–$90
     Designer (Coach, Kate Spade, Marc Jacobs, Tory Burch, Vince): $45–$130
     Luxury (Burberry, Gucci, Louis Vuitton, Chanel, Prada): $80–$500+
+    Mass-market denim (Levi's 501/550/514/Wedgie, Wrangler, Lee, Old Navy, Gap denim): $15–$35
+    Premium denim (7 For All Mankind, Citizens of Humanity, AG, Paige, Frame, Joe's — brand peaked ~2015, price conservatively): $25–$55
+    Authenticated Y2K premium denim (True Religion big-stitch, Diesel, Rock Revival, Miss Me — check stitching and hardware): $35–$90
+    Vintage Levi's Big E / 501XX / pre-1980s redline selvedge / vintage Wrangler Blue Bell: $60–$250+
+    Luxury denim (Acne Studios, Balenciaga, Gucci, Balmain, Saint Laurent, R13): $80–$400+
+    Unbranded or generic jeans: $12–$28
     Vintage (20+ years, good condition): add 30–60% over what comparable modern items sell for
     Unknown/unbranded: price by material quality, construction, and visual appeal — $10–$30
     Costume/fashion jewelry (no precious metal or stones, unbranded): $5–$20
@@ -90,7 +109,10 @@ Guidelines:
   Platform context: Depop runs higher for Y2K, vintage, trendy aesthetics, and unique pieces; Poshmark higher for workwear, contemporary brands, and NWT items; eBay for sportswear, collectibles, authenticated luxury, and fine jewelry (especially with GIA certs or brand boxes); Etsy for handmade, vintage 20yr+, cottagecore/artisan aesthetics, and estate jewelry.
   Trend premiums (+20–40% to base): gorpcore/outdoor, quiet luxury, coquette, vintage collegiate, 90s minimalism, western/Americana, mesh/sheer, ballet/balletcore. Apply when the item clearly fits.
   suggestedResaleHigh: best-case sold price, typically 40–60% above low. For hyped items (trending brand + trending aesthetic), can reach 2x low.
-  If isCustom: estimate labor hours by technique complexity — simple mods/rework 1–2hr, intermediate crochet/knit/sewing 4–8hr, complex fiber art/tapestry/quilting 10–20hr. Rate: $15–$25/hr. suggestedResaleLow = materials + (hours × $15). suggestedResaleHigh = materials + (hours × $25) + 30% uniqueness premium. Trending handmade categories (crochet tops, patchwork, visible mending, handmade jewelry, polymer clay) add another 20–30%. Benchmark against Etsy sold listings.
+  CONDITION ADJUSTMENT (applies to all items, handmade or factory): Reduce both suggestedResaleLow and suggestedResaleHigh by 30–50% for visible damage — prominent stains, non-decorative holes, heavy pilling, faded/washed-out color, stretched or warped necklines, broken zippers, missing buttons, loose stitching, scuffed/cracked/peeling leather, yellowed whites, broken or cloudy hardware, tarnish on jewelry. Reduce by 15–25% for moderate wear — minor pilling, slight fading, small spots, faint creases, light patina. NWT or like-new condition (crisp fabric, intact hardware, no visible wear, original tags) commands the top of the range. When condition is unclear from the photo, assume "used-good" and make no adjustment. Never apply condition bonuses above the tier ceiling.
+  If isCustom: estimate labor hours by technique complexity — simple mods/rework 1–2hr, intermediate crochet/knit/sewing 4–8hr, complex fiber art/tapestry/quilting 10–20hr. Rate: $15–$25/hr. suggestedResaleLow = materials + (hours × $15). suggestedResaleHigh = materials + (hours × $25) + 30% uniqueness premium. Trending handmade categories (crochet tops, visible mending on non-denim, handmade jewelry, polymer clay, tufting, punch needle) add another 20–30%. Benchmark against Etsy sold listings.
+  DENIM EXCEPTION — if category = "denim" and isCustom = true: IGNORE the labor-hour formula. The denim resale market prices the finished aesthetic, not hours of labor, and upcycled jeans is a saturated category on Depop/Etsy. Price by finished look: simple mods (crops, distress, basic patches, dye/bleach) $25–$55; moderate rework (panel swap, contrasting patchwork, decorative topstitching, studded) $45–$85; elaborate custom (intricate beading/embroidery, franken-construction, verifiable vintage Big E/501XX base, known creator) $70–$140. Hard ceiling: do not exceed $140 for upcycled denim unless the base is documented vintage Levi's Big E/501XX or the maker is a named established creator — in which case cap at $220. Do NOT apply the trending-handmade +20–30% boost to denim.
+  ALTERED FACTORY BASE EXCEPTION — if isCustom = true AND the item is a factory-made base (sneaker, hoodie, t-shirt, jacket, bag, cap) with hand-added surface decoration (paint, patches, studs, hand embroidery, hand-painted design, rhinestones) rather than from-scratch handmade construction: IGNORE the labor-hour formula. The shoe/apparel market prices the base × artist reputation, not paint hours, and custom-decorated factory bases are a saturated Depop/Etsy category. Price = base brand tier as starting point + 30–60% customization premium for detail and craftsmanship. Hard caps: painted or customized sneakers $120 unbranded / $180 branded (Nike, Adidas, Vans, Converse) / $260 for hyped silhouettes (Jordan 1/4, Dunk, Yeezy) — exceed only if the artist is a named established creator with documented resale history. Altered hoodies/tees/jackets: $60 unbranded / $90 branded / $130 premium streetwear or designer base. Custom bags/caps: $40 unbranded / $80 branded. Do NOT apply the trending-handmade +20–30% boost to altered factory bases. This exception does NOT apply to genuinely from-scratch handmade items (crochet, knit, sewn from raw fabric, fiber art) — those still use the labor-hour formula.
 - ideas[].t = short, actionable tip (no price amounts)
 - If multiple items are visible, identify only the most prominent one
 - If the photo appears to be AI-generated, a screenshot, or not a real physical item, set name to "Not a real item" and confidence to "low"
@@ -189,17 +211,17 @@ function parseJsonFromModelText(text: string): Record<string, unknown> {
 }
 
 /** Returns true if the error looks like a transient overload / rate-limit. */
-function isOverloadError(err: unknown): boolean {
+export function isOverloadError(err: unknown): boolean {
   if (err && typeof err === 'object' && 'overload' in err && (err as { overload?: boolean }).overload) return true;
   const msg = err instanceof Error ? err.message : String(err ?? '');
   return /API (429|503|529)/i.test(msg) || /overloaded|high demand|resource exhausted/i.test(msg);
 }
 
 const MAX_RETRIES = 2;
-const RETRY_DELAYS = [2000, 4000]; // ms
+const RETRY_DELAYS = [3000, 8000]; // ms — Gemini 503 spikes need more breathing room
 
-async function callGemini(images: Array<{ base64: string; mimeType: string }>, promptSuffix = '', signal?: AbortSignal, promptOverride?: string, temperature = 0.1): Promise<Record<string, unknown>> {
-  const res = await fetch(GEMINI_URL, {
+async function callGemini(url: string, images: Array<{ base64: string; mimeType: string }>, promptSuffix = '', signal?: AbortSignal, promptOverride?: string, temperature = 0.1): Promise<Record<string, unknown>> {
+  const res = await fetch(url, {
     method: 'POST',
     signal,
     headers: { 'Content-Type': 'application/json' },
@@ -277,9 +299,72 @@ async function callOpenAI(images: Array<{ base64: string; mimeType: string }>, p
   return parseJsonFromModelText(text);
 }
 
-async function runScanPipeline(photoUris: string[], promptSuffix = '', signal?: AbortSignal): Promise<ScanScenario> {
+type ImagePart = { base64: string; mimeType: string };
+
+function errMsg(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  return String(err ?? 'unknown');
+}
+
+/**
+ * Try Gemini 2.5 Flash first, fall back to 2.0 Flash (different quota pool),
+ * then OpenAI if configured. Non-overload errors skip retries and fail over immediately.
+ * If all providers fail, throws an error containing all underlying causes.
+ */
+async function callWithFallback(
+  images: ImagePart[],
+  promptSuffix: string,
+  signal?: AbortSignal,
+  promptOverride?: string,
+  temperature = 0.1,
+): Promise<Record<string, unknown>> {
   if (!GEMINI_KEY && !OPENAI_KEY) throw new Error('API key not configured');
 
+  let geminiError: unknown = null;
+  let geminiFallbackError: unknown = null;
+  let openaiError: unknown = null;
+
+  if (GEMINI_KEY) {
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        return await callGemini(GEMINI_URL, images, promptSuffix, signal, promptOverride, temperature);
+      } catch (err) {
+        if ((err as Error)?.name === 'AbortError') throw err;
+        geminiError = err;
+        // Non-overload errors: skip retries and try next provider — retrying won't help.
+        if (!isOverloadError(err)) break;
+        if (attempt < MAX_RETRIES) {
+          await new Promise((r) => setTimeout(r, RETRY_DELAYS[attempt]));
+        }
+      }
+    }
+
+    // Fallback to Gemini 2.0 Flash — separate quota pool, so an overload on 2.5 doesn't take it down.
+    try {
+      return await callGemini(GEMINI_URL_FALLBACK, images, promptSuffix, signal, promptOverride, temperature);
+    } catch (err) {
+      if ((err as Error)?.name === 'AbortError') throw err;
+      geminiFallbackError = err;
+    }
+  }
+
+  if (OPENAI_KEY) {
+    try {
+      return await callOpenAI(images, promptSuffix, signal, promptOverride, temperature);
+    } catch (err) {
+      if ((err as Error)?.name === 'AbortError') throw err;
+      openaiError = err;
+    }
+  }
+
+  const geminiPart = GEMINI_KEY ? `Gemini 2.5: ${errMsg(geminiError)}` : 'Gemini: key not configured';
+  const geminiFallbackPart = GEMINI_KEY ? `Gemini 2.0: ${errMsg(geminiFallbackError)}` : '';
+  const openaiPart = OPENAI_KEY ? `OpenAI: ${errMsg(openaiError)}` : 'OpenAI: key not configured';
+  const parts = [geminiPart, geminiFallbackPart, openaiPart].filter(Boolean).join(' | ');
+  throw new Error(`All scan providers failed — ${parts}`);
+}
+
+async function runScanPipeline(photoUris: string[], promptSuffix = '', signal?: AbortSignal): Promise<ScanScenario> {
   const resolved = await Promise.all(photoUris.map(uri => resolveReadableUri(uri)));
   const images = await Promise.all(
     resolved.map(async ({ uri, mimeType }) => ({
@@ -292,34 +377,20 @@ async function runScanPipeline(photoUris: string[], promptSuffix = '', signal?: 
     ? '\n\nYou are given multiple photos of the SAME item (e.g. front, back, label). Use all photos together to identify the item more accurately. Do not treat them as separate items.'
     : '';
 
-  let parsed: Record<string, unknown> | null = null;
-
-  // Try Gemini first (free), fall back to OpenAI on overload
-  if (GEMINI_KEY) {
-    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-      try {
-        parsed = await callGemini(images, promptSuffix + multiPhotoSuffix, signal);
-        break;
-      } catch (err) {
-        if ((err as Error)?.name === 'AbortError') throw err;
-        if (!isOverloadError(err)) throw err;
-        if (attempt < MAX_RETRIES) {
-          await new Promise((r) => setTimeout(r, RETRY_DELAYS[attempt]));
-        }
-      }
-    }
-  }
-
-  // Fallback to OpenAI if Gemini failed or unavailable
-  if (!parsed && OPENAI_KEY) {
-    parsed = await callOpenAI(images, promptSuffix + multiPhotoSuffix, signal);
-  }
-
-  if (!parsed) throw new Error('All scan providers failed');
+  const parsed = await callWithFallback(images, promptSuffix + multiPhotoSuffix, signal);
 
   const paid = Number(parsed.suggestedPaid) || 10;
-  const resaleLow = Number(parsed.suggestedResaleLow) || 0;
-  const resaleHigh = Number(parsed.suggestedResaleHigh) || resaleLow;
+  let resaleLow = Number(parsed.suggestedResaleLow) || 0;
+  let resaleHigh = Number(parsed.suggestedResaleHigh) || resaleLow;
+
+  const isDenim = parsed.category === 'denim';
+  const isCustomScan = parsed.isCustom === true || detectCustomFromText(parsed.name, parsed.sub);
+  if (isDenim && isCustomScan && resaleHigh > 140) {
+    const scale = 140 / resaleHigh;
+    resaleHigh = 140;
+    resaleLow = Math.max(25, Math.round(resaleLow * scale));
+  }
+
   const resale = resaleLow > 0 ? Math.round((resaleLow + resaleHigh) / 2) : 0;
 
   return {
@@ -397,37 +468,22 @@ export async function refreshUpcycleIdeas(
   itemContext?: { name?: string; category?: string },
   signal?: AbortSignal
 ): Promise<string[]> {
-  if (!GEMINI_KEY && !OPENAI_KEY) throw new Error('API key not configured');
   const { uri: readUri, mimeType } = await resolveReadableUri(photoUri);
   const base64 = await FileSystem.readAsStringAsync(readUri, {
     encoding: FileSystem.EncodingType.Base64,
   });
   const prompt = buildUpcyclePrompt(itemContext?.name, itemContext?.category);
-  const images = [{ base64, mimeType }];
-  let parsed: Record<string, unknown> | null = null;
-  if (GEMINI_KEY) {
-    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-      try {
-        parsed = await callGemini(images, '', signal, prompt, 0.9);
-        break;
-      } catch (err) {
-        if ((err as Error)?.name === 'AbortError') throw err;
-        if (!isOverloadError(err)) throw err;
-        if (attempt < MAX_RETRIES) await new Promise((r) => setTimeout(r, RETRY_DELAYS[attempt]));
-      }
-    }
-  }
-  if (!parsed && OPENAI_KEY) {
-    parsed = await callOpenAI(images, '', signal, prompt, 0.9);
-  }
-  if (!parsed) throw new Error('All providers failed');
+  const parsed = await callWithFallback([{ base64, mimeType }], '', signal, prompt, 0.9);
   return Array.isArray(parsed.upcycle)
     ? parsed.upcycle.slice(0, 3).map((u: unknown) => String(u || '')).filter(Boolean)
     : [];
 }
 
 const HANDMADE_SUFFIX = `\n\nIMPORTANT: The user has confirmed this item IS handmade/custom. Set isCustom = true.
-Pricing: estimate labor hours by complexity (simple mods/rework 1–2hr, intermediate crochet/knit/sewing 4–8hr, complex fiber art/tapestry 10–20hr). suggestedPaid = materials cost estimate. suggestedResaleLow = materials + (labor hrs × $15). suggestedResaleHigh = materials + (labor hrs × $25) + 30% uniqueness premium. Trending handmade (crochet tops, patchwork, visible mending, cottagecore, handmade jewelry, polymer clay earrings) adds 20–30% more. Benchmark against Etsy and Depop sold prices for similar handmade items — do not lowball handmade work.`;
+Pricing: estimate labor hours by complexity (simple mods/rework 1–2hr, intermediate crochet/knit/sewing 4–8hr, complex fiber art/tapestry 10–20hr). suggestedPaid = materials cost estimate. suggestedResaleLow = materials + (labor hrs × $15). suggestedResaleHigh = materials + (labor hrs × $25) + 30% uniqueness premium. Trending handmade (crochet tops, visible mending on non-denim, cottagecore, handmade jewelry, polymer clay earrings, tufting, punch needle) adds 20–30% more. Benchmark against Etsy and Depop sold prices for similar handmade items — do not lowball handmade work.
+CONDITION ADJUSTMENT: reduce both low and high by 30–50% for visible damage (stains, non-decorative holes, heavy pilling, fading, broken hardware, scuffed/peeling leather, tarnish). Reduce 15–25% for moderate wear. NWT/like-new commands the top of the range. Unclear condition = assume "used-good" and no adjustment.
+DENIM EXCEPTION — if category = "denim": IGNORE the labor-hour formula. Upcycled jeans is saturated on Depop/Etsy and prices by finished look, not labor hours. Simple mods (crops/distress/basic patches/dye) $25–$55; moderate rework (panel swap, contrasting patchwork, studded) $45–$85; elaborate custom (intricate beading, franken-construction, verifiable vintage Big E/501XX base) $70–$140. Hard ceiling $140 unless the base is documented vintage Levi's Big E/501XX or maker is a named established creator (then cap $220). Do NOT apply the trending-handmade +20–30% boost to denim.
+ALTERED FACTORY BASE EXCEPTION — if the item is a factory-made base (sneaker, hoodie, t-shirt, jacket, bag, cap) with hand-added surface decoration (paint, patches, studs, hand embroidery, rhinestones) rather than from-scratch construction: IGNORE the labor-hour formula. Price = base brand tier + 30–60% customization premium. Caps: painted sneakers $120 unbranded / $180 branded (Nike, Adidas, Vans) / $260 hyped silhouettes (Jordan, Dunk, Yeezy) — exceed only for named established artists. Altered hoodies/tops: $60 unbranded / $90 branded / $130 premium streetwear. Custom bags/caps: $40 unbranded / $80 branded. Do NOT apply the trending-handmade +20–30% boost to altered factory bases. This exception does NOT apply to from-scratch handmade (crochet, knit, sewn from raw fabric, fiber art).`;
 
 export async function rescanAsHandmade(photoUri: string, signal?: AbortSignal): Promise<ScanScenario> {
   return runScanPipeline([photoUri], HANDMADE_SUFFIX, signal);

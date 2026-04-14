@@ -1157,6 +1157,9 @@ export default function DetailScreen() {
                     <AppIcon name="trash-outline" size={14} color={theme.colors.terra} />
                     <Text style={styles.deleteScanBtnText}>Delete scan</Text>
                   </Pressable>
+                  <Text style={styles.insightsDisclaimer}>
+                    AI estimates — actual resale and authenticity not guaranteed
+                  </Text>
                 </View>
               </View>
             )}
@@ -2448,6 +2451,15 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
   deleteScanBtnText: {
     ...theme.typography.caption,
     color: theme.colors.terra,
+  },
+  insightsDisclaimer: {
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 10,
+    lineHeight: 14,
+    color: theme.colors.mauve,
+    textAlign: 'center',
+    marginTop: 12,
+    opacity: 0.8,
   },
   historyBtn: {
     flexDirection: 'row',

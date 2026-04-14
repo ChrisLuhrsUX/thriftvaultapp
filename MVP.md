@@ -8,16 +8,7 @@
 
 ## Post-Launch
 
-- [ ] **Share item** — wire up the share sheet on item detail (button already exists, commented out in `detail.tsx`)
-- [ ] **Haul titles** — let users name their hauls instead of defaulting to the date (e.g. "Saturday Goodwill Run")
-- [ ] **Platform filter in Vault** — filter by eBay / Poshmark / etc.
-- [ ] **Android launch** — test, fix platform-specific issues, and publish to Google Play Store
-- [ ] **Landing page** — marketing website to promote the app (App Store link, features, screenshots)
-- [ ] **ASO iteration** — refine keywords and metadata based on real App Store search data
-- [ ] **Feedback channel** — Discord community or in-app feedback form beyond support email
-- [ ] **Affiliate links** — link scanned items to retailer listings (Amazon, Walmart, etc.) with affiliate tags for commission revenue
-- [ ] **Inventory tracking (stock count)** — let makers and bulk-buyers track how many copies of the same item they have on hand (e.g. 10 of the same handmade earring design, or 5 identical thrifted t-shirts). Current model is one row = one item; this would add a quantity field and decrement on sale.
-- [ ] **Switch to `expo-image`** — replace `react-native` `Image` across vault/scan/detail with `expo-image` for persistent memory + disk caching. Fixes subtle haul thumbnail reload when switching between Flips/Closet and Hauls views (root cause: the ternary at `app/(tabs)/index.tsx:619` unmounts the inactive FlatList, and RN `Image` re-decodes from disk on remount).
+See [POST_LAUNCH.md](POST_LAUNCH.md) — scoped todos and unscoped ideas live there.
 
 ## Done
 
