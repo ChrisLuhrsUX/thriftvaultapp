@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Clipboard from 'expo-clipboard';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
@@ -511,6 +512,12 @@ export default function DetailScreen() {
       setRefreshingUpcycle(false);
     }
   }, [item, refreshingUpcycle, getActiveSnapshot, update, updateItem, showToast]);
+
+  const handleCopyIdeas = useCallback(async (ideas: { t: string }[]) => {
+    const text = ideas.map((idea, i) => `${i + 1}. ${idea.t}`).join('\n');
+    await Clipboard.setStringAsync(text);
+    showToast('Copied');
+  }, [showToast]);
 
   const deleteActiveScan = useCallback(() => {
     if (!item) return;
@@ -1065,55 +1072,29 @@ export default function DetailScreen() {
                 )}
                 <View style={styles.insightsIdeas}>
                   {activeSnapshot.ideas.length > 0 ? (
-                    activeSnapshot.ideas.map((idea, index) => (
-                      <View key={`${activeSnapshot.id}-${index}`} style={styles.insightIdeaRow}>
-                        <AppIcon name={idea.ideaIcon as any} size={16} color={theme.colors.vintageBlueDark} />
-                        <View style={styles.insightIdeaBody}>
-                          <Text style={styles.insightIdeaText}>{idea.t}</Text>
-                        </View>
+                    <>
+                      <View style={styles.insightIdeasHeader}>
+                        <Text style={styles.insightIdeasLabel}>Listing suggestions</Text>
+                        <Pressable onPress={() => handleCopyIdeas(activeSnapshot.ideas)} hitSlop={8} style={({ pressed }) => pressed && { opacity: 0.6 }} accessibilityLabel="Copy all suggestions">
+                          <AppIcon name="copy-outline" size={15} color={theme.colors.mauve} />
+                        </Pressable>
                       </View>
-                    ))
+                      {activeSnapshot.ideas.map((idea, index) => (
+                        <View key={`${activeSnapshot.id}-${index}`} style={styles.insightIdeaRow}>
+                          <AppIcon name={idea.ideaIcon as any} size={16} color={theme.colors.vintageBlueDark} />
+                          <View style={styles.insightIdeaBody}>
+                            <Text style={styles.insightIdeaText} selectable>{idea.t}</Text>
+                          </View>
+                        </View>
+                      ))}
+                    </>
                   ) : (
                     <Text style={styles.insightsEmptyIdeas}>No flip suggestions for this scan.</Text>
                   )}
                 </View>
                 <View style={styles.insightsActions}>
-                  {activeSnapshot.upcycle && activeSnapshot.upcycle.length > 0 && (
-                    <View>
-                      <Pressable
-                        style={styles.insightsUpcycleHeader}
-                        onPress={() => setUpcycleExpanded((v) => !v)}
-                        hitSlop={4}
-                      >
-                        <AppIcon name="color-palette-outline" size={14} color={theme.colors.terra} />
-                        <Text style={styles.insightsUpcycleHeaderText}>Upcycle ideas</Text>
-                        {upcycleExpanded && (refreshingUpcycle ? (
-                          <ActivityIndicator size="small" color={theme.colors.terra} />
-                        ) : (
-                          <Pressable onPress={handleRefreshUpcycle} hitSlop={8} style={({ pressed }) => pressed && { opacity: 0.6 }}>
-                            <AppIcon name="reload-outline" size={14} color={theme.colors.terra} />
-                          </Pressable>
-                        ))}
-                        <AppIcon
-                          name={upcycleExpanded ? 'chevron-up' : 'chevron-down'}
-                          size={13}
-                          color={theme.colors.terra}
-                        />
-                      </Pressable>
-                      {upcycleExpanded && (
-                        <View style={styles.insightsUpcycleRows}>
-                          {activeSnapshot.upcycle.map((tip, i) => (
-                            <View key={i} style={styles.insightsUpcycleRow}>
-                              <View style={styles.insightsUpcycleDot} />
-                              <Text style={styles.insightsUpcycleText}>{tip}</Text>
-                            </View>
-                          ))}
-                        </View>
-                      )}
-                    </View>
-                  )}
                   {activeSnapshot.authFlags && activeSnapshot.authFlags.length > 0 && (
-                    <View style={styles.insightsAuthSection}>
+                    <View>
                       <Pressable
                         style={styles.insightsAuthHeader}
                         onPress={() => setAuthExpanded((v) => !v)}
@@ -1149,6 +1130,49 @@ export default function DetailScreen() {
                       <AppIcon name="chevron-forward" size={14} color={theme.colors.vintageBlueDark} />
                     </Pressable>
                   )}
+                  {activeSnapshot.upcycle && activeSnapshot.upcycle.length > 0 && (
+                    <View>
+                      <Pressable
+                        style={styles.insightsUpcycleHeader}
+                        onPress={() => setUpcycleExpanded((v) => !v)}
+                        hitSlop={4}
+                      >
+                        <AppIcon name="color-palette-outline" size={14} color={theme.colors.terra} />
+                        <Text style={styles.insightsUpcycleHeaderText}>Upcycle ideas</Text>
+                        <AppIcon
+                          name={upcycleExpanded ? 'chevron-up' : 'chevron-down'}
+                          size={13}
+                          color={theme.colors.terra}
+                        />
+                      </Pressable>
+                      {upcycleExpanded && (
+                        <View style={styles.insightsUpcycleRows}>
+                          {activeSnapshot.upcycle.map((tip, i) => (
+                            <View key={i} style={styles.insightsUpcycleRow}>
+                              <View style={styles.insightsUpcycleDot} />
+                              <Text style={styles.insightsUpcycleText} selectable>{tip}</Text>
+                            </View>
+                          ))}
+                          <Pressable
+                            onPress={handleRefreshUpcycle}
+                            disabled={refreshingUpcycle}
+                            hitSlop={8}
+                            style={({ pressed }) => [styles.insightsUpcycleRegenerate, pressed && { opacity: 0.6 }]}
+                            accessibilityLabel="Regenerate upcycle ideas"
+                          >
+                            {refreshingUpcycle ? (
+                              <ActivityIndicator size="small" color={theme.colors.terra} />
+                            ) : (
+                              <AppIcon name="reload-outline" size={13} color={theme.colors.terra} />
+                            )}
+                            <Text style={styles.insightsUpcycleRegenerateText}>
+                              {refreshingUpcycle ? 'Regenerating...' : 'Regenerate ideas'}
+                            </Text>
+                          </Pressable>
+                        </View>
+                      )}
+                    </View>
+                  )}
                   <Pressable
                     style={({ pressed }) => [styles.deleteScanBtn, pressed && { opacity: 0.7 }]}
                     onPress={deleteActiveScan}
@@ -1157,9 +1181,6 @@ export default function DetailScreen() {
                     <AppIcon name="trash-outline" size={14} color={theme.colors.terra} />
                     <Text style={styles.deleteScanBtnText}>Delete scan</Text>
                   </Pressable>
-                  <Text style={styles.insightsDisclaimer}>
-                    AI estimates — actual resale and authenticity not guaranteed
-                  </Text>
                 </View>
               </View>
             )}
@@ -2334,8 +2355,20 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     lineHeight: 20,
   },
   insightsIdeas: {
-    marginTop: theme.spacing.sm,
+    marginTop: theme.spacing.md,
     gap: theme.spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.surfaceVariant,
+    paddingTop: theme.spacing.md,
+  },
+  insightIdeasHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  insightIdeasLabel: {
+    ...theme.typography.label,
+    color: theme.colors.mauve,
   },
   insightIdeaRow: {
     flexDirection: 'row',
@@ -2379,6 +2412,18 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     gap: 6,
     paddingBottom: theme.spacing.sm,
   },
+  insightsUpcycleRegenerate: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    marginTop: theme.spacing.xs,
+  },
+  insightsUpcycleRegenerateText: {
+    ...theme.typography.caption,
+    color: theme.colors.terra,
+    fontWeight: '600',
+  },
   insightsUpcycleRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -2397,15 +2442,14 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     flex: 1,
     lineHeight: 20,
   },
-  insightsAuthSection: {
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.surfaceVariant,
-    paddingVertical: theme.spacing.sm,
-  },
   insightsAuthHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.surfaceVariant,
+    paddingVertical: theme.spacing.sm,
+    minHeight: theme.minTouchTargetSize,
   },
   insightsAuthHeaderText: {
     ...theme.typography.caption,

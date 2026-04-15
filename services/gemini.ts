@@ -4,7 +4,7 @@ import { ITEM_CATEGORIES, type ItemCategory, type ScanScenario } from '@/types/i
 const GEMINI_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY ?? '';
 const OPENAI_KEY = process.env.EXPO_PUBLIC_OPENAI_API_KEY ?? '';
 const GEMINI_MODEL = 'gemini-2.5-flash';
-const GEMINI_MODEL_FALLBACK = 'gemini-2.0-flash';
+const GEMINI_MODEL_FALLBACK = 'gemini-2.5-flash-lite';
 const geminiUrl = (model: string) => `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`;
 const GEMINI_URL = geminiUrl(GEMINI_MODEL);
 const GEMINI_URL_FALLBACK = geminiUrl(GEMINI_MODEL_FALLBACK);
@@ -307,7 +307,7 @@ function errMsg(err: unknown): string {
 }
 
 /**
- * Try Gemini 2.5 Flash first, fall back to 2.0 Flash (different quota pool),
+ * Try Gemini 2.5 Flash first, fall back to 2.5 Flash Lite (different quota pool),
  * then OpenAI if configured. Non-overload errors skip retries and fail over immediately.
  * If all providers fail, throws an error containing all underlying causes.
  */
@@ -339,7 +339,7 @@ async function callWithFallback(
       }
     }
 
-    // Fallback to Gemini 2.0 Flash — separate quota pool, so an overload on 2.5 doesn't take it down.
+    // Fallback to Gemini 2.5 Flash Lite — separate quota pool, so an overload on 2.5 Flash doesn't take it down.
     try {
       return await callGemini(GEMINI_URL_FALLBACK, images, promptSuffix, signal, promptOverride, temperature);
     } catch (err) {
@@ -358,7 +358,7 @@ async function callWithFallback(
   }
 
   const geminiPart = GEMINI_KEY ? `Gemini 2.5: ${errMsg(geminiError)}` : 'Gemini: key not configured';
-  const geminiFallbackPart = GEMINI_KEY ? `Gemini 2.0: ${errMsg(geminiFallbackError)}` : '';
+  const geminiFallbackPart = GEMINI_KEY ? `Gemini 2.5 Lite: ${errMsg(geminiFallbackError)}` : '';
   const openaiPart = OPENAI_KEY ? `OpenAI: ${errMsg(openaiError)}` : 'OpenAI: key not configured';
   const parts = [geminiPart, geminiFallbackPart, openaiPart].filter(Boolean).join(' | ');
   throw new Error(`All scan providers failed — ${parts}`);

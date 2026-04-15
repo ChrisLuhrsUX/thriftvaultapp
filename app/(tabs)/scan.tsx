@@ -1,3 +1,4 @@
+import * as Clipboard from 'expo-clipboard';
 import { AppIcon } from '@/components/AppIcon';
 import { PaywallModal } from '@/components/PaywallModal';
 import { DEFAULT_ITEM_PLACEHOLDER_IMAGE } from '@/constants/seedItems';
@@ -40,7 +41,7 @@ const SAVED_LATER_KEY = 'tv_saved_later';
 const TV_PENDING_SCAN_KEY = 'tv_pending_scan';
 type SavedScanItem = ScanScenario & { savedAt: number; photoUri?: string | null; photoUris?: string[] };
 const SNAPSHOT_CAP = 5;
-const MAX_STAGED_PHOTOS = 3;
+const MAX_STAGED_PHOTOS = 5;
 const OLD_ITEM_DAYS_THRESHOLD = 90;
 
 const RECENTS_COUNT = 7;
@@ -94,6 +95,20 @@ function ScanResultCard({
   const [editedName, setEditedName] = useState(scenario.name);
   const [upcycleExpanded, setUpcycleExpanded] = useState(false);
   const [authExpanded, setAuthExpanded] = useState(false);
+  const { showToast } = useToast();
+
+  const handleCopyIdeas = useCallback(async () => {
+    const text = scenario.ideas.slice(0, 3).map((idea, i) => `${i + 1}. ${idea.t}`).join('\n');
+    await Clipboard.setStringAsync(text);
+    showToast('Copied');
+  }, [scenario.ideas, showToast]);
+
+  const handleCopyUpcycle = useCallback(async () => {
+    if (!scenario.upcycle || scenario.upcycle.length === 0) return;
+    const text = scenario.upcycle.map((tip, i) => `${i + 1}. ${tip}`).join('\n');
+    await Clipboard.setStringAsync(text);
+    showToast('Copied');
+  }, [scenario.upcycle, showToast]);
 
   const commitNameEdit = () => {
     const trimmed = editedName.trim();
@@ -158,14 +173,14 @@ function ScanResultCard({
             <Pressable
               style={({ pressed }) => [styles.handmadeYes, pressed && { opacity: 0.7 }]}
               onPress={onConfirmHandmade}
-              hitSlop={8}
+              hitSlop={12}
             >
               <Text style={styles.handmadeYesText}>Yes</Text>
             </Pressable>
             <Pressable
               style={({ pressed }) => [styles.handmadeNo, pressed && { opacity: 0.7 }]}
               onPress={onDismissCustom}
-              hitSlop={8}
+              hitSlop={12}
             >
               <Text style={styles.handmadeNoText}>No</Text>
             </Pressable>
@@ -183,14 +198,14 @@ function ScanResultCard({
             <Pressable
               style={({ pressed }) => [styles.handmadeYes, pressed && { opacity: 0.7 }]}
               onPress={onRescanWrong}
-              hitSlop={8}
+              hitSlop={12}
             >
               <Text style={styles.handmadeYesText}>Yes</Text>
             </Pressable>
             <Pressable
               style={({ pressed }) => [styles.handmadeNo, pressed && { opacity: 0.7 }]}
               onPress={onDismissWrongScan}
-              hitSlop={8}
+              hitSlop={12}
             >
               <Text style={styles.handmadeNoText}>No</Text>
             </Pressable>
@@ -198,7 +213,9 @@ function ScanResultCard({
         )}
         {confPresentation && (
           <View style={styles.confidenceBanner}>
-            <View style={[styles.confidenceDot, { backgroundColor: confPresentation.color }]} />
+            <View style={styles.confidenceLead}>
+              <View style={[styles.confidenceDot, { backgroundColor: confPresentation.color }]} />
+            </View>
             <Text style={[styles.confidenceText, { color: confPresentation.color }]}>
               {confPresentation.label}
             </Text>
@@ -206,6 +223,12 @@ function ScanResultCard({
         )}
       </View>
       <View style={styles.ideaRows}>
+        <View style={styles.ideaRowsHeader}>
+          <Text style={styles.ideaRowsLabel}>Listing suggestions</Text>
+          <Pressable onPress={handleCopyIdeas} hitSlop={8} style={({ pressed }) => pressed && { opacity: 0.6 }} accessibilityLabel="Copy all suggestions">
+            <AppIcon name="copy-outline" size={15} color={theme.colors.mauve} />
+          </Pressable>
+        </View>
         {scenario.ideas.slice(0, 3).map((idea, i) => (
           <View key={i} style={styles.ideaRow}>
             <AppIcon
@@ -214,45 +237,11 @@ function ScanResultCard({
               color={theme.colors.vintageBlueDark}
             />
             <View style={styles.ideaBody}>
-              <Text style={styles.ideaText}>{idea.t}</Text>
+              <Text style={styles.ideaText} selectable>{idea.t}</Text>
             </View>
           </View>
         ))}
       </View>
-      {scenario.upcycle && scenario.upcycle.length > 0 && (
-        <View style={styles.upcycleSection}>
-          <Pressable
-            style={styles.upcycleHeader}
-            onPress={() => setUpcycleExpanded((v) => !v)}
-            hitSlop={4}
-          >
-            <AppIcon name="color-palette-outline" size={15} color={theme.colors.terra} />
-            <Text style={styles.upcycleHeaderText}>Upcycle ideas</Text>
-            {upcycleExpanded && (refreshingUpcycle ? (
-              <ActivityIndicator size="small" color={theme.colors.terra} />
-            ) : (
-              <Pressable onPress={onRefreshUpcycle} hitSlop={8} style={({ pressed }) => pressed && { opacity: 0.6 }}>
-                <AppIcon name="reload-outline" size={15} color={theme.colors.terra} />
-              </Pressable>
-            ))}
-            <AppIcon
-              name={upcycleExpanded ? 'chevron-up' : 'chevron-down'}
-              size={14}
-              color={theme.colors.terra}
-            />
-          </Pressable>
-          {upcycleExpanded && (
-            <View style={styles.upcycleRows}>
-              {scenario.upcycle.map((tip, i) => (
-                <View key={i} style={styles.upcycleRow}>
-                  <View style={styles.upcycleDot} />
-                  <Text style={styles.upcycleText}>{tip}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-        </View>
-      )}
       {scenario.authFlags && scenario.authFlags.length > 0 && (
         <View style={styles.authSection}>
           <Pressable
@@ -276,6 +265,54 @@ function ScanResultCard({
                   <Text style={styles.authText}>{flag}</Text>
                 </View>
               ))}
+            </View>
+          )}
+        </View>
+      )}
+      {scenario.upcycle && scenario.upcycle.length > 0 && (
+        <View style={styles.upcycleSection}>
+          <Pressable
+            style={styles.upcycleHeader}
+            onPress={() => setUpcycleExpanded((v) => !v)}
+            hitSlop={4}
+          >
+            <AppIcon name="color-palette-outline" size={15} color={theme.colors.terra} />
+            <Text style={styles.upcycleHeaderText}>Upcycle ideas</Text>
+            {upcycleExpanded && (
+              <Pressable onPress={handleCopyUpcycle} hitSlop={8} style={({ pressed }) => pressed && { opacity: 0.6 }} accessibilityLabel="Copy upcycle ideas">
+                <AppIcon name="copy-outline" size={15} color={theme.colors.terra} />
+              </Pressable>
+            )}
+            <AppIcon
+              name={upcycleExpanded ? 'chevron-up' : 'chevron-down'}
+              size={14}
+              color={theme.colors.terra}
+            />
+          </Pressable>
+          {upcycleExpanded && (
+            <View style={styles.upcycleRows}>
+              {scenario.upcycle.map((tip, i) => (
+                <View key={i} style={styles.upcycleRow}>
+                  <View style={styles.upcycleDot} />
+                  <Text style={styles.upcycleText} selectable>{tip}</Text>
+                </View>
+              ))}
+              <Pressable
+                onPress={onRefreshUpcycle}
+                disabled={refreshingUpcycle}
+                hitSlop={8}
+                style={({ pressed }) => [styles.upcycleRegenerate, pressed && { opacity: 0.6 }]}
+                accessibilityLabel="Regenerate upcycle ideas"
+              >
+                {refreshingUpcycle ? (
+                  <ActivityIndicator size="small" color={theme.colors.terra} />
+                ) : (
+                  <AppIcon name="reload-outline" size={13} color={theme.colors.terra} />
+                )}
+                <Text style={styles.upcycleRegenerateText}>
+                  {refreshingUpcycle ? 'Regenerating...' : 'Regenerate ideas'}
+                </Text>
+              </Pressable>
             </View>
           )}
         </View>
@@ -308,9 +345,6 @@ function ScanResultCard({
           <Text style={styles.btnTertiaryText}>Skip</Text>
         </Pressable>
       </View>
-      <Text style={styles.resultDisclaimer}>
-        AI estimates — actual resale and authenticity not guaranteed
-      </Text>
     </View>
   );
 }
@@ -375,7 +409,17 @@ function createScanStyles(theme: Theme, formMaxWidth?: number) {
       marginTop: 4,
       lineHeight: 20,
     },
-    ideaRows: { gap: 8, marginTop: 12 },
+    ideaRows: { gap: 8, marginTop: 12, borderTopWidth: 1, borderTopColor: theme.colors.surfaceVariant, paddingTop: 12 },
+    ideaRowsHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      marginBottom: 2,
+    },
+    ideaRowsLabel: {
+      ...theme.typography.label,
+      color: theme.colors.mauve,
+    },
     ideaRow: {
       flexDirection: 'row',
       alignItems: 'flex-start',
@@ -436,11 +480,23 @@ function createScanStyles(theme: Theme, formMaxWidth?: number) {
       flex: 1,
       lineHeight: 20,
     },
+    upcycleRegenerate: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      gap: 6,
+      marginTop: theme.spacing.sm,
+    },
+    upcycleRegenerateText: {
+      ...theme.typography.caption,
+      color: theme.colors.terra,
+      fontWeight: '600',
+    },
     authSection: {
       marginTop: theme.spacing.md,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.surfaceVariant,
-      paddingBottom: theme.spacing.sm,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.surfaceVariant,
+      paddingVertical: theme.spacing.sm,
     },
     authHeader: {
       flexDirection: 'row',
@@ -536,10 +592,13 @@ function createScanStyles(theme: Theme, formMaxWidth?: number) {
     confidenceBanner: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 6,
+      gap: 8,
       paddingVertical: 6,
-      paddingHorizontal: 10,
-      borderRadius: theme.radius.full,
+    },
+    confidenceLead: {
+      width: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     confidenceDot: {
       width: 6,
@@ -576,26 +635,26 @@ function createScanStyles(theme: Theme, formMaxWidth?: number) {
       color: theme.colors.mauve,
     },
     handmadeYes: {
-      minHeight: 36,
       justifyContent: 'center',
-      paddingHorizontal: 18,
+      paddingVertical: 6,
+      paddingHorizontal: 10,
       borderRadius: theme.radius.full,
       backgroundColor: theme.colors.terraLight,
     },
     handmadeYesText: {
-      ...theme.typography.body,
+      ...theme.typography.caption,
       fontWeight: '600',
       color: theme.colors.terra,
     },
     handmadeNo: {
-      minHeight: 36,
       justifyContent: 'center',
-      paddingHorizontal: 18,
+      paddingVertical: 6,
+      paddingHorizontal: 10,
       borderRadius: theme.radius.full,
       backgroundColor: theme.colors.mauveLight,
     },
     handmadeNoText: {
-      ...theme.typography.body,
+      ...theme.typography.caption,
       fontWeight: '600',
       color: theme.colors.mauve,
     },
@@ -1175,7 +1234,7 @@ export default function ScanScreen() {
               <View style={styles.cameraOverlayWrap}>
                 <BlurView intensity={40} tint="dark" style={[styles.cameraOverlayBtnBlur, styles.cameraOverlayClose]}>
                   <Pressable
-                    hitSlop={12}
+                    hitSlop={8}
                     style={({ pressed }) => [styles.cameraOverlayIconBtn, pressed && styles.cameraPressed]}
                     onPress={() => { setCameraActive(false); setCameraReady(false); }}
                     accessibilityLabel="Close camera"
@@ -1185,7 +1244,7 @@ export default function ScanScreen() {
                 </BlurView>
                 <BlurView intensity={40} tint="dark" style={[styles.cameraOverlayBtnBlur, styles.cameraOverlayFlip]}>
                   <Pressable
-                    hitSlop={12}
+                    hitSlop={8}
                     style={({ pressed }) => [styles.cameraOverlayIconBtn, pressed && styles.cameraPressed]}
                     onPress={() => setCameraFacing((f) => (f === 'back' ? 'front' : 'back'))}
                     accessibilityLabel="Flip camera"
@@ -1229,20 +1288,32 @@ export default function ScanScreen() {
                       <ActivityIndicator size="large" color={theme.colors.white} />
                       <Text style={styles.searchingText}>Searching</Text>
                       <BlurView intensity={40} tint="dark" style={styles.cancelPill}>
-                        <Pressable style={({ pressed }) => [styles.clearBtn, pressed && styles.cameraPressed]} onPress={cancelScan} hitSlop={12}>
+                        <Pressable style={({ pressed }) => [styles.clearBtn, pressed && styles.cameraPressed]} onPress={cancelScan} hitSlop={8}>
                           <Text style={styles.clearBtnText}>Cancel</Text>
                         </Pressable>
                       </BlurView>
                     </View>
                   ) : (
                     <View style={styles.cameraPrompt}>
-                      <Text style={styles.cameraLabel}>Tap to scan</Text>
+                      <Text style={styles.cameraLabel}>
+                        {stagedPhotos.length > 0 ? `Scan ${stagedPhotos.length} photo${stagedPhotos.length === 1 ? '' : 's'}` : 'Tap to scan'}
+                      </Text>
                       <View style={styles.cameraActions}>
                         <View style={styles.cameraActionSlot} />
                         <BlurView intensity={50} tint="light" style={styles.shutterBlur}>
-                          <View style={styles.shutterRing}>
-                            <AppIcon name="camera" size={26} color={theme.colors.white} />
-                          </View>
+                          {stagedPhotos.length > 0 ? (
+                            <Pressable
+                              style={({ pressed }) => [styles.shutterRing, pressed && styles.cameraPressed]}
+                              onPress={handleScanStaged}
+                              accessibilityLabel={`Scan ${stagedPhotos.length} photos`}
+                            >
+                              <AppIcon name="search" size={26} color={theme.colors.white} />
+                            </Pressable>
+                          ) : (
+                            <View style={styles.shutterRing}>
+                              <AppIcon name="camera" size={26} color={theme.colors.white} />
+                            </View>
+                          )}
                         </BlurView>
                         <View style={styles.cameraActionSlot} />
                       </View>
@@ -1261,20 +1332,32 @@ export default function ScanScreen() {
                       <ActivityIndicator size="large" color={theme.colors.white} />
                       <Text style={styles.searchingText}>Searching</Text>
                       <BlurView intensity={40} tint="dark" style={styles.cancelPill}>
-                        <Pressable style={({ pressed }) => [styles.clearBtn, pressed && styles.cameraPressed]} onPress={cancelScan} hitSlop={12}>
+                        <Pressable style={({ pressed }) => [styles.clearBtn, pressed && styles.cameraPressed]} onPress={cancelScan} hitSlop={8}>
                           <Text style={styles.clearBtnText}>Cancel</Text>
                         </Pressable>
                       </BlurView>
                     </View>
                   ) : (
                     <View style={styles.cameraPrompt}>
-                      <Text style={styles.cameraLabel}>{stagedPhotos.length > 0 ? '' : 'Tap to scan'}</Text>
+                      <Text style={styles.cameraLabel}>
+                        {stagedPhotos.length > 0 ? `Scan ${stagedPhotos.length} photo${stagedPhotos.length === 1 ? '' : 's'}` : 'Tap to scan'}
+                      </Text>
                       <View style={styles.cameraActions}>
                         <View style={styles.cameraActionSlot} />
                         <BlurView intensity={50} tint="light" style={styles.shutterBlur}>
-                          <View style={styles.shutterRing}>
-                            <AppIcon name="camera" size={26} color={theme.colors.white} />
-                          </View>
+                          {stagedPhotos.length > 0 ? (
+                            <Pressable
+                              style={({ pressed }) => [styles.shutterRing, pressed && styles.cameraPressed]}
+                              onPress={handleScanStaged}
+                              accessibilityLabel={`Scan ${stagedPhotos.length} photos`}
+                            >
+                              <AppIcon name="search" size={26} color={theme.colors.white} />
+                            </Pressable>
+                          ) : (
+                            <View style={styles.shutterRing}>
+                              <AppIcon name="camera" size={26} color={theme.colors.white} />
+                            </View>
+                          )}
                         </BlurView>
                         <View style={styles.cameraActionSlot}>
                           {Platform.OS !== 'web' && (
@@ -1321,17 +1404,6 @@ export default function ScanScreen() {
                     hitSlop={6}
                   >
                     <AppIcon name="close" size={18} color={theme.colors.white} />
-                  </Pressable>
-                </BlurView>
-              )}
-              {!result && (
-                <BlurView intensity={50} tint="dark" style={styles.scanPillBlur}>
-                  <Pressable
-                    style={({ pressed }) => [styles.scanPill, pressed && styles.cameraPressed]}
-                    onPress={handleScanStaged}
-                  >
-                    <AppIcon name="search" size={16} color={theme.colors.white} />
-                    <Text style={styles.scanPillText}>Scan ({stagedPhotos.length})</Text>
                   </Pressable>
                 </BlurView>
               )}
@@ -1754,8 +1826,8 @@ function createStyles(
     zIndex: 10,
   },
   stagedThumb: {
-    width: 48,
-    height: 48,
+    width: 44,
+    height: 44,
     borderRadius: 10,
     overflow: 'hidden',
     borderWidth: 2,
@@ -1771,8 +1843,8 @@ function createStyles(
     right: 2,
   },
   stagedAddMore: {
-    width: 48,
-    height: 48,
+    width: 44,
+    height: 44,
     borderRadius: 10,
     borderWidth: 2,
     borderColor: theme.colors.overlayWhiteMid,
@@ -1792,24 +1864,6 @@ function createStyles(
     height: 38,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  scanPillBlur: {
-    borderRadius: 9999,
-    overflow: 'hidden',
-    borderWidth: 1.5,
-    borderColor: theme.colors.overlayWhiteMid,
-  },
-  scanPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-  },
-  scanPillText: {
-    ...theme.typography.bodySmall,
-    fontWeight: '700',
-    color: theme.colors.white,
   },
   searchingWrap: {
     alignItems: 'center',

@@ -25,6 +25,8 @@ const SETTINGS_ROWS = [
   { id: 'manage', label: 'Manage Subscription', icon: 'settings-outline' as const },
   { id: 'restore', label: 'Restore Purchases', icon: 'refresh-outline' as const },
   { id: 'feedback', label: 'Send Feedback', icon: 'mail-outline' as const },
+  { id: 'privacy', label: 'Privacy Policy', icon: 'lock-closed-outline' as const },
+  { id: 'terms', label: 'Terms of Service', icon: 'document-text-outline' as const },
 ];
 
 export default function ProfileScreen() {
@@ -110,6 +112,14 @@ if (id === 'subscription') {
       } else {
         showToast(result.error ?? 'Nothing to restore');
       }
+      return;
+    }
+    if (id === 'privacy') {
+      Linking.openURL('https://chrisluhrsux.github.io/thriftvaultapp/assets/privacy-policy.html').catch(() => {});
+      return;
+    }
+    if (id === 'terms') {
+      Linking.openURL('https://chrisluhrsux.github.io/thriftvaultapp/assets/terms.html').catch(() => {});
       return;
     }
   };

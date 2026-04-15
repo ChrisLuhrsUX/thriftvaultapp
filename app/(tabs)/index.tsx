@@ -58,13 +58,7 @@ const CLOSET_FILTERS: { key: string; label: string }[] = [
   ...CATEGORY_GROUPS.map((f) => ({ key: f.key, label: f.label })),
 ];
 
-const HAUL_FILTERS: { key: string; label: string }[] = [
-  { key: 'newest', label: 'Newest' },
-  { key: 'oldest', label: 'Oldest' },
-];
-
 type VaultView = 'flips' | 'closet' | 'hauls';
-type HaulFilterKey = 'newest' | 'oldest';
 
 const MONTH_SHORT: Record<string, number> = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11 };
 
@@ -235,7 +229,6 @@ export default function InventoryScreen() {
   const [search, setSearch] = useState('');
   const [haulSearch, setHaulSearch] = useState('');
   const [filter, setFilter] = useState('all');
-  const [haulFilter, setHaulFilter] = useState<HaulFilterKey>('newest');
   const numColumns = gridColumns;
   const styles = useMemo(
     () => createStyles(theme, hPad, headerHPad, numColumns),
@@ -372,7 +365,7 @@ export default function InventoryScreen() {
     showToast(`Added ${n} piece${n !== 1 ? 's' : ''} to your closet`);
   }, [createHaulItems, showToast]);
 
-  const filtersForView = view === 'hauls' ? HAUL_FILTERS : view === 'closet' ? CLOSET_FILTERS : FLIP_FILTERS;
+  const filtersForView = view === 'closet' ? CLOSET_FILTERS : FLIP_FILTERS;
 
   const listByView = useMemo(() => {
     if (view === 'closet') {
@@ -487,9 +480,9 @@ export default function InventoryScreen() {
     return [...list].sort((a, b) => {
       const tA = getHaulDayStart(a) ?? 0;
       const tB = getHaulDayStart(b) ?? 0;
-      return haulFilter === 'oldest' ? tA - tB : tB - tA;
+      return tB - tA;
     });
-  }, [hauls, haulFilter, haulSearch]);
+  }, [hauls, haulSearch]);
 
   const flipsClosetListHeader = (
     <View style={styles.listHeaderWrap}>
@@ -577,19 +570,19 @@ export default function InventoryScreen() {
       <View style={styles.switcherRow}>
         <Pressable
           style={[styles.switcherTab, view === 'flips' && styles.switcherTabActive]}
-          onPress={() => { Haptics.selectionAsync(); setView('flips'); setFilter('all'); }}
+          onPress={() => { Haptics.selectionAsync(); setView('flips'); setFilter('all'); setSearch(''); }}
         >
           <Text style={[styles.switcherText, view === 'flips' && styles.switcherTextActive]}>Flips</Text>
         </Pressable>
         <Pressable
           style={[styles.switcherTab, view === 'closet' && styles.switcherTabActive]}
-          onPress={() => { Haptics.selectionAsync(); setView('closet'); setFilter('all'); }}
+          onPress={() => { Haptics.selectionAsync(); setView('closet'); setFilter('all'); setSearch(''); }}
         >
           <Text style={[styles.switcherText, view === 'closet' && styles.switcherTextActive]}>Closet</Text>
         </Pressable>
         <Pressable
           style={[styles.switcherTab, view === 'hauls' && styles.switcherTabActive]}
-          onPress={() => { Haptics.selectionAsync(); setView('hauls'); setHaulFilter('newest'); }}
+          onPress={() => { Haptics.selectionAsync(); setView('hauls'); }}
         >
           <Text style={[styles.switcherText, view === 'hauls' && styles.switcherTextActive]}>Hauls</Text>
         </Pressable>
@@ -651,32 +644,6 @@ export default function InventoryScreen() {
                   </Pressable>
                 )}
               </View>
-              <FlatList
-                horizontal
-                data={HAUL_FILTERS}
-                keyExtractor={(item) => item.key}
-                showsHorizontalScrollIndicator={false}
-                style={styles.chips}
-                contentContainerStyle={styles.chipsContent}
-                renderItem={({ item }) => (
-                  <Pressable
-                    style={[
-                      styles.chip,
-                      haulFilter === item.key && styles.chipActive,
-                    ]}
-                    onPress={() => { Haptics.selectionAsync(); setHaulFilter(item.key as HaulFilterKey); }}
-                  >
-                    <Text
-                      style={[
-                        styles.chipText,
-                        haulFilter === item.key && styles.chipTextActive,
-                      ]}
-                    >
-                      {item.label}
-                    </Text>
-                  </Pressable>
-                )}
-              />
               <Pressable
                 style={({ pressed }) => [styles.newHaulBtn, pressed && { opacity: 0.8 }]}
                 onPress={handleNewHaul}
