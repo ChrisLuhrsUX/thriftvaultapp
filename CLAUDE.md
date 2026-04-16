@@ -197,6 +197,19 @@ interface ScanScenario {
 
 ## Session Notes
 
+### Session — 2026-04-16
+- **iOS minimum = 15.1** (Expo 54 + `expo-camera` + `expo-image-picker` floor). Covers iPhone XS→16 Pro Max; drops 6s/7/8/X/SE1. `supportsTablet: false`, portrait-locked. No config change needed.
+- **Responsive fix** (`haul-detail.tsx:72`) — cached `Dimensions.get('window').width` → `useWindowDimensions()`. Latent bug only (app is portrait-locked), but now consistent with rest of codebase.
+- **Slide-down modal animation — three fixes** for "slide → snap back → dismiss" double-animation:
+  - **PaywallModal** — was running `animationType="slide"` on top of a manual `translateY` animation, and the dismiss callback reset `translateY.setValue(0)` before `onClose()`. Fix: `animationType` → `none` on mobile; `translateY` starts off-screen (700); `useEffect` on `visible=true` springs 700→0; new `dismiss()` helper animates to 700 then closes (no reset-to-0 mid-flight); all close paths route through `dismiss()`.
+  - **Scan history sheet** (`detail.tsx`) — (1) dismiss animated to 600 then `setValue(500)`, causing a 100pt snap; unified all three values (initial/entrance/dismiss) to 700. (2) Drag handle was unresponsive because the outer `<Pressable onPress={(e) => e.stopPropagation()}>` claimed the responder first. Fix: `onStartShouldSetPanResponder: true` + capture variants + `onPanResponderTerminationRequest: () => false`.
+  - **Fullscreen image overlay** (`detail.tsx`) — same snap-back (`toValue: 400` then `setValue(0)`). Fix: bumped `toValue` to 900, dropped the reset, added `setValue(0)` at open site (`detail.tsx:816`) so next open starts centered.
+- **Item detail IA** — briefly moved Status under Category, then reverted. Three reasons: dedicated "Mark as Sold" button means Status chips mostly toggle Listed (less frequent than assumed); creation flow is top-down linear; Status + Platform belong together (Listed only makes sense on a Platform). Order unchanged: Date → Category → Store → Platform → Status → Notes.
+- **Anti-counterfeit resale mitigation (pre-launch CYA).** Threat model: scammers scanning fakes in ThriftVault to legitimize their counterfeit listings to third-party buyers (not the scanner being victimized). Existing `authFlags` / legal disclaimer cover scanner-side liability but not app-policy good-faith for App Store review. Added two cheap mitigations:
+  - **"Reselling this?" disclaimer** at the top of the "Verify authenticity" expanded block on both scan card (`scan.tsx`) and item detail AI Insights (`detail.tsx`). Triggered by existing `authFlags.length > 0` — no schema change. Terra color, DMSans 600 SemiBold lead.
+  - **TOS Section 4 clause** (`assets/terms.html`) prohibiting use of ThriftVault output to list/price counterfeits; reserves termination + brand-holder takedown rights. **Requires GH Pages push** to go live.
+  - Deferred to post-launch: refusing luxury brand naming on low confidence, hard luxury price cap, screenshot watermarking.
+
 ### Session — 2026-04-15
 - **Scan card section reorder** — both `scan.tsx` (scan result) and `detail.tsx` (AI Insights) now render in the order: Verify authenticity → Scan history → Upcycle ideas → Delete scan (scan.tsx has no history/delete). Previously upcycle came before auth.
 - **Gemini 2.0 Flash fallback retired** (`services/gemini.ts`) — 2.0 Flash now returns `404: no longer available to new users`. Swapped `GEMINI_MODEL_FALLBACK` to `gemini-2.5-flash-lite` (still a different quota pool from `gemini-2.5-flash`, image-capable). Updated inline comment and the error string label (`Gemini 2.0:` → `Gemini 2.5 Lite:`).
