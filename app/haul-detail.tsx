@@ -3,7 +3,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
-  Dimensions,
   Image,
   Keyboard,
   Modal,
@@ -13,6 +12,7 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -69,7 +69,7 @@ export default function HaulDetailScreen() {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   const [storeModalVisible, setStoreModalVisible] = useState(false);
   const [bulkStoreText, setBulkStoreText] = useState('');
-  const screenWidth = Dimensions.get('window').width;
+  const { width: screenWidth } = useWindowDimensions();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const gridPad = theme.spacing.xl;
   const gridGap = theme.spacing.sm;

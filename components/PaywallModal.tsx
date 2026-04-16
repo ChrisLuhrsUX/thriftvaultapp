@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -19,6 +19,8 @@ import { TRIAL_DURATION_DAYS, PLANS, DEFAULT_PLAN_ID, type PlanOption } from '@/
 import { usePurchases } from '@/hooks/usePurchases';
 import { useResponsive } from '@/hooks/useResponsive';
 import type { Theme } from '@/theme';
+
+const SHEET_OFFSCREEN = 700;
 
 const FEATURES = [
   'Unlimited AI scans & price estimates',
@@ -42,35 +44,59 @@ export function PaywallModal({ visible, onClose }: PaywallModalProps) {
   const [purchasing, setPurchasing] = useState(false);
   const styles = useMemo(() => createStyles(theme, isDesktop), [theme, isDesktop]);
 
-  const translateY = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(SHEET_OFFSCREEN)).current;
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, g) => g.dy > 2,
-      onPanResponderMove: (_, g) => {
-        if (g.dy > 0) translateY.setValue(g.dy);
-      },
-      onPanResponderRelease: (_, g) => {
-        if (g.dy > 80 || g.vy > 0.5) {
-          Animated.timing(translateY, {
-            toValue: 600,
-            duration: 200,
-            useNativeDriver: true,
-          }).start(() => {
-            translateY.setValue(0);
-            onClose();
-          });
-        } else {
-          Animated.spring(translateY, {
-            toValue: 0,
-            useNativeDriver: true,
-            bounciness: 4,
-          }).start();
-        }
-      },
-    })
-  ).current;
+  useEffect(() => {
+    if (isDesktop) return;
+    if (visible) {
+      translateY.setValue(SHEET_OFFSCREEN);
+      Animated.spring(translateY, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 55,
+        friction: 11,
+      }).start();
+    }
+  }, [visible, isDesktop, translateY]);
+
+  const dismiss = useCallback(() => {
+    if (isDesktop) {
+      onClose();
+      return;
+    }
+    Animated.timing(translateY, {
+      toValue: SHEET_OFFSCREEN,
+      duration: 240,
+      useNativeDriver: true,
+    }).start(() => {
+      translateY.setValue(SHEET_OFFSCREEN);
+      onClose();
+    });
+  }, [isDesktop, onClose, translateY]);
+
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: (_, g) => g.dy > 2,
+        onPanResponderMove: (_, g) => {
+          if (g.dy > 0) translateY.setValue(g.dy);
+        },
+        onPanResponderRelease: (_, g) => {
+          if (g.dy > 80 || g.vy > 0.5) {
+            dismiss();
+          } else {
+            Animated.spring(translateY, {
+              toValue: 0,
+              useNativeDriver: true,
+              tension: 80,
+              friction: 12,
+            }).start();
+          }
+        },
+      }),
+    [dismiss, translateY]
+  );
 
   const activePlan = PLANS.find((p) => p.id === selectedPlan) ?? PLANS[0];
 
@@ -80,7 +106,7 @@ export function PaywallModal({ visible, onClose }: PaywallModalProps) {
     const result = await subscribe(activePlan.id);
     setPurchasing(false);
     if (result.success) {
-      onClose();
+      dismiss();
       showToast(`Welcome to ThriftVault Pro!`);
     } else if (result.error) {
       showToast(result.error);
@@ -91,11 +117,11 @@ export function PaywallModal({ visible, onClose }: PaywallModalProps) {
     <Modal
       visible={visible}
       transparent
-      animationType={isDesktop ? 'fade' : 'slide'}
-      onRequestClose={onClose}
+      animationType={isDesktop ? 'fade' : 'none'}
+      onRequestClose={dismiss}
     >
       <View style={styles.overlay} pointerEvents="box-none">
-        <Pressable style={styles.backdrop} onPress={onClose} />
+        <Pressable style={styles.backdrop} onPress={dismiss} />
         <Animated.View
           style={[
             styles.sheet,
@@ -106,7 +132,7 @@ export function PaywallModal({ visible, onClose }: PaywallModalProps) {
           {...(!isDesktop ? panResponder.panHandlers : {})}
         >
           {isDesktop ? (
-            <Pressable style={styles.closeBtn} onPress={onClose} accessibilityLabel="Close">
+            <Pressable style={styles.closeBtn} onPress={dismiss} accessibilityLabel="Close">
               <AppIcon name="close" size={20} color={theme.colors.mauve} />
             </Pressable>
           ) : (

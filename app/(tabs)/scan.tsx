@@ -259,6 +259,10 @@ function ScanResultCard({
           </Pressable>
           {authExpanded && (
             <View style={[styles.authRows, styles.authRowsExpanded]}>
+              <Text style={styles.authResellerWarning}>
+                <Text style={styles.authResellerBold}>Reselling this? </Text>
+                Get it professionally authenticated first. These estimates are for personal reference only — not an authenticity guarantee.
+              </Text>
               {scenario.authFlags.map((flag, i) => (
                 <View key={i} style={styles.authRow}>
                   <View style={styles.authDot} />
@@ -532,6 +536,14 @@ function createScanStyles(theme: Theme, formMaxWidth?: number) {
       color: theme.colors.charcoal,
       flex: 1,
       lineHeight: 20,
+    },
+    authResellerWarning: {
+      ...theme.typography.caption,
+      color: theme.colors.terra,
+      lineHeight: 18,
+    },
+    authResellerBold: {
+      fontFamily: 'DMSans_600SemiBold',
     },
     resultActions: {
       marginTop: theme.spacing.lg,

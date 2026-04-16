@@ -155,7 +155,7 @@ export default function DetailScreen() {
   }, []);
 
   const imageFullScreenTranslateY = useRef(new Animated.Value(0)).current;
-  const historySheetTranslateY = useRef(new Animated.Value(500)).current;
+  const historySheetTranslateY = useRef(new Animated.Value(700)).current;
   const galleryScrollRef = useRef<ScrollView>(null);
 
   const handleSaveImageToCameraRoll = useCallback(async () => {
@@ -186,19 +186,19 @@ export default function DetailScreen() {
 
   const dismissHistorySheet = useCallback(() => {
     Animated.timing(historySheetTranslateY, {
-      toValue: 600,
+      toValue: 700,
       duration: 260,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start(() => {
-      historySheetTranslateY.setValue(500);
+      historySheetTranslateY.setValue(700);
       setScanHistoryVisible(false);
     });
   }, [historySheetTranslateY]);
 
   useEffect(() => {
     if (scanHistoryVisible) {
-      historySheetTranslateY.setValue(500);
+      historySheetTranslateY.setValue(700);
       Animated.spring(historySheetTranslateY, {
         toValue: 0,
         useNativeDriver: true,
@@ -211,8 +211,11 @@ export default function DetailScreen() {
   const historySheetPanResponder = useMemo(
     () =>
       PanResponder.create({
-        onStartShouldSetPanResponder: () => false,
-        onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dy) > Math.abs(g.dx) && g.dy > 4,
+        onStartShouldSetPanResponder: () => true,
+        onStartShouldSetPanResponderCapture: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponderCapture: () => true,
+        onPanResponderTerminationRequest: () => false,
         onPanResponderMove: (_, g) => {
           if (g.dy > 0) historySheetTranslateY.setValue(g.dy);
         },
@@ -243,12 +246,11 @@ export default function DetailScreen() {
         onPanResponderRelease: (_, g) => {
           if (g.dy > 80 || g.vy > 0.5) {
             Animated.timing(imageFullScreenTranslateY, {
-              toValue: 400,
+              toValue: 900,
               duration: 280,
               easing: Easing.out(Easing.cubic),
               useNativeDriver: true,
             }).start(() => {
-              imageFullScreenTranslateY.setValue(0);
               setImageFullScreenVisible(false);
             });
           } else {
@@ -810,7 +812,7 @@ export default function DetailScreen() {
                     <View key={`${uri}-${i}`} style={[styles.galleryPage, { width: galleryWidth, height: galleryWidth }]}>
                       <Pressable
                         style={styles.imgPressable}
-                        onPress={() => { setPhotoIndex(i); setImageFullScreenVisible(true); }}
+                        onPress={() => { setPhotoIndex(i); imageFullScreenTranslateY.setValue(0); setImageFullScreenVisible(true); }}
                         accessibilityLabel="View image full screen"
                       >
                         <Image source={{ uri }} style={styles.img} resizeMode="cover" />
@@ -1110,6 +1112,10 @@ export default function DetailScreen() {
                       </Pressable>
                       {authExpanded && (
                         <View style={styles.insightsAuthRows}>
+                          <Text style={styles.insightsAuthResellerWarning}>
+                            <Text style={styles.insightsAuthResellerBold}>Reselling this? </Text>
+                            Get it professionally authenticated first. These estimates are for personal reference only — not an authenticity guarantee.
+                          </Text>
                           {activeSnapshot.authFlags.map((flag, i) => (
                             <View key={i} style={styles.insightsAuthRow}>
                               <View style={styles.insightsAuthDot} />
@@ -2478,6 +2484,14 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     color: theme.colors.charcoal,
     flex: 1,
     lineHeight: 20,
+  },
+  insightsAuthResellerWarning: {
+    ...theme.typography.caption,
+    color: theme.colors.terra,
+    lineHeight: 18,
+  },
+  insightsAuthResellerBold: {
+    fontFamily: 'DMSans_600SemiBold',
   },
   insightsActions: {
     marginTop: theme.spacing.sm,
