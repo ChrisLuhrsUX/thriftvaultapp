@@ -2,13 +2,14 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { ITEM_CATEGORIES, type ItemCategory, type ScanScenario } from '@/types/inventory';
 
 const GEMINI_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY ?? '';
-const OPENAI_KEY = process.env.EXPO_PUBLIC_OPENAI_API_KEY ?? '';
+const ANTHROPIC_KEY = process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY ?? '';
 const GEMINI_MODEL = 'gemini-2.5-flash';
 const GEMINI_MODEL_FALLBACK = 'gemini-2.5-flash-lite';
 const geminiUrl = (model: string) => `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`;
 const GEMINI_URL = geminiUrl(GEMINI_MODEL);
 const GEMINI_URL_FALLBACK = geminiUrl(GEMINI_MODEL_FALLBACK);
-const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
+const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
+const ANTHROPIC_MODEL = 'claude-sonnet-4-5';
 
 const VALID_CATEGORIES: ItemCategory[] = ITEM_CATEGORIES;
 
@@ -265,37 +266,45 @@ async function callGemini(url: string, images: Array<{ base64: string; mimeType:
   return parseJsonFromModelText(text);
 }
 
-async function callOpenAI(images: Array<{ base64: string; mimeType: string }>, promptSuffix = '', signal?: AbortSignal, promptOverride?: string, temperature = 0.1): Promise<Record<string, unknown>> {
-  const res = await fetch(OPENAI_URL, {
+async function callAnthropic(images: Array<{ base64: string; mimeType: string }>, promptSuffix = '', signal?: AbortSignal, promptOverride?: string, temperature = 0.1): Promise<Record<string, unknown>> {
+  const res = await fetch(ANTHROPIC_URL, {
     method: 'POST',
     signal,
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${OPENAI_KEY}`,
+      'x-api-key': ANTHROPIC_KEY,
+      'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: ANTHROPIC_MODEL,
+      max_tokens: 2048,
+      temperature,
       messages: [{
         role: 'user',
         content: [
+          ...images.map(img => ({
+            type: 'image',
+            source: { type: 'base64', media_type: img.mimeType, data: img.base64 },
+          })),
           { type: 'text', text: promptOverride ?? (PROMPT + promptSuffix) },
-          ...images.map(img => ({ type: 'image_url', image_url: { url: `data:${img.mimeType};base64,${img.base64}`, detail: 'low' } })),
         ],
       }],
-      temperature,
-      max_tokens: 1024,
-      response_format: { type: 'json_object' },
     }),
   });
 
   if (!res.ok) {
     const errBody = await res.text();
-    throw new Error(`OpenAI ${res.status}: ${errBody.slice(0, 200)}`);
+    const errMsgStr = `Anthropic ${res.status}: ${errBody.slice(0, 200)}`;
+    const err = new Error(errMsgStr);
+    if (res.status === 429 || res.status === 529 || res.status === 503 || /overloaded/i.test(errBody)) {
+      (err as Error & { overload?: boolean }).overload = true;
+    }
+    throw err;
   }
 
-  const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-  const text = data.choices?.[0]?.message?.content ?? '';
-  if (!text) throw new Error('Empty OpenAI response');
+  const data = (await res.json()) as { content?: { type?: string; text?: string }[] };
+  const text = data.content?.find((c) => c.type === 'text')?.text ?? '';
+  if (!text) throw new Error('Empty Anthropic response');
   return parseJsonFromModelText(text);
 }
 
@@ -308,8 +317,9 @@ function errMsg(err: unknown): string {
 
 /**
  * Try Gemini 2.5 Flash first, fall back to 2.5 Flash Lite (different quota pool),
- * then OpenAI if configured. Non-overload errors skip retries and fail over immediately.
- * If all providers fail, throws an error containing all underlying causes.
+ * then Claude Sonnet 4.5 if configured. Non-overload errors skip retries and
+ * fail over immediately. If all providers fail, throws an error containing all
+ * underlying causes.
  */
 async function callWithFallback(
   images: ImagePart[],
@@ -318,11 +328,11 @@ async function callWithFallback(
   promptOverride?: string,
   temperature = 0.1,
 ): Promise<Record<string, unknown>> {
-  if (!GEMINI_KEY && !OPENAI_KEY) throw new Error('API key not configured');
+  if (!GEMINI_KEY && !ANTHROPIC_KEY) throw new Error('API key not configured');
 
   let geminiError: unknown = null;
   let geminiFallbackError: unknown = null;
-  let openaiError: unknown = null;
+  let anthropicError: unknown = null;
 
   if (GEMINI_KEY) {
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
@@ -348,19 +358,19 @@ async function callWithFallback(
     }
   }
 
-  if (OPENAI_KEY) {
+  if (ANTHROPIC_KEY) {
     try {
-      return await callOpenAI(images, promptSuffix, signal, promptOverride, temperature);
+      return await callAnthropic(images, promptSuffix, signal, promptOverride, temperature);
     } catch (err) {
       if ((err as Error)?.name === 'AbortError') throw err;
-      openaiError = err;
+      anthropicError = err;
     }
   }
 
   const geminiPart = GEMINI_KEY ? `Gemini 2.5: ${errMsg(geminiError)}` : 'Gemini: key not configured';
   const geminiFallbackPart = GEMINI_KEY ? `Gemini 2.5 Lite: ${errMsg(geminiFallbackError)}` : '';
-  const openaiPart = OPENAI_KEY ? `OpenAI: ${errMsg(openaiError)}` : 'OpenAI: key not configured';
-  const parts = [geminiPart, geminiFallbackPart, openaiPart].filter(Boolean).join(' | ');
+  const anthropicPart = ANTHROPIC_KEY ? `Claude Sonnet 4.5: ${errMsg(anthropicError)}` : 'Claude: key not configured';
+  const parts = [geminiPart, geminiFallbackPart, anthropicPart].filter(Boolean).join(' | ');
   throw new Error(`All scan providers failed — ${parts}`);
 }
 
