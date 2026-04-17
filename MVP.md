@@ -9,7 +9,7 @@
 
 ### RevenueCat — remaining sequence
 
-1. **Paid Apps agreement** — App Store Connect → Business → bank + tax info. Real bottleneck (1–2 days to process). Do this first; nothing else works without it.
+1. ~~**Paid Apps agreement**~~ ✓ — App Store Connect → Business → bank + tax info. Real bottleneck (1–2 days to process). Do this first; nothing else works without it.
 2. **Create 3 subscription products** in App Store Connect under a new Subscription Group ("ThriftVault Pro"). Use IDs `monthly` / `season` / `annual` to match `constants/monetization.ts` (or rename `monetization.ts` to match `tv_*` — just pick one and stay consistent).
 3. **RevenueCat dashboard** — new project, add Apple App Store app, paste App-Specific Shared Secret (App Store Connect → App Info → Generate). Grab the public API key.
 4. **RevenueCat entitlement + offering** — entitlement named `pro`, offering named `default`, add all 3 products as packages.

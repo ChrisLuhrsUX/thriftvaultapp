@@ -197,6 +197,12 @@ interface ScanScenario {
 
 ## Session Notes
 
+### Session — 2026-04-17
+- **Background scan fix** (`scan.tsx`) — removed `abortControllerRef.current?.abort()` from the AppState background handler. The abort was killing scans that were completing successfully, causing "thumbnails flash then disappear" race condition. Fix: keep only `pendingRetryRef.current = true` on background; add `pendingRetryRef.current = false` before `setResult(geminiResult)` in both `handleScanStaged` and `handleCapturePhoto` success paths. Scan now completes naturally; result is shown on return if Gemini responded while backgrounded; retry fires only if scan was still in-flight.
+- **Background scan iOS limitation** — iOS suspends active network requests after a brief grace period when app backgrounds. Scan card will appear shortly after return (not before) if Gemini didn't respond within the grace period. Requires iOS Background Fetch entitlement to fix further — deferred post-launch.
+- **LLC docs relocated** — `C:\Users\Chris\Documents\ThriftVault_LLC\` → `C:\Users\Chris\Downloads\ThriftVault\ThriftVault_LLC\`
+- **D-U-N-S submitted** — Form submitted to Dun & Bradstreet for ThriftVault LLC (~2026-04-17). ~1–2 week turnaround. Required to enroll Apple Developer Organization so App Store seller = "ThriftVault LLC." Cannot convert individual → org; new $99 enrollment needed once D-U-N-S arrives.
+
 ### Session — 2026-04-16
 - **iOS minimum = 15.1** (Expo 54 + `expo-camera` + `expo-image-picker` floor). Covers iPhone XS→16 Pro Max; drops 6s/7/8/X/SE1. `supportsTablet: false`, portrait-locked. No config change needed.
 - **Responsive fix** (`haul-detail.tsx:72`) — cached `Dimensions.get('window').width` → `useWindowDimensions()`. Latent bug only (app is portrait-locked), but now consistent with rest of codebase.

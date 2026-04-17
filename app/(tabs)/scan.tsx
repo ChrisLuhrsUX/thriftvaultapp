@@ -22,6 +22,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  AppState,
   FlatList,
   Image,
   ImageBackground,
@@ -688,6 +689,7 @@ export default function ScanScreen() {
   const [cameraFacing, setCameraFacing] = useState<'back' | 'front'>('back');
   const [cameraReady, setCameraReady] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [scanStatus, setScanStatus] = useState<string | null>(null);
   const [result, setResult] = useState<ScanScenario | null>(null);
   const [stagedPhotos, setStagedPhotos] = useState<string[]>([]);
   const [placeholderImageUri, setPlaceholderImageUri] = useState<string | null>(null);
@@ -705,6 +707,8 @@ export default function ScanScreen() {
   const cameraRef = useRef<{ takePictureAsync: (opts?: { quality?: number }) => Promise<{ uri: string }> } | null>(null);
   const scanningRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const appStateRef = useRef(AppState.currentState);
+  const pendingRetryRef = useRef(false);
   const { isTablet, isDesktop, hPad, headerHPad, formMaxWidth } = useResponsive();
   const scanStyles = useMemo(() => createScanStyles(theme, formMaxWidth), [theme, formMaxWidth]);
   const styles = useMemo(() => createStyles(theme, hPad, headerHPad, isTablet, formMaxWidth), [theme, hPad, headerHPad, isTablet, formMaxWidth]);
@@ -782,7 +786,8 @@ export default function ScanScreen() {
     setCameraActive(false);
     setCameraReady(false);
     try {
-      const geminiResult = await scanWithGemini(stagedPhotos, controller.signal);
+      const geminiResult = await scanWithGemini(stagedPhotos, controller.signal, setScanStatus);
+      pendingRetryRef.current = false; // scan succeeded — don't retry on foreground
       setResult(geminiResult);
     } catch (error) {
       if ((error as Error)?.name === 'AbortError') return;
@@ -796,9 +801,35 @@ export default function ScanScreen() {
     } finally {
       scanningRef.current = false;
       setScanning(false);
+      setScanStatus(null);
       abortControllerRef.current = null;
     }
   }, [stagedPhotos, showToast]);
+
+  // Keep a stable ref so the AppState listener always calls the latest handleScanStaged
+  // without needing it in the effect's dependency array.
+  const handleScanStagedRef = useRef(handleScanStaged);
+  handleScanStagedRef.current = handleScanStaged;
+
+  // Auto-retry scan when app returns to foreground after being backgrounded mid-scan.
+  // Effect runs once on mount — refs keep everything up to date without re-subscribing.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next) => {
+      const prev = appStateRef.current;
+      appStateRef.current = next;
+      if (next === 'background' && scanningRef.current) {
+        // Mark for retry — if the scan doesn't complete before we foreground, retry then.
+        // Do NOT abort: iOS allows active fetches to finish in background, so aborting
+        // would kill a scan that's about to succeed.
+        pendingRetryRef.current = true;
+      }
+      if (prev !== 'active' && next === 'active' && pendingRetryRef.current) {
+        pendingRetryRef.current = false;
+        handleScanStagedRef.current();
+      }
+    });
+    return () => sub.remove();
+  }, []);
 
   const handleCapturePhoto = useCallback(async () => {
     if (!__DEV__ && !isPro) { setPaywallVisible(true); return; }
@@ -819,7 +850,8 @@ export default function ScanScreen() {
       setPromptWrongScanDismissed(false);
       setScanning(true);
       try {
-        const geminiResult = await scanWithGemini([photo.uri], controller.signal);
+        const geminiResult = await scanWithGemini([photo.uri], controller.signal, setScanStatus);
+        pendingRetryRef.current = false; // scan succeeded — don't retry on foreground
         setResult(geminiResult);
       } catch (error) {
         if ((error as Error)?.name === 'AbortError') return;
@@ -832,6 +864,7 @@ export default function ScanScreen() {
       } finally {
         scanningRef.current = false;
         setScanning(false);
+        setScanStatus(null);
         abortControllerRef.current = null;
       }
     } catch {
@@ -1105,7 +1138,7 @@ export default function ScanScreen() {
 
   const handleSkip = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    showToast('Skipped! Keep hunting');
+    showToast('Skipped. Keep hunting!');
     clearResultAndPhoto();
   }, [showToast, clearResultAndPhoto]);
 
@@ -1165,7 +1198,7 @@ export default function ScanScreen() {
     try {
       const newUpcycle = await refreshUpcycleIdeas(
         photoUri,
-        result ? { name: result.name, category: result.category } : undefined
+        result ? { name: result.name, category: result.category, sub: result.sub } : undefined
       );
       setResult((prev) => prev ? { ...prev, upcycle: newUpcycle } : null);
     } catch {
@@ -1283,7 +1316,7 @@ export default function ScanScreen() {
             </>
           ) : (
             <Pressable
-              style={({ pressed }) => [styles.cameraBgWrap, pressed && styles.cameraPressed]}
+              style={({ pressed }) => [styles.cameraBgWrap, scanStatus && styles.cameraBgWrapHandmade, pressed && styles.cameraPressed]}
               onPress={handleTapToScan}
               disabled={scanning || !!result || stagedPhotos.length > 0}
             >
@@ -1299,6 +1332,12 @@ export default function ScanScreen() {
                     <View style={styles.searchingWrap}>
                       <ActivityIndicator size="large" color={theme.colors.white} />
                       <Text style={styles.searchingText}>Searching</Text>
+                      {scanStatus && (
+                        <View style={styles.scanStatusPill}>
+                          <AppIcon name="brush-outline" size={14} color={theme.colors.terra} />
+                          <Text style={styles.scanStatusPillText}>{scanStatus}</Text>
+                        </View>
+                      )}
                       <BlurView intensity={40} tint="dark" style={styles.cancelPill}>
                         <Pressable style={({ pressed }) => [styles.clearBtn, pressed && styles.cameraPressed]} onPress={cancelScan} hitSlop={8}>
                           <Text style={styles.clearBtnText}>Cancel</Text>
@@ -1343,6 +1382,12 @@ export default function ScanScreen() {
                     <View style={styles.searchingWrap}>
                       <ActivityIndicator size="large" color={theme.colors.white} />
                       <Text style={styles.searchingText}>Searching</Text>
+                      {scanStatus && (
+                        <View style={styles.scanStatusPill}>
+                          <AppIcon name="brush-outline" size={14} color={theme.colors.terra} />
+                          <Text style={styles.scanStatusPillText}>{scanStatus}</Text>
+                        </View>
+                      )}
                       <BlurView intensity={40} tint="dark" style={styles.cancelPill}>
                         <Pressable style={({ pressed }) => [styles.clearBtn, pressed && styles.cameraPressed]} onPress={cancelScan} hitSlop={8}>
                           <Text style={styles.clearBtnText}>Cancel</Text>
@@ -1750,6 +1795,12 @@ function createStyles(
   cameraBgWrap: {
     flex: 1,
   },
+  cameraBgWrapHandmade: {
+    borderWidth: 2,
+    borderColor: theme.colors.terra,
+    borderRadius: theme.radius.md,
+    overflow: 'hidden',
+  },
   cameraBg: {
     flex: 1,
     justifyContent: 'center',
@@ -1885,6 +1936,21 @@ function createStyles(
     ...theme.typography.body,
     fontWeight: '600',
     color: theme.colors.overlayWhiteStrong,
+  },
+  scanStatusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.cream,
+  },
+  scanStatusPillText: {
+    ...theme.typography.caption,
+    color: theme.colors.terra,
+    fontWeight: '600',
   },
   cameraPrompt: {
     position: 'absolute',

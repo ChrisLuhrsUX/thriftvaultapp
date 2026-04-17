@@ -115,7 +115,7 @@ export default function DetailScreen() {
   const [paidStr, setPaidStr] = useState('');
   const [resaleStr, setResaleStr] = useState('');
   const [soldStr, setSoldStr] = useState('');
-  const [scanInsightsExpanded, setScanInsightsExpanded] = useState(false);
+  const [scanInsightsExpanded, setScanInsightsExpanded] = useState(true);
   const [upcycleExpanded, setUpcycleExpanded] = useState(false);
   const [authExpanded, setAuthExpanded] = useState(false);
   const [customDismissed, setCustomDismissed] = useState(false);
@@ -501,7 +501,7 @@ export default function DetailScreen() {
     try {
       const newUpcycle = await refreshUpcycleIdeas(
         photoUri,
-        { name: item.name, category: item.cat }
+        { name: item.name, category: item.cat, sub: snapshot?.sub ?? item.name }
       );
       const updatedSnapshots = item.scanSnapshots?.map((s) =>
         s.id === snapshot?.id ? { ...s, upcycle: newUpcycle } : s

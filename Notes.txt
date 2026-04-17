@@ -3,3 +3,10 @@ npx expo start
 
 github
 npm run backup
+
+-
+
+https://developer.apple.com/enroll/duns-lookup/#!/search
+
+https://www.dnb.com/en-us/smb/duns/get-a-duns.html#gadintro
+

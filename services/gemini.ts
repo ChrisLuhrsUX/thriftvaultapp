@@ -79,41 +79,49 @@ Guidelines:
 - For upcycled or handmade items: the base garment's brand does NOT transfer to the upcycled piece unless the base brand's label is still visibly intact on the garment. Describe the upcycle itself, not a guessed source brand.
 - confidence = "low" if brand is obscure/niche or resale comps are sparse
 - PRICING — mentally benchmark against comparable recently-sold listings on Depop, Poshmark, eBay, and Etsy before setting any price. Do not default to the low end of a range — price for what the item actually sells for in current market.
-  suggestedPaid: typical thrift store shelf price ($3–$30) or materials cost if isCustom ($10–$60). For jewelry: thrift stores often underprice precious metals/stones — if gold, gemstones, or designer marks are visible, suggestedPaid can be $5–$100+.
-  suggestedResaleLow: realistic sold-price floor. Use these brand-tier benchmarks:
-    Fast fashion (Shein, H&M, Zara, Forever 21): $10–$20
-    Mall brands (Gap, J.Crew, Banana Republic, Abercrombie, Madewell): $18–$40
-    Athletic/streetwear (Nike, Adidas, Carhartt, Champion, Stussy, New Balance): $25–$65
-    Contemporary (Free People, Anthropologie, Reformation, Patagonia, Aritzia): $35–$90
-    Designer (Coach, Kate Spade, Marc Jacobs, Tory Burch, Vince): $45–$130
-    Luxury (Burberry, Gucci, Louis Vuitton, Chanel, Prada): $80–$500+
-    Mass-market denim (Levi's 501/550/514/Wedgie, Wrangler, Lee, Old Navy, Gap denim): $15–$35
-    Premium denim (7 For All Mankind, Citizens of Humanity, AG, Paige, Frame, Joe's — brand peaked ~2015, price conservatively): $25–$55
-    Authenticated Y2K premium denim (True Religion big-stitch, Diesel, Rock Revival, Miss Me — check stitching and hardware): $35–$90
-    Vintage Levi's Big E / 501XX / pre-1980s redline selvedge / vintage Wrangler Blue Bell: $60–$250+
-    Luxury denim (Acne Studios, Balenciaga, Gucci, Balmain, Saint Laurent, R13): $80–$400+
-    Unbranded or generic jeans: $12–$28
-    Vintage (20+ years, good condition): add 30–60% over what comparable modern items sell for
-    Unknown/unbranded: price by material quality, construction, and visual appeal — $10–$30
-    Costume/fashion jewelry (no precious metal or stones, unbranded): $5–$20
-    Sterling silver jewelry (925 stamp, with semi-precious stones — amethyst, turquoise, garnet, opal, citrine): $15–$60
-    Gold-filled or gold-plated jewelry (vermeil, GF stamp): $20–$65
-    Solid gold jewelry (10k/14k/18k/24k — price by karat and weight; heavier = higher): $40–$200+
-    Fine jewelry with diamonds (solitaire, halo, pavé — evaluate visible size, cut, setting quality): $80–$500+
-    Fine jewelry with precious gemstones (ruby, sapphire, emerald — evaluate color saturation, size, setting): $60–$400+
-    Platinum jewelry: add 30–50% over equivalent gold piece
-    Designer jewelry houses (Tiffany, Cartier, Van Cleef & Arpels, David Yurman, Bulgari, Harry Winston): $100–$2000+
-    Accessible designer jewelry (Pandora, Kendra Scott, Lagos, John Hardy, James Avery): $25–$120
-    Estate/antique jewelry (Art Deco, Victorian, Edwardian, signed vintage): add 40–80% over base material value
-    Celebrity-associated or trending designer collabs: add 20–50% trend premium
-    Gemstone/crystal-embellished clothing (Swarovski crystals, rhinestone detailing, beaded gowns, crystal appliqués, gem-studded denim): price using the garment's brand tier as base, then add 30–60% for embellishment quality and density. Intact, densely-set crystals on designer pieces command top premiums. Missing stones or loose settings reduce value.
-  Platform context: Depop runs higher for Y2K, vintage, trendy aesthetics, and unique pieces; Poshmark higher for workwear, contemporary brands, and NWT items; eBay for sportswear, collectibles, authenticated luxury, and fine jewelry (especially with GIA certs or brand boxes); Etsy for handmade, vintage 20yr+, cottagecore/artisan aesthetics, and estate jewelry.
-  Trend premiums (+20–40% to base): gorpcore/outdoor, quiet luxury, coquette, vintage collegiate, 90s minimalism, western/Americana, mesh/sheer, ballet/balletcore. Apply when the item clearly fits.
-  suggestedResaleHigh: best-case sold price, typically 40–60% above low. For hyped items (trending brand + trending aesthetic), can reach 2x low.
-  CONDITION ADJUSTMENT (applies to all items, handmade or factory): Reduce both suggestedResaleLow and suggestedResaleHigh by 30–50% for visible damage — prominent stains, non-decorative holes, heavy pilling, faded/washed-out color, stretched or warped necklines, broken zippers, missing buttons, loose stitching, scuffed/cracked/peeling leather, yellowed whites, broken or cloudy hardware, tarnish on jewelry. Reduce by 15–25% for moderate wear — minor pilling, slight fading, small spots, faint creases, light patina. NWT or like-new condition (crisp fabric, intact hardware, no visible wear, original tags) commands the top of the range. When condition is unclear from the photo, assume "used-good" and make no adjustment. Never apply condition bonuses above the tier ceiling.
-  If isCustom: estimate labor hours by technique complexity — simple mods/rework 1–2hr, intermediate crochet/knit/sewing 4–8hr, complex fiber art/tapestry/quilting 10–20hr. Rate: $15–$25/hr. suggestedResaleLow = materials + (hours × $15). suggestedResaleHigh = materials + (hours × $25) + 30% uniqueness premium. Trending handmade categories (crochet tops, visible mending on non-denim, handmade jewelry, polymer clay, tufting, punch needle) add another 20–30%. Benchmark against Etsy sold listings.
-  DENIM EXCEPTION — if category = "denim" and isCustom = true: IGNORE the labor-hour formula. The denim resale market prices the finished aesthetic, not hours of labor, and upcycled jeans is a saturated category on Depop/Etsy. Price by finished look: simple mods (crops, distress, basic patches, dye/bleach) $25–$55; moderate rework (panel swap, contrasting patchwork, decorative topstitching, studded) $45–$85; elaborate custom (intricate beading/embroidery, franken-construction, verifiable vintage Big E/501XX base, known creator) $70–$140. Hard ceiling: do not exceed $140 for upcycled denim unless the base is documented vintage Levi's Big E/501XX or the maker is a named established creator — in which case cap at $220. Do NOT apply the trending-handmade +20–30% boost to denim.
-  ALTERED FACTORY BASE EXCEPTION — if isCustom = true AND the item is a factory-made base (sneaker, hoodie, t-shirt, jacket, bag, cap) with hand-added surface decoration (paint, patches, studs, hand embroidery, hand-painted design, rhinestones) rather than from-scratch handmade construction: IGNORE the labor-hour formula. The shoe/apparel market prices the base × artist reputation, not paint hours, and custom-decorated factory bases are a saturated Depop/Etsy category. Price = base brand tier as starting point + 30–60% customization premium for detail and craftsmanship. Hard caps: painted or customized sneakers $120 unbranded / $180 branded (Nike, Adidas, Vans, Converse) / $260 for hyped silhouettes (Jordan 1/4, Dunk, Yeezy) — exceed only if the artist is a named established creator with documented resale history. Altered hoodies/tees/jackets: $60 unbranded / $90 branded / $130 premium streetwear or designer base. Custom bags/caps: $40 unbranded / $80 branded. Do NOT apply the trending-handmade +20–30% boost to altered factory bases. This exception does NOT apply to genuinely from-scratch handmade items (crochet, knit, sewn from raw fabric, fiber art) — those still use the labor-hour formula.
+  PRICING DECISION — check isCustom first, then follow exactly ONE path. Do not mix paths.
+
+  ► IF isCustom = true → HANDMADE PRICING (use this path; ignore all factory brand tiers below):
+    suggestedPaid: materials cost estimate ($10–$60)
+    suggestedResaleLow = materials + (labor hrs × $15). Estimate labor hours by technique: simple mods/rework 1–2hr, intermediate crochet/knit/sewing 4–8hr, complex fiber art/tapestry/quilting 10–20hr.
+    suggestedResaleHigh = materials + (labor hrs × $25) + 30% uniqueness premium. Trending handmade categories (crochet tops, visible mending on non-denim, handmade jewelry, polymer clay, tufting, punch needle) add another 20–30%. Benchmark against Etsy and Depop sold prices for similar handmade items — do not lowball handmade work.
+    DENIM EXCEPTION — if category = "denim": IGNORE the labor-hour formula. The denim resale market prices the finished aesthetic, not hours of labor, and upcycled jeans is a saturated category on Depop/Etsy. Price by finished look: simple mods (crops, distress, basic patches, dye/bleach) $25–$55; moderate rework (panel swap, contrasting patchwork, decorative topstitching, studded) $45–$85; elaborate custom (intricate beading/embroidery, franken-construction, verifiable vintage Big E/501XX base, known creator) $70–$140. Hard ceiling: do not exceed $140 for upcycled denim unless the base is documented vintage Levi's Big E/501XX or the maker is a named established creator — in which case cap at $220. Do NOT apply the trending-handmade +20–30% boost to denim.
+    ALTERED FACTORY BASE EXCEPTION — if the item is a factory-made base (sneaker, hoodie, t-shirt, jacket, bag, cap) with hand-added surface decoration (paint, patches, studs, hand embroidery, hand-painted design, rhinestones) rather than from-scratch handmade construction: IGNORE the labor-hour formula. Price = base brand tier as starting point + 30–60% customization premium for detail and craftsmanship. Hard caps: painted or customized sneakers $120 unbranded / $180 branded (Nike, Adidas, Vans, Converse) / $260 for hyped silhouettes (Jordan 1/4, Dunk, Yeezy) — exceed only if the artist is a named established creator with documented resale history. Altered hoodies/tees/jackets: $60 unbranded / $90 branded / $130 premium streetwear or designer base. Custom bags/caps: $40 unbranded / $80 branded. Do NOT apply the trending-handmade +20–30% boost to altered factory bases. This exception does NOT apply to genuinely from-scratch handmade items (crochet, knit, sewn from raw fabric, fiber art) — those still use the labor-hour formula.
+
+  ► IF isCustom = false → FACTORY ITEM PRICING (use this path; ignore handmade section above):
+    suggestedPaid: typical thrift store shelf price ($3–$30). For jewelry: thrift stores often underprice precious metals/stones — if gold, gemstones, or designer marks are visible, suggestedPaid can be $5–$100+.
+    suggestedResaleLow: realistic sold-price floor. Use these brand-tier benchmarks:
+      Fast fashion (Shein, H&M, Zara, Forever 21): $10–$20
+      Mall brands (Gap, J.Crew, Banana Republic, Abercrombie, Madewell): $18–$40
+      Athletic/streetwear (Nike, Adidas, Carhartt, Champion, Stussy, New Balance): $25–$65
+      Contemporary (Free People, Anthropologie, Reformation, Patagonia, Aritzia): $35–$90
+      Designer (Coach, Kate Spade, Marc Jacobs, Tory Burch, Vince): $45–$130
+      Luxury (Burberry, Gucci, Louis Vuitton, Chanel, Prada): $80–$500+
+      Mass-market denim (Levi's 501/550/514/Wedgie, Wrangler, Lee, Old Navy, Gap denim): $15–$35
+      Premium denim (7 For All Mankind, Citizens of Humanity, AG, Paige, Frame, Joe's — brand peaked ~2015, price conservatively): $25–$55
+      Authenticated Y2K premium denim (True Religion big-stitch, Diesel, Rock Revival, Miss Me — check stitching and hardware): $35–$90
+      Vintage Levi's Big E / 501XX / pre-1980s redline selvedge / vintage Wrangler Blue Bell: $60–$250+
+      Luxury denim (Acne Studios, Balenciaga, Gucci, Balmain, Saint Laurent, R13): $80–$400+
+      Unbranded or generic jeans: $12–$28
+      Vintage (20+ years, good condition): add 30–60% over what comparable modern items sell for
+      Unknown/unbranded: price by material quality, construction, and visual appeal — $10–$30
+      Costume/fashion jewelry (no precious metal or stones, unbranded): $5–$20
+      Sterling silver jewelry (925 stamp, with semi-precious stones — amethyst, turquoise, garnet, opal, citrine): $15–$60
+      Gold-filled or gold-plated jewelry (vermeil, GF stamp): $20–$65
+      Solid gold jewelry (10k/14k/18k/24k — price by karat and weight; heavier = higher): $40–$200+
+      Fine jewelry with diamonds (solitaire, halo, pavé — evaluate visible size, cut, setting quality): $80–$500+
+      Fine jewelry with precious gemstones (ruby, sapphire, emerald — evaluate color saturation, size, setting): $60–$400+
+      Platinum jewelry: add 30–50% over equivalent gold piece
+      Designer jewelry houses (Tiffany, Cartier, Van Cleef & Arpels, David Yurman, Bulgari, Harry Winston): $100–$2000+
+      Accessible designer jewelry (Pandora, Kendra Scott, Lagos, John Hardy, James Avery): $25–$120
+      Estate/antique jewelry (Art Deco, Victorian, Edwardian, signed vintage): add 40–80% over base material value
+      Celebrity-associated or trending designer collabs: add 20–50% trend premium
+      Gemstone/crystal-embellished clothing (Swarovski crystals, rhinestone detailing, beaded gowns, crystal appliqués, gem-studded denim): price using the garment's brand tier as base, then add 30–60% for embellishment quality and density. Intact, densely-set crystals on designer pieces command top premiums. Missing stones or loose settings reduce value.
+    Platform context: Depop runs higher for Y2K, vintage, trendy aesthetics, and unique pieces; Poshmark higher for workwear, contemporary brands, and NWT items; eBay for sportswear, collectibles, authenticated luxury, and fine jewelry (especially with GIA certs or brand boxes); Etsy for handmade, vintage 20yr+, cottagecore/artisan aesthetics, and estate jewelry.
+    Trend premiums (+20–40% to base): gorpcore/outdoor, quiet luxury, coquette, vintage collegiate, 90s minimalism, western/Americana, mesh/sheer, ballet/balletcore. Apply when the item clearly fits.
+    suggestedResaleHigh: best-case sold price, typically 40–60% above low. For hyped items (trending brand + trending aesthetic), can reach 2x low.
+
+  CONDITION ADJUSTMENT (applies to both handmade and factory): Reduce both suggestedResaleLow and suggestedResaleHigh by 30–50% for visible damage — prominent stains, non-decorative holes, heavy pilling, faded/washed-out color, stretched or warped necklines, broken zippers, missing buttons, loose stitching, scuffed/cracked/peeling leather, yellowed whites, broken or cloudy hardware, tarnish on jewelry. Reduce by 15–25% for moderate wear — minor pilling, slight fading, small spots, faint creases, light patina. NWT or like-new condition (crisp fabric, intact hardware, no visible wear, original tags) commands the top of the range. When condition is unclear from the photo, assume "used-good" and make no adjustment. Never apply condition bonuses above the tier ceiling.
 - ideas[].t = short, actionable tip (no price amounts)
 - If multiple items are visible, identify only the most prominent one
 - If the photo appears to be AI-generated, a screenshot, or not a real physical item, set name to "Not a real item" and confidence to "low"
@@ -134,7 +142,7 @@ Guidelines:
   "Test metal weight — genuine gold and platinum feel noticeably heavier than plated or costume metals"
   Empty array [] for: unbranded items, fast fashion, mall brands, handmade items, basic athletic wear, or anything where counterfeits are uncommon.
   Frame as verification tips, not accusations — the goal is to help the buyer verify before purchasing.
-- upcycle[]: exactly 3 short, specific ideas for transforming this item to increase resale value. Before writing, identify: (1) exact material and texture, (2) specific construction details like hardware, seams, collar, lining, silhouette, (3) the era or subculture it references, (4) what niche aesthetic or current resale trend it could tap into if transformed. Use those observations to write ideas that could ONLY apply to this exact item — not any other. Each idea names a specific technique AND the niche aesthetic it creates. BANNED regardless of item: bleach dye, tie-dye, cropping, patches, pins, buttons, generic embroidery — if you catch yourself writing one, think harder about what makes this item unique. Keep each under 15 words. Do not mention platforms or where to sell. Do not say "not applicable"`;
+- upcycle[]: exactly 3 short, specific ideas for transforming this item to increase resale value. Before writing, identify: (1) exact material and texture, (2) specific construction details like hardware, seams, collar, lining, silhouette, (3) the era or subculture it references, (4) what niche aesthetic or current resale trend it could tap into if transformed. Use those observations to write ideas that could ONLY apply to this exact item — not any other. Each idea names a specific technique AND the niche aesthetic it creates. BANNED techniques regardless of item: bleach dye, tie-dye, cropping, patches, pins, buttons, generic embroidery — if you catch yourself writing one, think harder about what makes this item unique. BANNED aesthetic defaults — do not use any of these unless the item is literally from that era/style and you can point to a specific visible detail that justifies it: cottagecore, floral, bohemian, coquette, fairy-tale, whimsical, romantic. If you catch yourself writing one of these aesthetics, delete it and think of something more specific to this item. Each of the 3 ideas must target a DIFFERENT aesthetic or subculture — never repeat the same aesthetic across the 3 ideas. Keep each under 15 words. Do not mention platforms or where to sell. Do not say "not applicable"`;
 
 function inferMimeType(uri: string): string {
   const u = uri.split('?')[0].toLowerCase();
@@ -374,7 +382,7 @@ async function callWithFallback(
   throw new Error(`All scan providers failed — ${parts}`);
 }
 
-async function runScanPipeline(photoUris: string[], promptSuffix = '', signal?: AbortSignal): Promise<ScanScenario> {
+async function runScanPipeline(photoUris: string[], promptSuffix = '', signal?: AbortSignal, onPhaseChange?: (status: string) => void): Promise<ScanScenario> {
   const resolved = await Promise.all(photoUris.map(uri => resolveReadableUri(uri)));
   const images = await Promise.all(
     resolved.map(async ({ uri, mimeType }) => ({
@@ -388,6 +396,16 @@ async function runScanPipeline(photoUris: string[], promptSuffix = '', signal?: 
     : '';
 
   const parsed = await callWithFallback(images, promptSuffix + multiPhotoSuffix, signal);
+
+  // If first scan explicitly detects handmade, auto-rescan with HANDMADE_SUFFIX for accurate
+  // pricing. The model correctly detects isCustom but hedges on price without explicit
+  // instructions. Only triggers on parsed.isCustom (model-confirmed) — not detectCustomFromText,
+  // which can false-positive on factory items with keywords like "patchwork print".
+  // !promptSuffix guards against infinite recursion.
+  if (parsed.isCustom === true && !promptSuffix && String(parsed.name || '') !== 'Not a real item') {
+    onPhaseChange?.('Checking handmade pricing…');
+    return runScanPipeline(photoUris, HANDMADE_SUFFIX, signal);
+  }
 
   const paid = Number(parsed.suggestedPaid) || 10;
   let resaleLow = Number(parsed.suggestedResaleLow) || 0;
@@ -435,14 +453,14 @@ async function runScanPipeline(photoUris: string[], promptSuffix = '', signal?: 
   };
 }
 
-export async function scanWithGemini(photoUris: string | string[], signal?: AbortSignal): Promise<ScanScenario> {
+export async function scanWithGemini(photoUris: string | string[], signal?: AbortSignal, onPhaseChange?: (status: string) => void): Promise<ScanScenario> {
   const uris = Array.isArray(photoUris) ? photoUris : [photoUris];
-  return runScanPipeline(uris, '', signal);
+  return runScanPipeline(uris, '', signal, onPhaseChange);
 }
 
-function buildUpcyclePrompt(itemName?: string, category?: string): string {
+function buildUpcyclePrompt(itemName?: string, category?: string, sub?: string): string {
   const itemContext = itemName
-    ? `\nThe item is: ${itemName}${category ? ` (category: ${category})` : ''}.`
+    ? `\nThe item is: ${itemName}${category ? ` (category: ${category})` : ''}${sub ? `. Description: ${sub}` : ''}.`
     : '';
 
   return `You are a fashion-forward thrift upcycler known for transformations that feel surprising, specific, and trend-aware. Look at this item and suggest 3 ways to transform it.
@@ -466,23 +484,24 @@ Return ONLY a valid JSON object — no markdown fences, no explanation:
 
 Rules:
 - Each idea names a specific technique AND the niche aesthetic or trend it creates
-- BANNED — never suggest regardless of item: bleach dye, tie-dye, cropping, patches, pins, buttons, generic embroidery. If you catch yourself writing one, delete it and think harder about what makes THIS item unique
+- BANNED techniques — never suggest regardless of item: bleach dye, tie-dye, cropping, patches, pins, buttons, generic embroidery. If you catch yourself writing one, delete it and think harder about what makes THIS item unique
+- BANNED aesthetic defaults — do not use any of these unless the item is literally from that era/style and you can point to a specific visible detail that justifies it: cottagecore, floral, bohemian, coquette, fairy-tale, whimsical, romantic. If you catch yourself writing one of these, delete it and think of something more specific to this item
+- Each of the 3 ideas must target a DIFFERENT aesthetic or subculture — never repeat the same aesthetic across the 3 ideas
 - Each idea must be something you could only suggest because of what you see in this specific photo
-- All 3 ideas use different techniques and target different aesthetics
 - Keep each under 15 words
 - Do not mention platforms or where to sell`;
 }
 
 export async function refreshUpcycleIdeas(
   photoUri: string,
-  itemContext?: { name?: string; category?: string },
+  itemContext?: { name?: string; category?: string; sub?: string },
   signal?: AbortSignal
 ): Promise<string[]> {
   const { uri: readUri, mimeType } = await resolveReadableUri(photoUri);
   const base64 = await FileSystem.readAsStringAsync(readUri, {
     encoding: FileSystem.EncodingType.Base64,
   });
-  const prompt = buildUpcyclePrompt(itemContext?.name, itemContext?.category);
+  const prompt = buildUpcyclePrompt(itemContext?.name, itemContext?.category, itemContext?.sub);
   const parsed = await callWithFallback([{ base64, mimeType }], '', signal, prompt, 0.9);
   return Array.isArray(parsed.upcycle)
     ? parsed.upcycle.slice(0, 3).map((u: unknown) => String(u || '')).filter(Boolean)
