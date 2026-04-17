@@ -154,7 +154,7 @@ function ScanResultCard({
         </View>
       </View>
       <Text style={styles.resultSub}>{scenario.sub}</Text>
-      <View style={styles.pillRow}>
+<View style={styles.pillRow}>
         {rescanningHandmade ? (
           <View style={styles.handmadePromptRow}>
             <ActivityIndicator size="small" color={theme.colors.terra} />
@@ -1138,7 +1138,7 @@ export default function ScanScreen() {
 
   const handleSkip = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    showToast('Skipped. Keep hunting!');
+    showToast('Skipped');
     clearResultAndPhoto();
   }, [showToast, clearResultAndPhoto]);
 
@@ -1161,7 +1161,7 @@ export default function ScanScreen() {
           suggestedResaleLow: newLow,
           suggestedResaleHigh: newHigh,
           suggestedResale: newResale,
-          profit: newLow > 0 ? `$${newLow}–$${newHigh}` : (prev?.profit ?? ''),
+          profit: newLow > 0 ? `${formatMoney(newLow)}–${formatMoney(newHigh)}` : (prev?.profit ?? ''),
         };
       });
     } catch (err) {
@@ -1945,7 +1945,7 @@ function createStyles(
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: theme.radius.full,
-    backgroundColor: theme.colors.cream,
+    backgroundColor: theme.colors.surface,
   },
   scanStatusPillText: {
     ...theme.typography.caption,

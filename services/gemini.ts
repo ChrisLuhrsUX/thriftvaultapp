@@ -1,5 +1,6 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import { ITEM_CATEGORIES, type ItemCategory, type ScanScenario } from '@/types/inventory';
+import { formatMoney } from '@/utils/currency';
 
 const GEMINI_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY ?? '';
 const ANTHROPIC_KEY = process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY ?? '';
@@ -79,9 +80,9 @@ Guidelines:
 - For upcycled or handmade items: the base garment's brand does NOT transfer to the upcycled piece unless the base brand's label is still visibly intact on the garment. Describe the upcycle itself, not a guessed source brand.
 - confidence = "low" if brand is obscure/niche or resale comps are sparse
 - PRICING — mentally benchmark against comparable recently-sold listings on Depop, Poshmark, eBay, and Etsy before setting any price. Do not default to the low end of a range — price for what the item actually sells for in current market.
-  PRICING DECISION — check isCustom first, then follow exactly ONE path. Do not mix paths.
+  PRICING DECISION — check isCustom first, then follow exactly ONE path. Do not mix paths. Your price output is final — there is no second pass to correct it, so commit fully to whichever path applies.
 
-  ► IF isCustom = true → HANDMADE PRICING (use this path; ignore all factory brand tiers below):
+  ► IF isCustom = true → HANDMADE PRICING (use this path; ignore all factory brand tiers below). Apply this formula with confidence — do not blend with or anchor to factory price ranges:
     suggestedPaid: materials cost estimate ($10–$60)
     suggestedResaleLow = materials + (labor hrs × $15). Estimate labor hours by technique: simple mods/rework 1–2hr, intermediate crochet/knit/sewing 4–8hr, complex fiber art/tapestry/quilting 10–20hr.
     suggestedResaleHigh = materials + (labor hrs × $25) + 30% uniqueness premium. Trending handmade categories (crochet tops, visible mending on non-denim, handmade jewelry, polymer clay, tufting, punch needle) add another 20–30%. Benchmark against Etsy and Depop sold prices for similar handmade items — do not lowball handmade work.
@@ -382,7 +383,7 @@ async function callWithFallback(
   throw new Error(`All scan providers failed — ${parts}`);
 }
 
-async function runScanPipeline(photoUris: string[], promptSuffix = '', signal?: AbortSignal, onPhaseChange?: (status: string) => void): Promise<ScanScenario> {
+async function runScanPipeline(photoUris: string[], promptSuffix = '', signal?: AbortSignal): Promise<ScanScenario> {
   const resolved = await Promise.all(photoUris.map(uri => resolveReadableUri(uri)));
   const images = await Promise.all(
     resolved.map(async ({ uri, mimeType }) => ({
@@ -397,16 +398,6 @@ async function runScanPipeline(photoUris: string[], promptSuffix = '', signal?: 
 
   const parsed = await callWithFallback(images, promptSuffix + multiPhotoSuffix, signal);
 
-  // If first scan explicitly detects handmade, auto-rescan with HANDMADE_SUFFIX for accurate
-  // pricing. The model correctly detects isCustom but hedges on price without explicit
-  // instructions. Only triggers on parsed.isCustom (model-confirmed) — not detectCustomFromText,
-  // which can false-positive on factory items with keywords like "patchwork print".
-  // !promptSuffix guards against infinite recursion.
-  if (parsed.isCustom === true && !promptSuffix && String(parsed.name || '') !== 'Not a real item') {
-    onPhaseChange?.('Checking handmade pricing…');
-    return runScanPipeline(photoUris, HANDMADE_SUFFIX, signal);
-  }
-
   const paid = Number(parsed.suggestedPaid) || 10;
   let resaleLow = Number(parsed.suggestedResaleLow) || 0;
   let resaleHigh = Number(parsed.suggestedResaleHigh) || resaleLow;
@@ -419,12 +410,13 @@ async function runScanPipeline(photoUris: string[], promptSuffix = '', signal?: 
     resaleLow = Math.max(25, Math.round(resaleLow * scale));
   }
 
+  if (resaleLow > resaleHigh) [resaleLow, resaleHigh] = [resaleHigh, resaleLow];
   const resale = resaleLow > 0 ? Math.round((resaleLow + resaleHigh) / 2) : 0;
 
   return {
     name: String(parsed.name || 'Unknown Item'),
     sub: String(parsed.sub || ''),
-    profit: resaleLow > 0 ? `$${resaleLow}–$${resaleHigh}` : '',
+    profit: resaleLow > 0 ? `${formatMoney(resaleLow)}–${formatMoney(resaleHigh)}` : '',
     suggestedPaid: paid,
     suggestedResale: resale,
     suggestedResaleLow: resaleLow,
@@ -455,7 +447,7 @@ async function runScanPipeline(photoUris: string[], promptSuffix = '', signal?: 
 
 export async function scanWithGemini(photoUris: string | string[], signal?: AbortSignal, onPhaseChange?: (status: string) => void): Promise<ScanScenario> {
   const uris = Array.isArray(photoUris) ? photoUris : [photoUris];
-  return runScanPipeline(uris, '', signal, onPhaseChange);
+  return runScanPipeline(uris, '', signal);
 }
 
 function buildUpcyclePrompt(itemName?: string, category?: string, sub?: string): string {
