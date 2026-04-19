@@ -135,12 +135,14 @@ const HaulCard = React.memo(function HaulCard({
       </View>
       <View style={styles.haulCardCaption}>
         <Text style={styles.haulDate}>{haul.date}</Text>
-        <Text style={styles.haulCaptionLine} numberOfLines={2}>
-          {`${storesLabel ? `${storesLabel} · ` : ''}${formatMoney(haul.totalSpent)} spent`}
-          {haul.profit > 0 ? (
-            <Text style={styles.haulCaptionProfit}> · {formatMoneyWithSign(haul.profit)} profit</Text>
-          ) : null}
-        </Text>
+        {(!!storesLabel || haul.profit > 0) && (
+          <Text style={styles.haulCaptionLine} numberOfLines={2}>
+            {storesLabel || ''}
+            {haul.profit > 0 ? (
+              <Text style={styles.haulCaptionProfit}>{storesLabel ? ' · ' : ''}{formatMoneyWithSign(haul.profit)} profit</Text>
+            ) : null}
+          </Text>
+        )}
       </View>
     </Pressable>
   );
@@ -210,9 +212,6 @@ const ItemCard = React.memo(function ItemCard({
       <Text style={styles.cardName} numberOfLines={2}>{item.name}</Text>
       {!isCloset && (
         <Text style={[styles.cardProfit, item.status === 'sold' && styles.cardProfitSold]}>{profitLabel}</Text>
-      )}
-      {isCloset && (
-        <Text style={styles.cardPaid}>{item.paid != null ? `Cost ${formatMoney(item.paid)}` : 'Cost —'}</Text>
       )}
     </Pressable>
   );

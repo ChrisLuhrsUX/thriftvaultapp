@@ -37,7 +37,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useToast } from '@/context/ToastContext';
 import { useResponsive } from '@/hooks/useResponsive';
 import { rescanAsHandmade, refreshUpcycleIdeas, scanWithGemini } from '@/services/gemini';
-import { getConfidenceColor } from '@/utils/confidencePresentation';
+import { getConfidenceColor, getConfidencePresentation } from '@/utils/confidencePresentation';
 import { formatMoney } from '@/utils/currency';
 import { ITEM_CATEGORIES, type Item, type ItemScanSnapshot, type ItemStatus, type Platform as PlatformType } from '@/types/inventory';
 import type { Theme } from '@/theme';
@@ -319,7 +319,7 @@ export default function DetailScreen() {
 
   useEffect(() => {
     if (!item?.scanSnapshots || item.scanSnapshots.length === 0) return;
-    setScanInsightsExpanded(fromScan === '1');
+    setScanInsightsExpanded(true);
   }, [fromScan, item?.id, item?.scanSnapshots]);
 
   const update = useCallback((updates: Partial<Item>) => {
@@ -980,7 +980,7 @@ export default function DetailScreen() {
             >
               <View style={styles.insightsHeaderContent}>
                 <View style={styles.insightsHeaderTopRow}>
-                  <Text style={styles.insightsTitle}>AI Insights</Text>
+                  <Text style={styles.insightsTitle}>Insights</Text>
                   <View style={styles.insightsHeaderRight}>
                     <View style={styles.insightsCountBadge}>
                       <Text style={styles.insightsCountText}>
@@ -2277,6 +2277,12 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
   insightsDate: {
     ...theme.typography.label,
     color: theme.colors.mauve,
+  },
+  insightsConfidenceLabel: {
+    ...theme.typography.label,
+    marginTop: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.lg,
+    paddingBottom: theme.spacing.sm,
   },
   insightsCountBadge: {
     borderRadius: theme.radius.full,

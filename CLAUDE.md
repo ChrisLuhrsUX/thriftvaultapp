@@ -214,6 +214,17 @@ interface ScanScenario {
 - **ThriftVault LLC** — Formed in TN ~2026-04-16, EIN issued. Chris signs as "Chris Luhrs, Member, ThriftVault LLC." Annual overhead: ~$400/yr TN ($300 annual report due April 1 + $100 min franchise) + 6.5% excise on net earnings. Legal docs: `C:\Users\Chris\Downloads\ThriftVault\ThriftVault_LLC\`.
 - **Pre-launch follow-ups:** (1) Update `assets/terms.html` + `assets/privacy-policy.html` to name "ThriftVault LLC" + TN governing-law clause; push to GH Pages. (2) D-U-N-S → new Org Apple Developer enrollment.
 
+### Session — 2026-04-19
+- **Sentry wired** (`_layout.tsx`, `app.json`) — `@sentry/react-native` installed, plugin added, `Sentry.wrap(RootLayout)` wraps root. `enabled: !!EXPO_PUBLIC_SENTRY_DSN` so it's inert until DSN is set. Full native crash reporting activates after prebuild (same session as RevenueCat). `metro.config.js` created with `unstable_enablePackageExports: true` to fix ESM resolution error.
+- **Launch timeline** — Waiting on D-U-N-S (submitted 2026-04-17) before Org Apple Developer enrollment. Will not launch under individual account (LLC liability protection). Realistic target: early-to-mid May if D-U-N-S fast, late May otherwise.
+- **Scan card expanded by default** (`detail.tsx`) — `useEffect` was overriding `useState(true)` with `fromScan === '1'`; fixed to always `true`.
+- **Confidence label wired then removed** — added `getConfidencePresentation` label below insights header for low/medium; removed after user flagged awkward placement. Inline confidence text in header retained.
+- **"AI Insights" → "Insights"** (`detail.tsx`) — cleaner label, AI implied by scan context.
+- **Closet cards** — removed cost display (`Cost $X`) from item cards in Closet view.
+- **Haul cards** — removed "spent" from caption line; caption now shows stores + profit only; conditionally hidden when both are empty to fix blank space under date.
+- **Android readiness** — `ANDROID.md` created; assessed as not ready (missing package, versionCode, PNG adaptive icon, EAS config, Play account, RevenueCat Google Play). iOS-first launch confirmed.
+- **Expo 54 longevity** — safe through mid-to-late 2026; upgrade pressure begins when Expo 56/57 ships and 54 is dropped from EAS.
+
 ### Session — 2026-04-17
 - **Background scan fix** (`scan.tsx`) — removed `abortControllerRef.current?.abort()` from AppState background handler (was killing successful scans). Added `pendingRetryRef.current = false` before `setResult(geminiResult)` in both success paths.
 - **`scanStatusPill` background** — `terraLight` invisible over dark camera overlay; fixed to `surface`.

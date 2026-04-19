@@ -34,6 +34,7 @@
     },
     "plugins": [
       "expo-router",
+      "@sentry/react-native/expo",
       "expo-font",
       "expo-web-browser",
       [

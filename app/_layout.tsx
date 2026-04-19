@@ -10,6 +10,7 @@ import { useEffect } from 'react';
 import { Platform, StatusBar as RNStatusBar, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
+import * as Sentry from '@sentry/react-native';
 
 import { StatusBar } from '@/components/StatusBar';
 import { Toast } from '@/components/Toast';
@@ -19,13 +20,20 @@ import { ToastProvider } from '@/context/ToastContext';
 
 export { ErrorBoundary } from 'expo-router';
 
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  enabled: !!process.env.EXPO_PUBLIC_SENTRY_DSN,
+  environment: __DEV__ ? 'development' : 'production',
+  tracesSampleRate: __DEV__ ? 0 : 0.2,
+});
+
 SplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = {
   initialRouteName: 'index',
 };
 
-export default function RootLayout() {
+function RootLayout() {
   const [loaded, error] = useFonts({
     PlayfairDisplay_400Regular,
     PlayfairDisplay_700Bold,
@@ -76,6 +84,8 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
+
+export default Sentry.wrap(RootLayout);
 
 const rootStyles = StyleSheet.create({
   flex: { flex: 1 },
