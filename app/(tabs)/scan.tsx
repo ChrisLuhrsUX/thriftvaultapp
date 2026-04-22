@@ -223,6 +223,21 @@ function ScanResultCard({
           </View>
         )}
       </View>
+      {scenario.redFlags && scenario.redFlags.length > 0 && (
+        <View style={styles.redFlagSection}>
+          <View style={styles.redFlagHeader}>
+            <AppIcon name="flag" size={15} color={theme.colors.loss} />
+            <Text style={styles.redFlagHeaderText}>Red Flags</Text>
+          </View>
+          <Text style={styles.redFlagSubtitle}>This item may be fake or use AI-generated artwork.</Text>
+          {scenario.redFlags.map((flag, i) => (
+            <View key={i} style={styles.redFlagRow}>
+              <View style={styles.redFlagDot} />
+              <Text style={styles.redFlagText}>{flag}</Text>
+            </View>
+          ))}
+        </View>
+      )}
       <View style={styles.ideaRows}>
         <View style={styles.ideaRowsHeader}>
           <Text style={styles.ideaRowsLabel}>Listing suggestions</Text>
@@ -496,6 +511,49 @@ function createScanStyles(theme: Theme, formMaxWidth?: number) {
       ...theme.typography.caption,
       color: theme.colors.terra,
       fontWeight: '600',
+    },
+    redFlagSection: {
+      backgroundColor: theme.colors.blush,
+      borderRadius: theme.radius.sm,
+      paddingHorizontal: theme.spacing.md,
+      paddingVertical: theme.spacing.sm,
+      marginTop: theme.spacing.md,
+      gap: 6,
+    },
+    redFlagHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    redFlagHeaderText: {
+      ...theme.typography.caption,
+      color: theme.colors.loss,
+      fontWeight: '700',
+      flex: 1,
+    },
+    redFlagSubtitle: {
+      ...theme.typography.caption,
+      color: theme.colors.loss,
+      lineHeight: 18,
+    },
+    redFlagRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 8,
+      paddingLeft: 2,
+    },
+    redFlagDot: {
+      width: 5,
+      height: 5,
+      borderRadius: 3,
+      backgroundColor: theme.colors.loss,
+      marginTop: 6,
+    },
+    redFlagText: {
+      ...theme.typography.bodySmall,
+      color: theme.colors.charcoal,
+      flex: 1,
+      lineHeight: 20,
     },
     authSection: {
       marginTop: theme.spacing.md,
@@ -989,6 +1047,7 @@ export default function ScanScreen() {
     ideas: Array.isArray(scenario.ideas) ? scenario.ideas.slice(0, 3) : [],
     upcycle: Array.isArray(scenario.upcycle) ? scenario.upcycle.slice(0, 3) : [],
     authFlags: Array.isArray(scenario.authFlags) ? scenario.authFlags.slice(0, 3) : [],
+    redFlags: Array.isArray(scenario.redFlags) ? scenario.redFlags.slice(0, 3) : [],
     sourceImageUri: sourceImageUris?.[0],
     sourceImageUris,
   }), []);

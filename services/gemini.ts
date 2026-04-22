@@ -45,7 +45,8 @@ Return ONLY a valid JSON object with this exact structure — no markdown fences
     "Second distinct upcycle idea using a different technique",
     "Third distinct upcycle idea using a different technique"
   ],
-  "authFlags": ["Specific physical check to verify authenticity (only for items prone to counterfeiting)"]
+  "authFlags": ["Specific physical check to verify authenticity (only for items prone to counterfeiting)"],
+  "redFlags": ["Prominent warning about AI-generated prints or other red flags — see RED FLAG DETECTION rule"]
 }
 
 CRITICAL — isCustom detection (evaluate FIRST before anything else):
@@ -143,6 +144,16 @@ Guidelines:
   "Test metal weight — genuine gold and platinum feel noticeably heavier than plated or costume metals"
   Empty array [] for: unbranded items, fast fashion, mall brands, handmade items, basic athletic wear, or anything where counterfeits are uncommon.
   Frame as verification tips, not accusations — the goal is to help the buyer verify before purchasing.
+- RED FLAG DETECTION — HARD RULE — populate redFlags (1–2 items) when ANY of the following are true. This is NOT optional — if ANY condition matches, you MUST include at least one redFlag. Empty array [] ONLY when zero conditions match:
+  ALL-OVER DIGITAL PRINT: The garment has an all-over sublimation or digital print covering most of its surface — especially prints that simulate tattoo flash art, paintings, illustrations, or photorealistic imagery. These are almost always mass-produced dropship items with digitally generated or stolen artwork printed on cheap polyester.
+    → Flag: "All-over sublimation print — commonly mass-produced. Check label for brand, artist credit, and material quality before buying."
+  AI-GENERATED ARTWORK: The printed design on the garment shows ANY visual signs of AI generation:
+    • Text in the design that is garbled, misspelled, fused, or nonsensical
+    • Human figures with anatomical errors — extra/missing fingers, melted faces, impossible limbs
+    • Elements that dissolve or blend into each other without logical boundaries
+    • Photorealistic art style with no visible artist credit, brand, or studio name
+    If ANY of these tells are present → Flag: "Artwork on this garment shows signs of AI generation — verify source and artist attribution before reselling."
+  When in doubt about whether a print is AI-generated, ERR ON THE SIDE OF FLAGGING. A false positive (flagging a legitimate print) is far less harmful than a false negative (letting an AI-generated print through unflagged). This is the same philosophy as isCustom detection — when unsure, flag it.
 - upcycle[]: exactly 3 short, specific ideas for transforming this item to increase resale value. Before writing, identify: (1) exact material and texture, (2) specific construction details like hardware, seams, collar, lining, silhouette, (3) the era or subculture it references, (4) what niche aesthetic or current resale trend it could tap into if transformed. Use those observations to write ideas that could ONLY apply to this exact item — not any other. Each idea names a specific technique AND the niche aesthetic it creates. BANNED techniques regardless of item: bleach dye, tie-dye, cropping, patches, pins, buttons, generic embroidery — if you catch yourself writing one, think harder about what makes this item unique. BANNED aesthetic defaults — do not use any of these unless the item is literally from that era/style and you can point to a specific visible detail that justifies it: cottagecore, floral, bohemian, coquette, fairy-tale, whimsical, romantic. If you catch yourself writing one of these aesthetics, delete it and think of something more specific to this item. Each of the 3 ideas must target a DIFFERENT aesthetic or subculture — never repeat the same aesthetic across the 3 ideas. Keep each under 15 words. Do not mention platforms or where to sell. Do not say "not applicable"`;
 
 function inferMimeType(uri: string): string {
@@ -441,6 +452,9 @@ async function runScanPipeline(photoUris: string[], promptSuffix = '', signal?: 
       : [],
     authFlags: Array.isArray(parsed.authFlags)
       ? parsed.authFlags.slice(0, 3).map((f: unknown) => String(f || '')).filter(Boolean)
+      : [],
+    redFlags: Array.isArray(parsed.redFlags)
+      ? parsed.redFlags.slice(0, 3).map((f: unknown) => String(f || '')).filter(Boolean)
       : [],
   };
 }

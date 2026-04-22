@@ -214,6 +214,11 @@ interface ScanScenario {
 - **ThriftVault LLC** — Formed in TN ~2026-04-16, EIN issued. Chris signs as "Chris Luhrs, Member, ThriftVault LLC." Annual overhead: ~$400/yr TN ($300 annual report due April 1 + $100 min franchise) + 6.5% excise on net earnings. Legal docs: `C:\Users\Chris\Downloads\ThriftVault\ThriftVault_LLC\`.
 - **Pre-launch follow-ups:** (1) Push updated legal docs to GH Pages (LLC name + TN law + Sentry — done in code, not yet pushed). (2) Export 1024×1024 PNG icon; update three `app.json` icon/splash/favicon paths. (3) D-U-N-S → new Org Apple Developer enrollment; fill `ascAppId` + `appleTeamId` in `eas.json`.
 
+### Session — 2026-04-22
+- **Red Flag system** — New `redFlags?: string[]` field on `ScanScenario` + `ItemScanSnapshot`. Dedicated `RED FLAG DETECTION — HARD RULE` section in Gemini prompt (separate from `authFlags`) detects all-over sublimation prints and AI-generated artwork on garments. Prompt uses aggressive "err on the side of flagging" language matching `isCustom` enforcement pattern. Initial attempt embedding AI detection in `authFlags` failed — Gemini ignored it alongside luxury brand checks. Separate field + hard rule fixed it.
+- **Red Flag UI** — Non-collapsible `blush` banner with filled `flag` icon + `loss` accent in both `scan.tsx` and `detail.tsx`, placed above listing suggestions. Subtitle: "This item may be fake or use AI-generated artwork." Red circle + white flag badge on item cards in vault grid (`index.tsx`) for at-a-glance visibility.
+- **`authFlags` reverted** — Back to luxury/designer-only criteria. AI print detection lives exclusively in `redFlags`.
+
 ### Session — 2026-04-21
 - **Legal docs updated** — `terms.html` + `privacy-policy.html` now name "ThriftVault LLC", add TN governing law section, and disclose Sentry crash reporting. Privacy policy date corrected March → April 2026. **Still needs GH Pages push.**
 - **`app.json`** — Added `minimumOsVersion: "15.1"` (matches Expo 54 + expo-camera floor). Icon is still a `.jpg` — Apple requires 1024×1024 PNG; needs manual export before submission.

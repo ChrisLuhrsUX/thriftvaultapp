@@ -161,6 +161,8 @@ const ItemCard = React.memo(function ItemCard({
   styles: ReturnType<typeof createStyles>;
   theme: Theme;
 }) {
+  const activeSnapshot = item.scanSnapshots?.find(s => s.id === item.activeScanSnapshotId) ?? item.scanSnapshots?.[0];
+  const hasRedFlags = (activeSnapshot?.redFlags?.length ?? 0) > 0;
   const paid = Number(item.paid) || 0;
   const resale = Number(item.resale) || 0;
   const soldPrice = item.soldPrice != null ? Number(item.soldPrice) : null;
@@ -200,6 +202,11 @@ const ItemCard = React.memo(function ItemCard({
           ]}>
             {item.status === 'sold' ? 'Sold' : item.status === 'unlisted' ? 'Unlisted' : 'Listed'}
           </Text>
+        </View>
+      )}
+      {hasRedFlags && (
+        <View style={styles.cardRedFlag}>
+          <AppIcon name="flag" size={12} color="#FFFFFF" />
         </View>
       )}
       {isCloset && !!item.cat && (
@@ -1219,6 +1226,14 @@ function createStyles(theme: Theme, hPad: number, headerHPad: number, numColumns
     backgroundColor: theme.colors.surfaceVariant,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  cardRedFlag: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: theme.colors.loss,
+    padding: 5,
+    borderRadius: theme.radius.full,
   },
   cardBadge: {
     position: 'absolute',

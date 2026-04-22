@@ -1072,6 +1072,21 @@ export default function DetailScreen() {
                     </Pressable>
                   </View>
                 ) : null}
+                {activeSnapshot.redFlags && activeSnapshot.redFlags.length > 0 && (
+                  <View style={styles.insightsRedFlagSection}>
+                    <View style={styles.insightsRedFlagHeader}>
+                      <AppIcon name="flag" size={15} color={theme.colors.loss} />
+                      <Text style={styles.insightsRedFlagHeaderText}>Red Flags</Text>
+                    </View>
+                    <Text style={styles.insightsRedFlagSubtitle}>This item may be fake or use AI-generated artwork.</Text>
+                    {activeSnapshot.redFlags.map((flag, i) => (
+                      <View key={i} style={styles.insightsRedFlagRow}>
+                        <View style={styles.insightsRedFlagDot} />
+                        <Text style={styles.insightsRedFlagText}>{flag}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
                 <View style={styles.insightsIdeas}>
                   {activeSnapshot.ideas.length > 0 ? (
                     <>
@@ -2450,6 +2465,49 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     marginTop: 5,
   },
   insightsUpcycleText: {
+    ...theme.typography.bodySmall,
+    color: theme.colors.charcoal,
+    flex: 1,
+    lineHeight: 20,
+  },
+  insightsRedFlagSection: {
+    backgroundColor: theme.colors.blush,
+    borderRadius: theme.radius.sm,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    marginTop: theme.spacing.md,
+    gap: 6,
+  },
+  insightsRedFlagHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  insightsRedFlagHeaderText: {
+    ...theme.typography.caption,
+    color: theme.colors.loss,
+    fontWeight: '700',
+    flex: 1,
+  },
+  insightsRedFlagSubtitle: {
+    ...theme.typography.caption,
+    color: theme.colors.loss,
+    lineHeight: 18,
+  },
+  insightsRedFlagRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    paddingLeft: 2,
+  },
+  insightsRedFlagDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: theme.colors.loss,
+    marginTop: 6,
+  },
+  insightsRedFlagText: {
     ...theme.typography.bodySmall,
     color: theme.colors.charcoal,
     flex: 1,
