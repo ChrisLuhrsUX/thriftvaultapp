@@ -27,9 +27,8 @@ export const PLANS: PlanOption[] = [
     id: 'season',
     label: 'Season Pass',
     price: '$9.99',
-    period: '/ 3 mo',
+    period: '/3 mo',
     perMonth: '$3.33/mo',
-    badge: 'Popular',
   },
   {
     id: 'annual',

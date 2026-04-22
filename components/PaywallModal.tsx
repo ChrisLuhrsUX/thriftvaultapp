@@ -6,7 +6,6 @@ import {
   Modal,
   PanResponder,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -26,7 +25,7 @@ const FEATURES = [
   'Unlimited AI scans & price estimates',
   'Handmade item detection & rescanning',
   'Upcycle suggestions & flip ideas',
-  'Store profit analytics',
+  'Haul tracking & profit analytics',
 ];
 
 interface PaywallModalProps {
@@ -39,7 +38,8 @@ export function PaywallModal({ visible, onClose }: PaywallModalProps) {
   const { theme } = useTheme();
   const { showToast } = useToast();
   const { isDesktop } = useResponsive();
-  const { subscribe } = usePurchases();
+  const { subscribe, restorePurchases } = usePurchases();
+  const [restoring, setRestoring] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(DEFAULT_PLAN_ID);
   const [purchasing, setPurchasing] = useState(false);
   const styles = useMemo(() => createStyles(theme, isDesktop), [theme, isDesktop]);
@@ -100,6 +100,19 @@ export function PaywallModal({ visible, onClose }: PaywallModalProps) {
 
   const activePlan = PLANS.find((p) => p.id === selectedPlan) ?? PLANS[0];
 
+  const handleRestore = async () => {
+    if (restoring) return;
+    setRestoring(true);
+    const result = await restorePurchases();
+    setRestoring(false);
+    if (result.success) {
+      dismiss();
+      showToast('Purchases restored!');
+    } else {
+      showToast(result.error ?? 'Nothing to restore');
+    }
+  };
+
   const handleSubscribe = async () => {
     if (purchasing) return;
     setPurchasing(true);
@@ -148,14 +161,14 @@ export function PaywallModal({ visible, onClose }: PaywallModalProps) {
             Your first {TRIAL_DURATION_DAYS} days are free with every Pro feature unlocked. Pick a plan to continue after your trial.
           </Text>
 
-          <ScrollView style={styles.features} showsVerticalScrollIndicator={false}>
+          <View style={styles.features}>
             {FEATURES.map((text, i) => (
               <View key={i} style={styles.featRow}>
                 <AppIcon name="checkmark-circle" size={20} color={theme.colors.vintageBlueDark} />
                 <Text style={styles.featText}>{text}</Text>
               </View>
             ))}
-          </ScrollView>
+          </View>
 
           <View style={styles.plans}>
             {PLANS.map((plan) => (
@@ -198,6 +211,10 @@ export function PaywallModal({ visible, onClose }: PaywallModalProps) {
             <Pressable onPress={() => Linking.openURL('https://chrisluhrsux.github.io/thriftvaultapp/assets/terms.html')}>
               <Text style={styles.legalLink}>Terms of Use</Text>
             </Pressable>
+            <Text style={styles.legalDot}> · </Text>
+            <Pressable onPress={handleRestore} disabled={restoring}>
+              <Text style={styles.legalLink}>{restoring ? 'Restoring…' : 'Restore Purchases'}</Text>
+            </Pressable>
           </View>
         </Animated.View>
       </View>
@@ -232,9 +249,8 @@ function PlanCard({
         </View>
       ) : null}
       <Text style={[styles.planLabel, selected && styles.planLabelSelected]}>{plan.label}</Text>
-      <Text style={[styles.planPrice, selected && styles.planPriceSelected]}>
-        {plan.price}<Text style={styles.planPeriod}>{plan.period}</Text>
-      </Text>
+      <Text style={[styles.planPrice, selected && styles.planPriceSelected]}>{plan.price}</Text>
+      <Text style={[styles.planPeriod, selected && styles.planPeriodSelected]}>{plan.period}</Text>
       <Text style={[styles.planPerMonth, selected && styles.planPerMonthSelected]}>{plan.perMonth}</Text>
     </Pressable>
   );
@@ -365,7 +381,12 @@ function createStyles(theme: Theme, isDesktop: boolean) {
   },
   planPeriod: {
     ...theme.typography.caption,
+    color: theme.colors.mauve,
     fontWeight: '400',
+    marginBottom: 2,
+  },
+  planPeriodSelected: {
+    color: theme.colors.vintageBlueDark,
   },
   planPerMonth: {
     ...theme.typography.label,

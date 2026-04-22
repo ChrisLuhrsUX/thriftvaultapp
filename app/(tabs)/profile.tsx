@@ -135,6 +135,14 @@ if (id === 'subscription') {
         <View style={styles.header}>
           <Text style={styles.title}>Profile</Text>
         </View>
+        <Pressable
+          style={({ pressed }) => [styles.upgradeBtn, pressed && styles.btnPressed]}
+          onPress={() => setPaywallVisible(true)}
+        >
+          <AppIcon name="sparkles" size={20} color={theme.colors.onPrimary} />
+          <Text style={styles.upgradeBtnText}>Upgrade to Pro</Text>
+        </Pressable>
+        <Text style={styles.trialNote}>{TRIAL_DURATION_DAYS}-day free trial · no commitment</Text>
         {storeStats.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Profit by store</Text>
@@ -238,14 +246,6 @@ if (id === 'subscription') {
           ))}
         </View>
 
-        <Pressable
-          style={({ pressed }) => [styles.upgradeBtn, pressed && styles.btnPressed]}
-          onPress={() => setPaywallVisible(true)}
-        >
-          <AppIcon name="sparkles" size={20} color={theme.colors.onPrimary} />
-          <Text style={styles.upgradeBtnText}>Upgrade to Pro</Text>
-        </Pressable>
-        <Text style={styles.trialNote}>{TRIAL_DURATION_DAYS}-day free trial</Text>
         </View>
       </ScrollView>
 
@@ -307,8 +307,8 @@ function createStyles(theme: Theme, headerHPad: number, formMaxWidth?: number) {
     ...theme.typography.caption,
     color: theme.colors.mauve,
     textAlign: 'center',
-    marginBottom: 24,
     marginTop: 4,
+    marginBottom: 20,
   },
   section: {
     marginHorizontal: 24,

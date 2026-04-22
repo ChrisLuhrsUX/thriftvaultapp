@@ -1010,6 +1010,11 @@ export default function DetailScreen() {
 
             {scanInsightsExpanded && (
               <View style={styles.insightsContent}>
+                {activeSnapshot.sub ? (
+                  <Text style={styles.insightsSub}>{activeSnapshot.sub}</Text>
+                ) : (
+                  <Text style={styles.insightsSub}>No additional summary for this scan.</Text>
+                )}
                 {rescanningHandmade ? (
                   <View style={styles.insightsCustomPromptRow}>
                     <ActivityIndicator size="small" color={theme.colors.terra} />
@@ -1067,11 +1072,6 @@ export default function DetailScreen() {
                     </Pressable>
                   </View>
                 ) : null}
-                {activeSnapshot.sub ? (
-                  <Text style={styles.insightsSub}>{activeSnapshot.sub}</Text>
-                ) : (
-                  <Text style={styles.insightsSub}>No additional summary for this scan.</Text>
-                )}
                 <View style={styles.insightsIdeas}>
                   {activeSnapshot.ideas.length > 0 ? (
                     <>
@@ -2364,6 +2364,7 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     ...theme.typography.caption,
     color: theme.colors.mauve,
     marginTop: theme.spacing.xs,
+    marginBottom: theme.spacing.sm,
     lineHeight: 20,
   },
   insightsIdeas: {

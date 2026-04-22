@@ -16,6 +16,7 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.thriftvault.app",
       "buildNumber": "1",
+      "minimumOsVersion": "15.1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }

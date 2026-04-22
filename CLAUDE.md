@@ -212,7 +212,15 @@ interface ScanScenario {
 
 - **Apple Developer** — Individual enrollment active ($99/yr, enrolled 2026-03-28). D-U-N-S submitted ~2026-04-17 (~1–2 week turnaround). Once D-U-N-S arrives: enroll new **Org** account ($99/yr) so App Store seller = "ThriftVault LLC" — cannot convert individual → org.
 - **ThriftVault LLC** — Formed in TN ~2026-04-16, EIN issued. Chris signs as "Chris Luhrs, Member, ThriftVault LLC." Annual overhead: ~$400/yr TN ($300 annual report due April 1 + $100 min franchise) + 6.5% excise on net earnings. Legal docs: `C:\Users\Chris\Downloads\ThriftVault\ThriftVault_LLC\`.
-- **Pre-launch follow-ups:** (1) Update `assets/terms.html` + `assets/privacy-policy.html` to name "ThriftVault LLC" + TN governing-law clause; push to GH Pages. (2) D-U-N-S → new Org Apple Developer enrollment.
+- **Pre-launch follow-ups:** (1) Push updated legal docs to GH Pages (LLC name + TN law + Sentry — done in code, not yet pushed). (2) Export 1024×1024 PNG icon; update three `app.json` icon/splash/favicon paths. (3) D-U-N-S → new Org Apple Developer enrollment; fill `ascAppId` + `appleTeamId` in `eas.json`.
+
+### Session — 2026-04-21
+- **Legal docs updated** — `terms.html` + `privacy-policy.html` now name "ThriftVault LLC", add TN governing law section, and disclose Sentry crash reporting. Privacy policy date corrected March → April 2026. **Still needs GH Pages push.**
+- **`app.json`** — Added `minimumOsVersion: "15.1"` (matches Expo 54 + expo-camera floor). Icon is still a `.jpg` — Apple requires 1024×1024 PNG; needs manual export before submission.
+- **`eas.json` created** — dev/preview/production profiles. Fill `ascAppId` + `appleTeamId` once Org account is live.
+- **PaywallModal** — Added Restore Purchases button (Apple requirement; was missing). Added "Haul tracking & profit analytics" to features list. Fixed Season Pass period string (`/ 3 mo` → `/3 mo`). Switched features from `ScrollView` to `View`. Stacked period below price in plan cards to prevent text wrapping. Removed "Popular" badge from Season Pass (no data yet).
+- **Profile screen** — "Upgrade to Pro" button moved from bottom of scroll to just below header (visible on load).
+- **detail.tsx scan card** — Description (`sub`) now renders above handmade pill/prompt, matching scan.tsx order.
 
 ### Session — 2026-04-19
 - **Sentry wired** (`_layout.tsx`, `app.json`) — `@sentry/react-native` installed, plugin added, `Sentry.wrap(RootLayout)` wraps root. `enabled: !!EXPO_PUBLIC_SENTRY_DSN` so it's inert until DSN is set. Full native crash reporting activates after prebuild (same session as RevenueCat). `metro.config.js` created with `unstable_enablePackageExports: true` to fix ESM resolution error.
