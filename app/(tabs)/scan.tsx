@@ -92,6 +92,7 @@ function ScanResultCard({
   const confPresentation =
     c === 'low' || c === 'medium' || c === 'high' ? getConfidencePresentation(c, theme) : null;
 
+  const hasRedFlags = !!(scenario.redFlags && scenario.redFlags.length > 0);
   const [editingName, setEditingName] = useState(false);
   const [editedName, setEditedName] = useState(scenario.name);
   const [upcycleExpanded, setUpcycleExpanded] = useState(false);
@@ -154,6 +155,21 @@ function ScanResultCard({
         </View>
       </View>
       <Text style={styles.resultSub}>{scenario.sub}</Text>
+      {hasRedFlags && (
+        <View style={styles.redFlagSection}>
+          <View style={styles.redFlagHeader}>
+            <AppIcon name="flag" size={15} color={theme.colors.loss} />
+            <Text style={styles.redFlagHeaderText}>Red Flags</Text>
+          </View>
+          <Text style={styles.redFlagSubtitle}>This item or photo may be fake or AI-generated.</Text>
+          {scenario.redFlags!.filter(f => f !== 'stock-photo').map((flag, i) => (
+            <View key={i} style={styles.redFlagRow}>
+              <View style={styles.redFlagDot} />
+              <Text style={styles.redFlagText}>{flag}</Text>
+            </View>
+          ))}
+        </View>
+      )}
 <View style={styles.pillRow}>
         {rescanningHandmade ? (
           <View style={styles.handmadePromptRow}>
@@ -167,7 +183,7 @@ function ScanResultCard({
               <Text style={styles.customBannerText}>Handmade</Text>
             </View>
           </View>
-        ) : !customDismissed ? (
+        ) : !customDismissed && !hasRedFlags ? (
           <View style={styles.handmadePromptRow}>
             <AppIcon name="brush-outline" size={14} color={theme.colors.mauve} />
             <Text style={styles.handmadePromptText}>Is this handmade?</Text>
@@ -196,7 +212,7 @@ function ScanResultCard({
             <ActivityIndicator size="small" color={theme.colors.vintageBlueDark} />
             <Text style={styles.handmadePromptText}>Rescanning...</Text>
           </View>
-        ) : !wrongScanDismissed && (
+        ) : !wrongScanDismissed && !hasRedFlags && (
           <View style={styles.handmadePromptRow}>
             <AppIcon name="alert-circle-outline" size={14} color={theme.colors.mauve} />
             <Text style={styles.handmadePromptText}>Is this scan wrong?</Text>
@@ -231,21 +247,6 @@ function ScanResultCard({
           </View>
         )}
       </View>
-      {scenario.redFlags && scenario.redFlags.length > 0 && (
-        <View style={styles.redFlagSection}>
-          <View style={styles.redFlagHeader}>
-            <AppIcon name="flag" size={15} color={theme.colors.loss} />
-            <Text style={styles.redFlagHeaderText}>Red Flags</Text>
-          </View>
-          <Text style={styles.redFlagSubtitle}>This item may be fake or use AI-generated artwork.</Text>
-          {scenario.redFlags.map((flag, i) => (
-            <View key={i} style={styles.redFlagRow}>
-              <View style={styles.redFlagDot} />
-              <Text style={styles.redFlagText}>{flag}</Text>
-            </View>
-          ))}
-        </View>
-      )}
       <View style={styles.ideaRows}>
         <View style={styles.ideaRowsHeader}>
           <Text style={styles.ideaRowsLabel}>Listing suggestions</Text>
@@ -1013,11 +1014,15 @@ export default function ScanScreen() {
   }, [showToast, scanning, stagedPhotos.length, isPro, cameraActive]);
 
   const clearResultAndPhoto = useCallback(() => {
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
     setResult(null);
     setStagedPhotos([]);
     setPlaceholderImageUri(null);
     setPromptCustomDismissed(false);
     setPromptWrongScanDismissed(false);
+    setRescanningHandmade(false);
+    setRescanningWrong(false);
     AsyncStorage.removeItem(TV_PENDING_SCAN_KEY);
     setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: true }), 50);
   }, []);
@@ -1227,22 +1232,25 @@ export default function ScanScreen() {
     const photoUri = stagedPhotos[0];
     if (!photoUri || rescanningHandmade) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     setRescanningHandmade(true);
     try {
-      const updated = await rescanAsHandmade(photoUri);
+      const updated = await rescanAsHandmade(photoUri, controller.signal);
       setResult((prev) => {
-        const prevLow = prev?.suggestedResaleLow ?? 0;
-        const prevHigh = prev?.suggestedResaleHigh ?? 0;
+        if (!prev) return null;
+        const prevLow = prev.suggestedResaleLow ?? 0;
+        const prevHigh = prev.suggestedResaleHigh ?? 0;
         const newLow = Math.max(updated.suggestedResaleLow ?? 0, prevLow);
         const newHigh = Math.max(updated.suggestedResaleHigh ?? 0, prevHigh);
-        const newResale = newLow > 0 ? Math.round((newLow + newHigh) / 2) : (prev?.suggestedResale ?? 0);
+        const newResale = newLow > 0 ? Math.round((newLow + newHigh) / 2) : (prev.suggestedResale ?? 0);
         return {
           ...updated,
           isCustom: true,
           suggestedResaleLow: newLow,
           suggestedResaleHigh: newHigh,
           suggestedResale: newResale,
-          profit: newLow > 0 ? `${formatMoney(newLow)}–${formatMoney(newHigh)}` : (prev?.profit ?? ''),
+          profit: newLow > 0 ? `${formatMoney(newLow)}–${formatMoney(newHigh)}` : (prev.profit ?? ''),
         };
       });
     } catch (err) {
@@ -1257,13 +1265,15 @@ export default function ScanScreen() {
     const photoUri = stagedPhotos[0];
     if (!photoUri || rescanningWrong) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     setRescanningWrong(true);
     try {
       const wasHandmade = result?.isCustom === true;
       const updated = wasHandmade
-        ? await rescanAsHandmade(photoUri)
-        : await scanWithGemini(photoUri);
-      setResult({ ...updated, isCustom: wasHandmade || updated.isCustom });
+        ? await rescanAsHandmade(photoUri, controller.signal)
+        : await scanWithGemini(photoUri, controller.signal);
+      setResult((prev) => prev === null ? null : { ...updated, isCustom: wasHandmade || updated.isCustom });
     } catch (err) {
       if (__DEV__) console.log('[Wrong rescan] error:', err);
       showToast(isOverloadError(err) ? 'AI is busy — try again in a moment' : "Couldn't rescan — try again");
@@ -1334,6 +1344,7 @@ export default function ScanScreen() {
           <Text style={styles.title}>Scan</Text>
           <Text style={styles.sub}>Find your next flip</Text>
         </View>
+        <View style={[styles.cameraBoxWrap, result?.redFlags?.length ? styles.cameraBoxRedFlag : null]}>
         <View style={styles.cameraBox}>
           {CAMERA_AVAILABLE && permission && !permission.granted && !permission.canAskAgain ? (
             <View style={styles.permissionDenied}>
@@ -1571,6 +1582,7 @@ export default function ScanScreen() {
             </BlurView>
           )}
         </View>
+        </View>
 
         {result && (
           <ScanResultCard
@@ -1800,13 +1812,21 @@ function createStyles(
     color: theme.colors.mauve,
     marginTop: 2,
   },
-  cameraBox: {
+  cameraBoxWrap: {
     marginHorizontal: hPad,
-    aspectRatio: 1 / 1,
     borderRadius: 24,
+    borderWidth: 2.5,
+    borderColor: 'transparent',
+    ...(isTablet ? { maxWidth: 600, alignSelf: 'center' as const, width: '100%' as const } : {}),
+  },
+  cameraBox: {
+    aspectRatio: 1 / 1,
+    borderRadius: 22,
     overflow: 'hidden',
     backgroundColor: theme.colors.charcoal,
-    ...(isTablet ? { maxWidth: 600, alignSelf: 'center' as const, width: '100%' as const } : {}),
+  },
+  cameraBoxRedFlag: {
+    borderColor: theme.colors.loss,
   },
   permissionDenied: {
     flex: 1,

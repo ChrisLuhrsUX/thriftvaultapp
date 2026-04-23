@@ -1096,8 +1096,8 @@ export default function DetailScreen() {
                       <AppIcon name="flag" size={15} color={theme.colors.loss} />
                       <Text style={styles.insightsRedFlagHeaderText}>Red Flags</Text>
                     </View>
-                    <Text style={styles.insightsRedFlagSubtitle}>This item may be fake or use AI-generated artwork.</Text>
-                    {activeSnapshot.redFlags.map((flag, i) => (
+                    <Text style={styles.insightsRedFlagSubtitle}>This item or photo may be fake or AI-generated.</Text>
+                    {activeSnapshot.redFlags.filter(f => f !== 'stock-photo').map((flag, i) => (
                       <View key={i} style={styles.insightsRedFlagRow}>
                         <View style={styles.insightsRedFlagDot} />
                         <Text style={styles.insightsRedFlagText}>{flag}</Text>
