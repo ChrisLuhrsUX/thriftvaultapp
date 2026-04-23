@@ -524,6 +524,8 @@ export default function InventoryScreen() {
             onPress={() => setSearch('')}
             style={({ pressed }) => [styles.searchClear, pressed && styles.searchClearPressed]}
             hitSlop={8}
+            accessibilityLabel="Clear search"
+            accessibilityRole="button"
           >
             <AppIcon name="close-circle" size={20} color={theme.colors.mauve} />
           </Pressable>
@@ -543,6 +545,9 @@ export default function InventoryScreen() {
               filter === item.key && styles.chipActive,
             ]}
             onPress={() => { Haptics.selectionAsync(); setFilter(item.key); }}
+            accessibilityLabel={`Filter by ${item.label}`}
+            accessibilityRole="button"
+            accessibilityState={{ selected: filter === item.key }}
           >
             <Text
               style={[
@@ -559,6 +564,8 @@ export default function InventoryScreen() {
         <Pressable
           style={({ pressed }) => [styles.addToClosetBtn, pressed && { opacity: 0.8 }]}
           onPress={handleAddToCloset}
+          accessibilityLabel="Add to closet"
+          accessibilityRole="button"
         >
           <AppIcon name="images-outline" size={18} color={theme.colors.onPrimary} />
           <Text style={styles.addToClosetBtnText}>Add to Closet</Text>
@@ -577,18 +584,27 @@ export default function InventoryScreen() {
         <Pressable
           style={[styles.switcherTab, view === 'flips' && styles.switcherTabActive]}
           onPress={() => { Haptics.selectionAsync(); setView('flips'); setFilter('all'); setSearch(''); }}
+          accessibilityLabel="Flips"
+          accessibilityRole="tab"
+          accessibilityState={{ selected: view === 'flips' }}
         >
           <Text style={[styles.switcherText, view === 'flips' && styles.switcherTextActive]}>Flips</Text>
         </Pressable>
         <Pressable
           style={[styles.switcherTab, view === 'closet' && styles.switcherTabActive]}
           onPress={() => { Haptics.selectionAsync(); setView('closet'); setFilter('all'); setSearch(''); }}
+          accessibilityLabel="Closet"
+          accessibilityRole="tab"
+          accessibilityState={{ selected: view === 'closet' }}
         >
           <Text style={[styles.switcherText, view === 'closet' && styles.switcherTextActive]}>Closet</Text>
         </Pressable>
         <Pressable
           style={[styles.switcherTab, view === 'hauls' && styles.switcherTabActive]}
           onPress={() => { Haptics.selectionAsync(); setView('hauls'); }}
+          accessibilityLabel="Hauls"
+          accessibilityRole="tab"
+          accessibilityState={{ selected: view === 'hauls' }}
         >
           <Text style={[styles.switcherText, view === 'hauls' && styles.switcherTextActive]}>Hauls</Text>
         </Pressable>
@@ -645,6 +661,8 @@ export default function InventoryScreen() {
                     onPress={() => setHaulSearch('')}
                     style={({ pressed }) => [styles.searchClear, pressed && styles.searchClearPressed]}
                     hitSlop={8}
+                    accessibilityLabel="Clear search"
+                    accessibilityRole="button"
                   >
                     <AppIcon name="close-circle" size={20} color={theme.colors.mauve} />
                   </Pressable>
@@ -653,6 +671,8 @@ export default function InventoryScreen() {
               <Pressable
                 style={({ pressed }) => [styles.newHaulBtn, pressed && { opacity: 0.8 }]}
                 onPress={handleNewHaul}
+                accessibilityLabel="Create new haul"
+                accessibilityRole="button"
               >
                 <AppIcon name="images-outline" size={18} color={theme.colors.onPrimary} />
                 <Text style={styles.newHaulBtnText}>New Haul</Text>

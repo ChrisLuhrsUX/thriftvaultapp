@@ -138,6 +138,8 @@ if (id === 'subscription') {
         <Pressable
           style={({ pressed }) => [styles.upgradeBtn, pressed && styles.btnPressed]}
           onPress={() => setPaywallVisible(true)}
+          accessibilityLabel="Upgrade to Pro"
+          accessibilityRole="button"
         >
           <AppIcon name="sparkles" size={20} color={theme.colors.onPrimary} />
           <Text style={styles.upgradeBtnText}>Upgrade to Pro</Text>
@@ -222,6 +224,8 @@ if (id === 'subscription') {
             <Pressable
               style={styles.appearanceSwitch}
               onPress={() => setColorScheme(colorScheme === 'light' ? 'dark' : 'light')}
+              accessibilityLabel={`Switch to ${colorScheme === 'light' ? 'dark' : 'light'} mode`}
+              accessibilityRole="button"
             >
               <AppIcon
                 name={colorScheme === 'light' ? 'moon' : 'bulb'}
@@ -238,6 +242,8 @@ if (id === 'subscription') {
               key={row.id}
               style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
               onPress={() => handleSetting(row.id)}
+              accessibilityLabel={row.label}
+              accessibilityRole="button"
             >
               <AppIcon name={row.icon} size={22} color={theme.colors.mauve} />
               <Text style={styles.rowLabel}>{row.label}</Text>

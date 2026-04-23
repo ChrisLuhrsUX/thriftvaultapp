@@ -175,6 +175,8 @@ function ScanResultCard({
               style={({ pressed }) => [styles.handmadeYes, pressed && { opacity: 0.7 }]}
               onPress={onConfirmHandmade}
               hitSlop={12}
+              accessibilityLabel="Yes, this is handmade"
+              accessibilityRole="button"
             >
               <Text style={styles.handmadeYesText}>Yes</Text>
             </Pressable>
@@ -182,6 +184,8 @@ function ScanResultCard({
               style={({ pressed }) => [styles.handmadeNo, pressed && { opacity: 0.7 }]}
               onPress={onDismissCustom}
               hitSlop={12}
+              accessibilityLabel="No, not handmade"
+              accessibilityRole="button"
             >
               <Text style={styles.handmadeNoText}>No</Text>
             </Pressable>
@@ -200,6 +204,8 @@ function ScanResultCard({
               style={({ pressed }) => [styles.handmadeYes, pressed && { opacity: 0.7 }]}
               onPress={onRescanWrong}
               hitSlop={12}
+              accessibilityLabel="Yes, rescan this item"
+              accessibilityRole="button"
             >
               <Text style={styles.handmadeYesText}>Yes</Text>
             </Pressable>
@@ -207,6 +213,8 @@ function ScanResultCard({
               style={({ pressed }) => [styles.handmadeNo, pressed && { opacity: 0.7 }]}
               onPress={onDismissWrongScan}
               hitSlop={12}
+              accessibilityLabel="No, scan is correct"
+              accessibilityRole="button"
             >
               <Text style={styles.handmadeNoText}>No</Text>
             </Pressable>
@@ -264,6 +272,9 @@ function ScanResultCard({
             style={styles.authHeader}
             onPress={() => setAuthExpanded((v) => !v)}
             hitSlop={4}
+            accessibilityLabel="Verify authenticity"
+            accessibilityRole="button"
+            accessibilityState={{ expanded: authExpanded }}
           >
             <AppIcon name="shield-checkmark-outline" size={15} color={theme.colors.vintageBlueDark} />
             <Text style={styles.authHeaderText}>Verify authenticity</Text>
@@ -295,6 +306,9 @@ function ScanResultCard({
             style={styles.upcycleHeader}
             onPress={() => setUpcycleExpanded((v) => !v)}
             hitSlop={4}
+            accessibilityLabel="Upcycle ideas"
+            accessibilityRole="button"
+            accessibilityState={{ expanded: upcycleExpanded }}
           >
             <AppIcon name="color-palette-outline" size={15} color={theme.colors.terra} />
             <Text style={styles.upcycleHeaderText}>Upcycle ideas</Text>
@@ -341,6 +355,8 @@ function ScanResultCard({
         <Pressable
           style={({ pressed }) => [styles.btnPrimary, pressed && styles.btnPressed]}
           onPress={onBuyAndTrack}
+          accessibilityLabel="Buy and track this item"
+          accessibilityRole="button"
         >
           <Text style={styles.btnPrimaryText}>Buy & Track</Text>
         </Pressable>
@@ -348,12 +364,16 @@ function ScanResultCard({
           <Pressable
             style={({ pressed }) => [styles.btnSecondary, pressed && styles.btnPressed]}
             onPress={onAddToCloset}
+            accessibilityLabel="Add to closet"
+            accessibilityRole="button"
           >
             <Text style={styles.btnSecondaryText}>Add to Closet</Text>
           </Pressable>
           <Pressable
             style={({ pressed }) => [styles.btnSecondary, pressed && styles.btnPressed]}
             onPress={onSaveForLater}
+            accessibilityLabel="Save for later"
+            accessibilityRole="button"
           >
             <Text style={styles.btnSecondaryText}>Save for Later</Text>
           </Pressable>
@@ -361,6 +381,8 @@ function ScanResultCard({
         <Pressable
           style={({ pressed }) => [styles.btnTertiary, pressed && styles.btnPressed]}
           onPress={onSkip}
+          accessibilityLabel="Skip this item"
+          accessibilityRole="button"
         >
           <Text style={styles.btnTertiaryText}>Skip</Text>
         </Pressable>
@@ -1323,6 +1345,8 @@ export default function ScanScreen() {
               <Pressable
                 style={({ pressed }) => [styles.permissionDeniedBtn, pressed && styles.cameraPressed]}
                 onPress={() => Linking.openSettings()}
+                accessibilityLabel="Open settings"
+                accessibilityRole="button"
               >
                 <Text style={styles.permissionDeniedBtnText}>Open Settings</Text>
               </Pressable>
@@ -1362,6 +1386,8 @@ export default function ScanScreen() {
                       style={({ pressed }) => [styles.shutterRing, styles.shutterRingLive, pressed && styles.cameraPressed]}
                       onPress={handleCapturePhoto}
                       disabled={scanning || !cameraReady}
+                      accessibilityLabel="Take photo"
+                      accessibilityRole="button"
                     >
                       {scanning ? (
                         <ActivityIndicator size="small" color={theme.colors.white} />
@@ -1398,7 +1424,7 @@ export default function ScanScreen() {
                         </View>
                       )}
                       <BlurView intensity={40} tint="dark" style={styles.cancelPill}>
-                        <Pressable style={({ pressed }) => [styles.clearBtn, pressed && styles.cameraPressed]} onPress={cancelScan} hitSlop={8}>
+                        <Pressable style={({ pressed }) => [styles.clearBtn, pressed && styles.cameraPressed]} onPress={cancelScan} hitSlop={8} accessibilityLabel="Cancel scan" accessibilityRole="button">
                           <Text style={styles.clearBtnText}>Cancel</Text>
                         </Pressable>
                       </BlurView>
@@ -1448,7 +1474,7 @@ export default function ScanScreen() {
                         </View>
                       )}
                       <BlurView intensity={40} tint="dark" style={styles.cancelPill}>
-                        <Pressable style={({ pressed }) => [styles.clearBtn, pressed && styles.cameraPressed]} onPress={cancelScan} hitSlop={8}>
+                        <Pressable style={({ pressed }) => [styles.clearBtn, pressed && styles.cameraPressed]} onPress={cancelScan} hitSlop={8} accessibilityLabel="Cancel scan" accessibilityRole="button">
                           <Text style={styles.clearBtnText}>Cancel</Text>
                         </Pressable>
                       </BlurView>
@@ -1482,6 +1508,8 @@ export default function ScanScreen() {
                                 style={({ pressed }) => [styles.uploadIconBtn, pressed && styles.cameraPressed]}
                                 onPress={handlePickFromLibrary}
                                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                                accessibilityLabel="Choose from photo library"
+                                accessibilityRole="button"
                               >
                                 <AppIcon name="images-outline" size={26} color={theme.colors.white} />
                               </Pressable>
@@ -1505,6 +1533,8 @@ export default function ScanScreen() {
                       style={styles.stagedThumbRemove}
                       onPress={() => handleRemoveStagedPhoto(i)}
                       hitSlop={6}
+                      accessibilityLabel={`Remove photo ${i + 1}`}
+                      accessibilityRole="button"
                     >
                       <AppIcon name="close-circle" size={18} color={theme.colors.white} />
                     </Pressable>
@@ -1518,6 +1548,8 @@ export default function ScanScreen() {
                     style={({ pressed }) => [styles.stagedClearBtn, pressed && styles.cameraPressed]}
                     onPress={clearResultAndPhoto}
                     hitSlop={6}
+                    accessibilityLabel="Clear all photos"
+                    accessibilityRole="button"
                   >
                     <AppIcon name="close" size={18} color={theme.colors.white} />
                   </Pressable>
@@ -1530,6 +1562,8 @@ export default function ScanScreen() {
               <Pressable
                 style={({ pressed }) => [styles.clearBtn, pressed && styles.cameraPressed]}
                 onPress={clearResultAndPhoto}
+                accessibilityLabel="Clear result and scan again"
+                accessibilityRole="button"
               >
                 <AppIcon name="refresh" size={18} color={theme.colors.white} />
                 <Text style={styles.clearBtnText}>Clear</Text>

@@ -168,7 +168,7 @@ export default function HaulDetailScreen() {
       <View style={styles.container}>
         <View style={[styles.header, { paddingTop: insets.top }]}>
           <View style={styles.headerNavRow}>
-            <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')} style={styles.headerBtn}>
+            <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')} style={styles.headerBtn} accessibilityLabel="Go back" accessibilityRole="button">
               <AppIcon name="arrow-back" size={24} color={theme.colors.charcoal} />
             </Pressable>
             <View style={styles.headerNavSpacer} />
@@ -181,7 +181,7 @@ export default function HaulDetailScreen() {
           <Text style={styles.emptyText}>
             {!date ? 'No haul selected' : 'No items in this haul'}
           </Text>
-          <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')} style={styles.emptyBtn}>
+          <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')} style={styles.emptyBtn} accessibilityLabel="Go back" accessibilityRole="button">
             <Text style={styles.emptyBtnText}>Go back</Text>
           </Pressable>
         </View>
@@ -201,7 +201,7 @@ export default function HaulDetailScreen() {
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <View style={styles.headerNavRow}>
-          <Pressable onPress={() => router.back()} style={styles.headerBtn}>
+          <Pressable onPress={() => router.back()} style={styles.headerBtn} accessibilityLabel="Go back" accessibilityRole="button">
             <AppIcon name="arrow-back" size={24} color={theme.colors.charcoal} />
           </Pressable>
           <View style={styles.headerRight}>
@@ -318,7 +318,7 @@ export default function HaulDetailScreen() {
         onRequestClose={() => setStoreModalVisible(false)}
       >
         <View style={styles.haulStoreOverlay}>
-          <Pressable style={styles.haulStoreBackdrop} onPress={() => setStoreModalVisible(false)} />
+          <Pressable style={styles.haulStoreBackdrop} onPress={() => setStoreModalVisible(false)} accessibilityLabel="Dismiss" accessibilityRole="button" />
           <Pressable style={styles.haulStoreSheet} onPress={() => Keyboard.dismiss()}>
             <Text style={styles.haulStoreTitle}>Store for this haul</Text>
             <Text style={styles.haulStoreHint}>
@@ -336,12 +336,16 @@ export default function HaulDetailScreen() {
             <Pressable
               style={({ pressed }) => [styles.haulStoreClearBtn, pressed && { opacity: 0.6 }]}
               onPress={handleClearBulkStore}
+              accessibilityLabel="Clear store"
+              accessibilityRole="button"
             >
               <Text style={styles.haulStoreClearText}>Clear store</Text>
             </Pressable>
             <Pressable
               style={({ pressed }) => [styles.haulStoreApplyBtn, pressed && { opacity: 0.85 }]}
               onPress={handleApplyBulkStore}
+              accessibilityLabel="Apply store to all items"
+              accessibilityRole="button"
             >
               <Text style={styles.haulStoreApplyText}>Apply</Text>
             </Pressable>

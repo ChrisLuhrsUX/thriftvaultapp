@@ -423,6 +423,8 @@ export default function DetailScreen() {
         isCustom: true,
         ideas: result.ideas,
         upcycle: Array.isArray(result.upcycle) ? result.upcycle.slice(0, 3) : [],
+        authFlags: Array.isArray(result.authFlags) ? result.authFlags.slice(0, 3) : [],
+        redFlags: Array.isArray(result.redFlags) ? result.redFlags.slice(0, 3) : [],
         sourceImageUri: photoUri,
       };
       const prev = item.scanSnapshots ?? [];
@@ -433,7 +435,7 @@ export default function DetailScreen() {
       const resaleUpdate = newResale > 0 && newResale > (item.resale ?? 0) ? { resale: newResale } : {};
       // Update snapshot profit to use ratcheted prices
       if (resaleUpdate.resale) {
-        newSnapshot.profit = `$${newLow}–$${newHigh}`;
+        newSnapshot.profit = `${formatMoney(newLow)}–${formatMoney(newHigh)}`;
         setResaleStr(String(newResale));
       }
       const nameUpdate = result.name ? { name: result.name } : {};
@@ -468,11 +470,13 @@ export default function DetailScreen() {
         id: `${Date.now()}-rescan`,
         createdAt: Date.now(),
         sub: result.sub,
-        profit: newLow > 0 ? `$${newLow}–$${newHigh}` : result.profit,
+        profit: newLow > 0 ? `${formatMoney(newLow)}–${formatMoney(newHigh)}` : result.profit,
         confidence: result.confidence,
         isCustom: wasHandmade || result.isCustom,
         ideas: result.ideas,
         upcycle: Array.isArray(result.upcycle) ? result.upcycle.slice(0, 3) : [],
+        authFlags: Array.isArray(result.authFlags) ? result.authFlags.slice(0, 3) : [],
+        redFlags: Array.isArray(result.redFlags) ? result.redFlags.slice(0, 3) : [],
         sourceImageUri: photoUri,
       };
       const nextSnapshots = [newSnapshot, ...(item.scanSnapshots ?? [])].slice(0, 10);
@@ -700,7 +704,7 @@ export default function DetailScreen() {
     return (
       <View style={styles.container}>
         <View style={[styles.header, { paddingTop: insets.top }]}>
-          <Pressable onPress={() => router.back()} style={styles.headerBtn}>
+          <Pressable onPress={() => router.back()} style={styles.headerBtn} accessibilityLabel="Go back" accessibilityRole="button">
             <AppIcon name="arrow-back" size={24} color={theme.colors.charcoal} />
           </Pressable>
         </View>
@@ -738,7 +742,7 @@ export default function DetailScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={[styles.header, { paddingTop: insets.top }]}>
-        <Pressable onPress={saveAndBack} style={styles.headerBtn}>
+        <Pressable onPress={saveAndBack} style={styles.headerBtn} accessibilityLabel="Go back" accessibilityRole="button">
           <AppIcon name="arrow-back" size={24} color={theme.colors.charcoal} />
         </Pressable>
         <View style={styles.headerTitleWrap}>
@@ -767,6 +771,8 @@ export default function DetailScreen() {
             <Pressable
               onPress={() => { setEditedName(item.name); setEditingName(true); }}
               style={styles.headerTitleRow}
+              accessibilityLabel="Edit item name"
+              accessibilityRole="button"
             >
               <Text style={styles.headerTitle} numberOfLines={1}>{item.name}</Text>
               <AppIcon name="pencil" size={14} color={theme.colors.mauve} />
@@ -776,6 +782,8 @@ export default function DetailScreen() {
         <Pressable
           onPress={showItemMenu}
           style={styles.headerBtn}
+          accessibilityLabel="Item menu"
+          accessibilityRole="button"
         >
           <AppIcon name="ellipsis-horizontal" size={24} color={theme.colors.charcoal} />
         </Pressable>
@@ -822,6 +830,8 @@ export default function DetailScreen() {
                     <Pressable
                       style={[styles.galleryEmpty, { width: galleryWidth, height: galleryWidth }]}
                       onPress={handleAddPhoto}
+                      accessibilityLabel="Add photos"
+                      accessibilityRole="button"
                     >
                       <AppIcon name="camera-outline" size={48} color={theme.colors.mauve} />
                       <Text style={styles.galleryEmptyTitle}>No photos yet</Text>
@@ -1035,6 +1045,8 @@ export default function DetailScreen() {
                       style={({ pressed }) => [styles.insightsCustomYes, pressed && { opacity: 0.7 }]}
                       onPress={() => confirmHandmade()}
                       hitSlop={8}
+                      accessibilityLabel="Yes, this is handmade"
+                      accessibilityRole="button"
                     >
                       <Text style={styles.insightsCustomYesText}>Yes</Text>
                     </Pressable>
@@ -1042,6 +1054,8 @@ export default function DetailScreen() {
                       style={({ pressed }) => [styles.insightsCustomNo, pressed && { opacity: 0.7 }]}
                       onPress={() => { setCustomDismissed(true); AsyncStorage.setItem(`tv_prompt_dismissed_${id}`, JSON.stringify({ handmade: true, wrongScan: wrongScanDismissed })); }}
                       hitSlop={8}
+                      accessibilityLabel="No, not handmade"
+                      accessibilityRole="button"
                     >
                       <Text style={styles.insightsCustomNoText}>No</Text>
                     </Pressable>
@@ -1060,6 +1074,8 @@ export default function DetailScreen() {
                       style={({ pressed }) => [styles.insightsCustomYes, pressed && { opacity: 0.7 }]}
                       onPress={rescanWrong}
                       hitSlop={8}
+                      accessibilityLabel="Yes, rescan this item"
+                      accessibilityRole="button"
                     >
                       <Text style={styles.insightsCustomYesText}>Yes</Text>
                     </Pressable>
@@ -1067,6 +1083,8 @@ export default function DetailScreen() {
                       style={({ pressed }) => [styles.insightsCustomNo, pressed && { opacity: 0.7 }]}
                       onPress={() => { setWrongScanDismissed(true); AsyncStorage.setItem(`tv_prompt_dismissed_${id}`, JSON.stringify({ handmade: customDismissed, wrongScan: true })); }}
                       hitSlop={8}
+                      accessibilityLabel="No, scan is correct"
+                      accessibilityRole="button"
                     >
                       <Text style={styles.insightsCustomNoText}>No</Text>
                     </Pressable>
@@ -1116,6 +1134,9 @@ export default function DetailScreen() {
                         style={styles.insightsAuthHeader}
                         onPress={() => setAuthExpanded((v) => !v)}
                         hitSlop={4}
+                        accessibilityLabel="Verify authenticity"
+                        accessibilityRole="button"
+                        accessibilityState={{ expanded: authExpanded }}
                       >
                         <AppIcon name="shield-checkmark-outline" size={14} color={theme.colors.vintageBlueDark} />
                         <Text style={styles.insightsAuthHeaderText}>Verify authenticity</Text>
@@ -1145,6 +1166,8 @@ export default function DetailScreen() {
                     <Pressable
                       style={({ pressed }) => [styles.historyBtn, pressed && styles.btnPressed]}
                       onPress={() => setScanHistoryVisible(true)}
+                      accessibilityLabel="View scan history"
+                      accessibilityRole="button"
                     >
                       <AppIcon name="time-outline" size={14} color={theme.colors.vintageBlueDark} />
                       <Text style={styles.historyBtnText}>Scan history</Text>
@@ -1157,6 +1180,9 @@ export default function DetailScreen() {
                         style={styles.insightsUpcycleHeader}
                         onPress={() => setUpcycleExpanded((v) => !v)}
                         hitSlop={4}
+                        accessibilityLabel="Upcycle ideas"
+                        accessibilityRole="button"
+                        accessibilityState={{ expanded: upcycleExpanded }}
                       >
                         <AppIcon name="color-palette-outline" size={14} color={theme.colors.terra} />
                         <Text style={styles.insightsUpcycleHeaderText}>Upcycle ideas</Text>
@@ -1198,6 +1224,8 @@ export default function DetailScreen() {
                     style={({ pressed }) => [styles.deleteScanBtn, pressed && { opacity: 0.7 }]}
                     onPress={deleteActiveScan}
                     hitSlop={8}
+                    accessibilityLabel="Delete scan"
+                    accessibilityRole="button"
                   >
                     <AppIcon name="trash-outline" size={14} color={theme.colors.terra} />
                     <Text style={styles.deleteScanBtnText}>Delete scan</Text>
@@ -1222,7 +1250,10 @@ export default function DetailScreen() {
                 <Pressable
                   key={c}
                   style={[styles.platformChip, item.cat === c && styles.platformChipActive]}
-                  onPress={() => { Haptics.selectionAsync(); update({ cat: item.cat === c ? '' as any : c }); }}
+                  onPress={() => { Haptics.selectionAsync(); update({ cat: item.cat === c ? 'other' : c }); }}
+                  accessibilityLabel={`${c.charAt(0).toUpperCase() + c.slice(1)} category`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: item.cat === c }}
                 >
                   <Text style={[styles.platformChipText, item.cat === c && styles.platformChipTextActive]}>
                     {c.charAt(0).toUpperCase() + c.slice(1)}
@@ -1254,6 +1285,9 @@ export default function DetailScreen() {
                       key={p}
                       style={[styles.platformChip, item.platform === p && styles.platformChipActive]}
                       onPress={() => { Haptics.selectionAsync(); update({ platform: item.platform === p ? '' : p }); }}
+                      accessibilityLabel={`${p} platform`}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: item.platform === p }}
                     >
                       <Text style={[styles.platformChipText, item.platform === p && styles.platformChipTextActive]}>{p}</Text>
                     </Pressable>
@@ -1261,6 +1295,9 @@ export default function DetailScreen() {
                   <Pressable
                     style={[styles.platformChip, !KNOWN_PLATFORMS.includes(item.platform) && styles.platformChipActive]}
                     onPress={() => update({ platform: '' })}
+                    accessibilityLabel="Other platform"
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: !KNOWN_PLATFORMS.includes(item.platform) }}
                   >
                     <Text style={[styles.platformChipText, !KNOWN_PLATFORMS.includes(item.platform) && styles.platformChipTextActive]}>Other</Text>
                   </Pressable>
@@ -1295,12 +1332,15 @@ export default function DetailScreen() {
                           update({ status: 'sold', soldPrice });
                           setSoldStr(String(soldPrice));
                         } else if (s === 'sold' && item.status === 'sold') {
-                          update({ status: '' as any, soldPrice: null });
+                          update({ status: 'unlisted', soldPrice: null });
                           setSoldStr('');
                         } else {
-                          update({ status: item.status === s ? '' as any : s });
+                          update({ status: item.status === s ? 'unlisted' : s });
                         }
                       }}
+                      accessibilityLabel={`${s === 'unlisted' ? 'Unlisted' : s === 'listed' ? 'Listed' : 'Sold'} status`}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: item.status === s }}
                     >
                       <Text style={[styles.statusChipText, item.status === s && styles.statusChipTextActive]}>
                         {s === 'unlisted' ? 'Unlisted' : s === 'listed' ? 'Listed' : 'Sold'}
@@ -1333,6 +1373,8 @@ export default function DetailScreen() {
           <Pressable
             style={({ pressed }) => [styles.markSoldBtn, pressed && styles.btnPressed]}
             onPress={handleMarkSold}
+            accessibilityLabel="Mark as sold"
+            accessibilityRole="button"
           >
             <Text style={styles.markSoldBtnText}>Mark as Sold</Text>
           </Pressable>
@@ -1438,6 +1480,8 @@ export default function DetailScreen() {
                     router.back();
                   }
                 }}
+                accessibilityLabel="Move to Closet"
+                accessibilityRole="button"
               >
                 <AppIcon name="shirt-outline" size={20} color={theme.colors.charcoal} />
                 <Text style={styles.itemMenuItemText}>Move to Closet</Text>
@@ -1454,6 +1498,8 @@ export default function DetailScreen() {
                     router.back();
                   }
                 }}
+                accessibilityLabel="Move to Flips"
+                accessibilityRole="button"
               >
                 <AppIcon name="pricetag-outline" size={20} color={theme.colors.charcoal} />
                 <Text style={styles.itemMenuItemText}>Move to Flips</Text>
@@ -1474,12 +1520,14 @@ export default function DetailScreen() {
             <Pressable
               style={[styles.itemMenuItem, styles.itemMenuItemDestructive]}
               onPress={() => { closeItemMenu(); handleDeleteConfirm(); }}
+              accessibilityLabel="Delete item"
+              accessibilityRole="button"
             >
               <AppIcon name="trash-outline" size={20} color={theme.colors.terra} />
               <Text style={[styles.itemMenuItemText, styles.itemMenuItemTextDestructive]}>Delete</Text>
             </Pressable>
             <View style={styles.itemMenuSeparator} />
-            <Pressable style={styles.itemMenuItemCancel} onPress={closeItemMenu}>
+            <Pressable style={styles.itemMenuItemCancel} onPress={closeItemMenu} accessibilityLabel="Cancel" accessibilityRole="button">
               <Text style={styles.itemMenuItemTextSecondary}>Cancel</Text>
             </Pressable>
           </View>

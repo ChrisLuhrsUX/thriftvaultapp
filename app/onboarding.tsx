@@ -110,6 +110,8 @@ export default function OnboardingScreen() {
           <Pressable
             style={({ pressed }) => [styles.btnPrimary, pressed && styles.btnPressed]}
             onPress={next}
+            accessibilityLabel={index < SLIDES.length - 1 ? 'Continue' : 'Start free trial'}
+            accessibilityRole="button"
           >
             <Text style={styles.btnPrimaryText}>
               {index < SLIDES.length - 1 ? 'Continue' : 'Start Free Trial'}
@@ -118,6 +120,8 @@ export default function OnboardingScreen() {
           <Pressable
             style={({ pressed }) => [styles.btnGhost, pressed && styles.btnPressed]}
             onPress={finish}
+            accessibilityLabel="Skip onboarding"
+            accessibilityRole="button"
           >
             <Text style={styles.btnGhostText}>Skip</Text>
           </Pressable>

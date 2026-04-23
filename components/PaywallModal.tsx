@@ -134,7 +134,7 @@ export function PaywallModal({ visible, onClose }: PaywallModalProps) {
       onRequestClose={dismiss}
     >
       <View style={styles.overlay} pointerEvents="box-none">
-        <Pressable style={styles.backdrop} onPress={dismiss} />
+        <Pressable style={styles.backdrop} onPress={dismiss} accessibilityLabel="Dismiss" accessibilityRole="button" />
         <Animated.View
           style={[
             styles.sheet,
@@ -187,6 +187,8 @@ export function PaywallModal({ visible, onClose }: PaywallModalProps) {
             style={({ pressed }) => [styles.cta, (pressed || purchasing) && styles.ctaPressed]}
             onPress={handleSubscribe}
             disabled={purchasing}
+            accessibilityLabel="Start free trial"
+            accessibilityRole="button"
           >
             {purchasing
               ? <ActivityIndicator size="small" color={theme.colors.onPrimary} />
@@ -204,15 +206,15 @@ export function PaywallModal({ visible, onClose }: PaywallModalProps) {
             in your Account Settings after purchase.
           </Text>
           <View style={styles.legalLinks}>
-            <Pressable onPress={() => Linking.openURL('https://chrisluhrsux.github.io/thriftvaultapp/assets/privacy-policy.html')}>
+            <Pressable onPress={() => Linking.openURL('https://chrisluhrsux.github.io/thriftvaultapp/assets/privacy-policy.html')} accessibilityLabel="Privacy Policy" accessibilityRole="link">
               <Text style={styles.legalLink}>Privacy Policy</Text>
             </Pressable>
             <Text style={styles.legalDot}> · </Text>
-            <Pressable onPress={() => Linking.openURL('https://chrisluhrsux.github.io/thriftvaultapp/assets/terms.html')}>
+            <Pressable onPress={() => Linking.openURL('https://chrisluhrsux.github.io/thriftvaultapp/assets/terms.html')} accessibilityLabel="Terms of Use" accessibilityRole="link">
               <Text style={styles.legalLink}>Terms of Use</Text>
             </Pressable>
             <Text style={styles.legalDot}> · </Text>
-            <Pressable onPress={handleRestore} disabled={restoring}>
+            <Pressable onPress={handleRestore} disabled={restoring} accessibilityLabel="Restore purchases" accessibilityRole="button">
               <Text style={styles.legalLink}>{restoring ? 'Restoring…' : 'Restore Purchases'}</Text>
             </Pressable>
           </View>
@@ -242,6 +244,9 @@ function PlanCard({
         selected && styles.planCardSelected,
       ]}
       onPress={onSelect}
+      accessibilityLabel={`${plan.label} plan, ${plan.price}${plan.period}`}
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
     >
       {plan.badge ? (
         <View style={[styles.planBadge, selected && styles.planBadgeSelected]}>
