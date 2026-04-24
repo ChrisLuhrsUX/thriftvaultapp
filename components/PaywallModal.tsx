@@ -22,8 +22,9 @@ import type { Theme } from '@/theme';
 const SHEET_OFFSCREEN = 700;
 
 const FEATURES = [
-  'Unlimited AI scans & price estimates',
-  'Handmade item detection & rescanning',
+  'Unlimited AI scans, pricing & unlimited vault',
+  'Handmade detection & rescanning',
+  'Counterfeit & scam alerts on every scan',
   'Upcycle suggestions & flip ideas',
   'Haul tracking & profit analytics',
 ];
@@ -177,7 +178,6 @@ export function PaywallModal({ visible, onClose }: PaywallModalProps) {
                 plan={plan}
                 selected={selectedPlan === plan.id}
                 onSelect={() => setSelectedPlan(plan.id)}
-                theme={theme}
                 styles={styles}
               />
             ))}
@@ -228,13 +228,11 @@ function PlanCard({
   plan,
   selected,
   onSelect,
-  theme,
   styles,
 }: {
   plan: PlanOption;
   selected: boolean;
   onSelect: () => void;
-  theme: Theme;
   styles: ReturnType<typeof createStyles>;
 }) {
   return (
@@ -256,7 +254,9 @@ function PlanCard({
       <Text style={[styles.planLabel, selected && styles.planLabelSelected]}>{plan.label}</Text>
       <Text style={[styles.planPrice, selected && styles.planPriceSelected]}>{plan.price}</Text>
       <Text style={[styles.planPeriod, selected && styles.planPeriodSelected]}>{plan.period}</Text>
-      <Text style={[styles.planPerMonth, selected && styles.planPerMonthSelected]}>{plan.perMonth}</Text>
+      {plan.perMonth ? (
+        <Text style={[styles.planPerMonth, selected && styles.planPerMonthSelected]}>{plan.perMonth}</Text>
+      ) : null}
     </Pressable>
   );
 }

@@ -11,7 +11,7 @@ export interface PlanOption {
   label: string;
   price: string;
   period: string;
-  perMonth: string;
+  perMonth?: string;
   badge?: string;
 }
 
@@ -21,7 +21,6 @@ export const PLANS: PlanOption[] = [
     label: 'Monthly',
     price: '$4.99',
     period: '/mo',
-    perMonth: '$4.99/mo',
   },
   {
     id: 'season',

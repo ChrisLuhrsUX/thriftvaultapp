@@ -1042,11 +1042,11 @@ export default function ScanScreen() {
     if (normalizeName(a) === normalizeName(b)) return true;
     const tokensA = tokenize(a);
     const tokensB = tokenize(b);
-    if (tokensA.length === 0 || tokensB.length === 0) return false;
-    const setB = new Set(tokensB);
-    const overlap = tokensA.filter((t) => setB.has(t)).length;
-    const shorter = Math.min(tokensA.length, tokensB.length);
-    return overlap >= Math.ceil(shorter * 0.6);
+    if (tokensA.length < 3 || tokensB.length < 3) return false;
+    if (tokensA.length !== tokensB.length) return false;
+    const sortedA = [...tokensA].sort().join(' ');
+    const sortedB = [...tokensB].sort().join(' ');
+    return sortedA === sortedB;
   }, [normalizeName, tokenize]);
 
   const persistPhotos = useCallback(async (itemId: number, uris: string[]): Promise<string[]> => {
@@ -1197,10 +1197,16 @@ export default function ScanScreen() {
 
   const handleDuplicateChoice = useCallback((intent: 'flip' | 'closet') => {
     if (!result) return;
-    const matches = inventory.filter((item) =>
-      isSimilarName(item.name, result.name) &&
-      (!result.category || item.cat === result.category)
-    );
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const matches = inventory.filter((item) => {
+      if (!isSimilarName(item.name, result.name)) return false;
+      if (!result.category || item.cat !== result.category) return false;
+      if (item.status === 'sold') return false;
+      const itemDate = new Date(item.date).getTime();
+      if (!Number.isFinite(itemDate)) return false;
+      return now - itemDate <= THIRTY_DAYS_MS;
+    });
     if (matches.length === 0) {
       void createItemFromScan(intent);
       return;

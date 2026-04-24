@@ -86,7 +86,7 @@ function createStyles(theme: Theme, isTablet: boolean) {
   });
 }
 
-export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { theme } = useTheme();

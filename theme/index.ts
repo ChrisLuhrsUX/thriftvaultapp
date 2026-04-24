@@ -21,7 +21,7 @@ const radius = {
   full: 9999,
 } as const;
 
-function shadowsFor(bg: string) {
+function shadowsFor() {
   return {
     sm: Platform.select({
       ios: {
@@ -69,7 +69,7 @@ export function getTheme(colorsOverride: ThemeColors): Theme {
     typography,
     spacing,
     radius,
-    shadows: shadowsFor(colorsOverride.cream),
+    shadows: shadowsFor(),
     animation,
     minTouchTargetSize,
   };

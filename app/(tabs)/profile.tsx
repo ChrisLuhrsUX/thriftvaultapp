@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
   Linking,
@@ -31,7 +30,6 @@ const SETTINGS_ROWS = [
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const { theme, colorScheme, setColorScheme } = useTheme();
   const { inventory } = useInventory();
   const { restorePurchases } = usePurchases();

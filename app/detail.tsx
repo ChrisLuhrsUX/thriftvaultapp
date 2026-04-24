@@ -37,7 +37,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useToast } from '@/context/ToastContext';
 import { useResponsive } from '@/hooks/useResponsive';
 import { rescanAsHandmade, refreshUpcycleIdeas, scanWithGemini } from '@/services/gemini';
-import { getConfidenceColor, getConfidencePresentation } from '@/utils/confidencePresentation';
+import { getConfidenceColor } from '@/utils/confidencePresentation';
 import { formatMoney } from '@/utils/currency';
 import { ITEM_CATEGORIES, type Item, type ItemScanSnapshot, type ItemStatus, type Platform as PlatformType } from '@/types/inventory';
 import type { Theme } from '@/theme';
