@@ -34,18 +34,37 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const SAVED_LATER_KEY = 'tv_saved_later';
 const TV_PENDING_SCAN_KEY = 'tv_pending_scan';
-type SavedScanItem = ScanScenario & { savedAt: number; photoUri?: string | null; photoUris?: string[] };
+type SavedScanItem = ScanScenario & { savedAt: number; photoUri?: string | null; photoUris?: string[]; promptCustomDismissed?: boolean; promptWrongScanDismissed?: boolean };
 const SNAPSHOT_CAP = 5;
 const MAX_STAGED_PHOTOS = 5;
 const OLD_ITEM_DAYS_THRESHOLD = 90;
 
 const RECENTS_COUNT = 7;
+
+/**
+ * Generic garment nouns + filler words filtered out before duplicate-name comparison.
+ * Item TYPE is already disambiguated by the category filter, so these tokens are noise:
+ * one scan calling a piece a "dress" and another calling it a "skirt" should not
+ * tank the similarity score for the same physical item.
+ * Colors, brands, eras, and style descriptors are intentionally NOT in this list —
+ * those are the distinguishing signal.
+ */
+const DUPLICATE_STOP_WORDS = new Set([
+  'top', 'tops', 'shirt', 'shirts', 'tshirt', 'tee', 'tees', 'blouse', 'tank', 'camisole', 'cami',
+  'pants', 'jeans', 'shorts', 'skirt', 'skirts', 'leggings', 'joggers', 'trousers',
+  'jacket', 'jackets', 'coat', 'coats', 'hoodie', 'hoodies', 'sweater', 'sweaters', 'cardigan', 'vest', 'parka', 'blazer', 'pullover',
+  'dress', 'dresses', 'gown', 'romper', 'jumpsuit', 'overalls',
+  'shoes', 'shoe', 'boots', 'boot', 'sneakers', 'sneaker', 'heels', 'sandals', 'flats',
+  'bag', 'bags', 'purse', 'wallet', 'belt', 'hat', 'cap', 'scarf', 'gloves',
+  'and', 'with', 'the', 'of', 'in', 'on', 'at', 'for', 'to',
+]);
 
 const SCAN_BG_SOURCE = require('@/assets/logo/thriftvault_logo.jpg');
 
@@ -781,6 +800,7 @@ export default function ScanScreen() {
   const [duplicatePickerVisible, setDuplicatePickerVisible] = useState(false);
   const [rescanningHandmade, setRescanningHandmade] = useState(false);
   const [rescanningWrong, setRescanningWrong] = useState(false);
+  const [photoViewerVisible, setPhotoViewerVisible] = useState(false);
   const [refreshingUpcycle, setRefreshingUpcycle] = useState(false);
   const [promptCustomDismissed, setPromptCustomDismissed] = useState(false);
   const [promptWrongScanDismissed, setPromptWrongScanDismissed] = useState(false);
@@ -791,6 +811,7 @@ export default function ScanScreen() {
   const appStateRef = useRef(AppState.currentState);
   const pendingRetryRef = useRef(false);
   const { isTablet, isDesktop, hPad, headerHPad, formMaxWidth } = useResponsive();
+  const { width: screenWidth } = useWindowDimensions();
   const scanStyles = useMemo(() => createScanStyles(theme, formMaxWidth), [theme, formMaxWidth]);
   const styles = useMemo(() => createStyles(theme, hPad, headerHPad, isTablet, formMaxWidth), [theme, hPad, headerHPad, isTablet, formMaxWidth]);
 
@@ -1029,12 +1050,12 @@ export default function ScanScreen() {
 
   const normalizeName = useCallback((name: string) => name.trim().toLowerCase(), []);
 
-  /** Tokenize a name into meaningful words (drop short filler words). */
+  /** Tokenize a name to distinctive words: drop short fillers and generic garment nouns. */
   const tokenize = useCallback((name: string) => {
     return normalizeName(name)
       .replace(/[^a-z0-9]/g, ' ')
       .split(/\s+/)
-      .filter((w) => w.length > 1);
+      .filter((w) => w.length > 1 && !DUPLICATE_STOP_WORDS.has(w));
   }, [normalizeName]);
 
   /** Check if two item names are similar enough to be the same item. */
@@ -1042,11 +1063,10 @@ export default function ScanScreen() {
     if (normalizeName(a) === normalizeName(b)) return true;
     const tokensA = tokenize(a);
     const tokensB = tokenize(b);
-    if (tokensA.length < 3 || tokensB.length < 3) return false;
-    if (tokensA.length !== tokensB.length) return false;
-    const sortedA = [...tokensA].sort().join(' ');
-    const sortedB = [...tokensB].sort().join(' ');
-    return sortedA === sortedB;
+    if (tokensA.length < 2 || tokensB.length < 2) return false;
+    const setB = new Set(tokensB);
+    const intersection = tokensA.filter(t => setB.has(t)).length;
+    return intersection / Math.min(tokensA.length, tokensB.length) >= 0.70;
   }, [normalizeName, tokenize]);
 
   const persistPhotos = useCallback(async (itemId: number, uris: string[]): Promise<string[]> => {
@@ -1245,19 +1265,7 @@ export default function ScanScreen() {
       const updated = await rescanAsHandmade(photoUri, controller.signal);
       setResult((prev) => {
         if (!prev) return null;
-        const prevLow = prev.suggestedResaleLow ?? 0;
-        const prevHigh = prev.suggestedResaleHigh ?? 0;
-        const newLow = Math.max(updated.suggestedResaleLow ?? 0, prevLow);
-        const newHigh = Math.max(updated.suggestedResaleHigh ?? 0, prevHigh);
-        const newResale = newLow > 0 ? Math.round((newLow + newHigh) / 2) : (prev.suggestedResale ?? 0);
-        return {
-          ...updated,
-          isCustom: true,
-          suggestedResaleLow: newLow,
-          suggestedResaleHigh: newHigh,
-          suggestedResale: newResale,
-          profit: newLow > 0 ? `${formatMoney(newLow)}–${formatMoney(newHigh)}` : (prev.profit ?? ''),
-        };
+        return { ...updated, isCustom: true };
       });
     } catch (err) {
       if (__DEV__) console.log('[Handmade rescan] error:', err);
@@ -1308,7 +1316,7 @@ export default function ScanScreen() {
   const handleSaveForLater = useCallback(() => {
     if (!result) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const saved: SavedScanItem = { ...result, savedAt: Date.now(), photoUri: stagedPhotos[0] ?? null, photoUris: stagedPhotos };
+    const saved: SavedScanItem = { ...result, savedAt: Date.now(), photoUri: stagedPhotos[0] ?? null, photoUris: stagedPhotos, promptCustomDismissed, promptWrongScanDismissed };
     setSavedForLater((prev) => {
       const next = [...prev, saved];
       persistSavedForLater(next);
@@ -1329,6 +1337,8 @@ export default function ScanScreen() {
     setStagedPhotos(restoredPhotos);
     setPlaceholderImageUri(restoredPhotos[0] ?? null);
     setResult(saved);
+    setPromptCustomDismissed(saved.promptCustomDismissed === true);
+    setPromptWrongScanDismissed(saved.promptWrongScanDismissed === true);
   }, [persistSavedForLater]);
 
   const recents = useMemo(
@@ -1419,8 +1429,8 @@ export default function ScanScreen() {
           ) : (
             <Pressable
               style={({ pressed }) => [styles.cameraBgWrap, scanStatus && styles.cameraBgWrapHandmade, pressed && styles.cameraPressed]}
-              onPress={handleTapToScan}
-              disabled={scanning || !!result || stagedPhotos.length > 0}
+              onPress={result && placeholderImageUri ? () => setPhotoViewerVisible(true) : handleTapToScan}
+              disabled={scanning || (!result && stagedPhotos.length > 0)}
             >
               {isDesktop ? (
                 <View style={styles.cameraBg}>
@@ -1777,6 +1787,36 @@ export default function ScanScreen() {
             >
               <Text style={scanStyles.btnTertiaryText}>Back</Text>
             </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+      <Modal
+        visible={photoViewerVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPhotoViewerVisible(false)}
+      >
+        <Pressable style={styles.photoViewerOverlay} onPress={() => setPhotoViewerVisible(false)}>
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            style={{ width: screenWidth }}
+            contentContainerStyle={{ alignItems: 'center' }}
+          >
+            {(stagedPhotos.length > 0 ? stagedPhotos : placeholderImageUri ? [placeholderImageUri] : []).map((uri, i) => (
+              <Pressable key={`${uri}-${i}`} style={[styles.photoViewerPage, { width: screenWidth }]} onPress={() => setPhotoViewerVisible(false)}>
+                <Image source={{ uri }} style={styles.photoViewerImg} resizeMode="contain" />
+              </Pressable>
+            ))}
+          </ScrollView>
+          <Pressable
+            style={[styles.photoViewerClose, { paddingTop: insets.top + 8 }]}
+            onPress={() => setPhotoViewerVisible(false)}
+            accessibilityLabel="Close"
+            accessibilityRole="button"
+          >
+            <AppIcon name="close" size={28} color={theme.colors.overlayWhiteStrong} />
           </Pressable>
         </Pressable>
       </Modal>
@@ -2272,6 +2312,27 @@ function createStyles(
     ...theme.typography.caption,
     color: theme.colors.terra,
     marginTop: 4,
+  },
+  photoViewerOverlay: {
+    flex: 1,
+    backgroundColor: theme.colors.photoBackground,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  photoViewerPage: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  photoViewerImg: {
+    width: '100%',
+    height: '100%',
+  },
+  photoViewerClose: {
+    position: 'absolute',
+    top: 0,
+    right: 16,
+    padding: 8,
   },
   });
 }

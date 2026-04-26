@@ -432,12 +432,8 @@ export default function DetailScreen() {
       const newLow = Math.max(result.suggestedResaleLow ?? 0, 0);
       const newHigh = Math.max(result.suggestedResaleHigh ?? 0, 0);
       const newResale = newLow > 0 ? Math.round((newLow + newHigh) / 2) : 0;
-      const resaleUpdate = newResale > 0 && newResale > (item.resale ?? 0) ? { resale: newResale } : {};
-      // Update snapshot profit to use ratcheted prices
-      if (resaleUpdate.resale) {
-        newSnapshot.profit = `${formatMoney(newLow)}–${formatMoney(newHigh)}`;
-        setResaleStr(String(newResale));
-      }
+      const resaleUpdate = newResale > 0 ? { resale: newResale } : {};
+      if (resaleUpdate.resale) setResaleStr(String(newResale));
       const nameUpdate = result.name ? { name: result.name } : {};
       const changes = { scanSnapshots: nextSnapshots, activeScanSnapshotId: newSnapshot.id, ...resaleUpdate, ...nameUpdate };
       update(changes);
@@ -480,7 +476,7 @@ export default function DetailScreen() {
         sourceImageUri: photoUri,
       };
       const nextSnapshots = [newSnapshot, ...(item.scanSnapshots ?? [])].slice(0, 10);
-      const resaleUpdate = newResale > 0 && newResale > (item.resale ?? 0) ? { resale: newResale } : {};
+      const resaleUpdate = newResale > 0 ? { resale: newResale } : {};
       if (resaleUpdate.resale) setResaleStr(String(newResale));
       const nameUpdate = result.name ? { name: result.name } : {};
       const changes = { scanSnapshots: nextSnapshots, activeScanSnapshotId: newSnapshot.id, ...resaleUpdate, ...nameUpdate };
@@ -840,13 +836,6 @@ export default function DetailScreen() {
                   )}
                 </ScrollView>
 
-                <Pressable
-                  style={({ pressed }) => [styles.galleryAddBtn, pressed && { opacity: 0.7 }]}
-                  onPress={handleAddPhoto}
-                  accessibilityLabel="Add photo"
-                >
-                  <AppIcon name="camera" size={18} color={theme.colors.overlayWhiteStrong} />
-                </Pressable>
                 {photos.length > 1 && (
                   <View style={styles.galleryDots}>
                     {photos.map((_, i) => (
@@ -876,6 +865,16 @@ export default function DetailScreen() {
             </View>
           )}
         </View>
+
+        <Pressable
+          style={({ pressed }) => [styles.addPhotoLink, pressed && { opacity: 0.6 }]}
+          onPress={handleAddPhoto}
+          accessibilityLabel="Add photos"
+          accessibilityRole="button"
+        >
+          <AppIcon name="images-outline" size={14} color={theme.colors.vintageBlueDark} />
+          <Text style={styles.addPhotoLinkText}>Add photos</Text>
+        </Pressable>
 
         {isCloset ? (
           <View style={styles.profitStrip}>
@@ -2124,18 +2123,22 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     height: '100%',
     backgroundColor: theme.colors.surfaceVariant,
   },
-  galleryAddBtn: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: theme.colors.overlayLight,
-    borderWidth: 1.5,
-    borderColor: theme.colors.overlayWhiteStrong,
+  addPhotoLink: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    alignSelf: 'center',
+    gap: 5,
+    marginTop: 10,
+    marginBottom: 4,
+    paddingHorizontal: 14,
+    height: 34,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.surfaceVariant,
+  },
+  addPhotoLinkText: {
+    ...theme.typography.caption,
+    color: theme.colors.vintageBlueDark,
+    fontFamily: 'DMSans_600SemiBold',
   },
   galleryDots: {
     position: 'absolute',
@@ -2284,7 +2287,7 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     paddingVertical: 14,
     paddingHorizontal: 16,
     backgroundColor: theme.colors.surface,
-    marginTop: 16,
+    marginTop: 8,
     marginBottom: 20,
     borderRadius: theme.radius.md,
     ...(theme.shadows.sm ?? {}),

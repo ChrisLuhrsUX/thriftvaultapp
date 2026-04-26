@@ -406,29 +406,6 @@ export default function InventoryScreen() {
     return list;
   }, [listByView, search, filter, view]);
 
-  const stats = useMemo(() => {
-    if (view === 'hauls') return { count: 0, invested: 0, profit: 0, active: 0 };
-    const targetIntent = view === 'flips' ? 'flip' : 'closet';
-    let count = 0;
-    let invested = 0;
-    let profit = 0;
-    let active = 0;
-    for (const i of inventory) {
-      if (i.intent !== targetIntent) continue;
-      count++;
-      if (view === 'closet') {
-        invested += Number(i.paid) || 0;
-        continue;
-      }
-      invested += Number(i.paid) || 0;
-      if (i.status === 'sold' && i.soldPrice != null) {
-        profit += Number(i.soldPrice) - (Number(i.paid) || 0);
-      } else if (i.status === 'unlisted' || i.status === 'listed') {
-        active++;
-      }
-    }
-    return { count, invested, profit, active };
-  }, [inventory, view]);
 
   const hauls = useMemo(() => {
     const byDate = new Map<string, Item[]>();
@@ -492,24 +469,6 @@ export default function InventoryScreen() {
 
   const flipsClosetListHeader = (
     <View style={styles.listHeaderWrap}>
-      {view === 'flips' && (
-        <View style={styles.statsStrip}>
-          <View style={styles.statBlock}>
-            <Text style={styles.statVal}>{formatMoney(stats.invested)}</Text>
-            <Text style={styles.statLabel}>Invested</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statBlock}>
-            <Text style={[styles.statVal, styles.statValProfit]}>{formatMoneyWithSign(stats.profit)}</Text>
-            <Text style={styles.statLabel}>Profit</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statBlock}>
-            <Text style={styles.statVal}>{stats.active}</Text>
-            <Text style={styles.statLabel}>Active</Text>
-          </View>
-        </View>
-      )}
       <View style={styles.searchRow}>
         <AppIcon name="search" size={20} color={theme.colors.mauve} />
         <TextInput
@@ -693,9 +652,20 @@ export default function InventoryScreen() {
               </Text>
               <Text style={styles.emptySub}>
                 {hauls.length === 0
-                  ? 'Tap "New Haul" to log items from your last thrift trip.'
+                  ? 'Log items from your last thrift run to track spending and profits by trip.'
                   : 'Try clearing the search.'}
               </Text>
+              {hauls.length === 0 && (
+                <Pressable
+                  style={({ pressed }) => [styles.emptyBtn, pressed && { opacity: 0.8 }]}
+                  onPress={handleNewHaul}
+                  accessibilityLabel="Create new haul"
+                  accessibilityRole="button"
+                >
+                  <AppIcon name="images-outline" size={16} color={theme.colors.onPrimary} />
+                  <Text style={styles.emptyBtnText}>New Haul</Text>
+                </Pressable>
+              )}
             </View>
           }
           renderItem={({ item: haul }) => (

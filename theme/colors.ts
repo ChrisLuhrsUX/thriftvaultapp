@@ -31,12 +31,13 @@ export const lightColors = {
   shadow: '#000000',
   /** Near-black used as background in fullscreen photo viewer. */
   photoBackground: '#1A1A1A',
+
 } as const;
 
 export const darkColors = {
-  cream: '#1F1B18',
-  blush: '#2A2421',
-  blushDeep: '#352E2A',
+  cream: '#211A14',
+  blush: '#2B2118',
+  blushDeep: '#352A1E',
   /** Vintage blue (logo fabric). Primary UI: buttons, tabs, active states. */
   vintageBlue: '#6ECEC8',
   vintageBlueLight: '#2A4F4D',
@@ -47,14 +48,14 @@ export const darkColors = {
   loss: '#EF6B6B',
   terra: '#E09070',
   terraLight: 'rgba(224,144,112,0.2)',
-  charcoal: '#E8E4E1',
+  charcoal: '#EDE7DF',
   charcoalSoft: '#C9C4BF',
   mauve: '#B5A8A8',
   mauveLight: 'rgba(155,138,138,0.25)',
-  lavender: '#382F2B',
-  surfaceVariant: '#342D28',
-  white: '#E8E4E1',
-  surface: '#292320',
+  lavender: '#37301F',
+  surfaceVariant: '#372C22',
+  white: '#EDE7DF',
+  surface: '#2C221A',
   onPrimary: '#FAF8F5',
   overlayLight: 'rgba(0,0,0,0.15)',
   overlay: 'rgba(0,0,0,0.35)',
@@ -66,6 +67,7 @@ export const darkColors = {
   shadow: '#000000',
   /** Near-black used as background in fullscreen photo viewer. */
   photoBackground: '#1A1A1A',
+
 } as const;
 
 export type ThemeColors = typeof lightColors | typeof darkColors;

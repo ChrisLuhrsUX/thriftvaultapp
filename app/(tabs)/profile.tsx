@@ -53,12 +53,16 @@ export default function ProfileScreen() {
     const active = inventory.filter(
       (i) => i.intent === 'flip' && (i.status === 'unlisted' || i.status === 'listed')
     ).length;
+    const invested = inventory
+      .filter((i) => i.intent === 'flip')
+      .reduce((s, i) => s + (Number(i.paid) || 0), 0);
     return {
       totalItems: inventory.length,
       totalProfit,
       bestFlip,
       soldCount: sold.length,
       active,
+      invested,
     };
   }, [inventory]);
 
@@ -181,6 +185,11 @@ if (id === 'subscription') {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Your Stats</Text>
+          <View style={styles.row}>
+            <AppIcon name="wallet-outline" size={22} color={theme.colors.mauve} />
+            <Text style={styles.rowLabel}>Total Invested</Text>
+            <Text style={styles.rowValue}>{stats.invested > 0 ? formatMoney(stats.invested) : '—'}</Text>
+          </View>
           <View style={styles.row}>
             <AppIcon name="cash-outline" size={22} color={theme.colors.profit} />
             <Text style={styles.rowLabel}>Total Profit</Text>
