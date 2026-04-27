@@ -39,13 +39,27 @@ import { useResponsive } from '@/hooks/useResponsive';
 import { rescanAsHandmade, refreshUpcycleIdeas, scanWithGemini } from '@/services/gemini';
 import { getConfidenceColor } from '@/utils/confidencePresentation';
 import { formatMoney } from '@/utils/currency';
-import { ITEM_CATEGORIES, type Item, type ItemScanSnapshot, type ItemStatus, type Platform as PlatformType } from '@/types/inventory';
+import { ITEM_CATEGORIES, type Item, type ItemScanSnapshot, type ItemStatus, type Platform as PlatformType, type ScanScenario } from '@/types/inventory';
 import type { Theme } from '@/theme';
 
 function getItemPhotos(item: Item | null | undefined): string[] {
   if (!item) return [];
   return item.photos && item.photos.length > 0 ? item.photos : (item.img ? [item.img] : []);
 }
+
+function parseProfitRange(profit: string): { low: number; high: number } | null {
+  const match = profit.match(/\$([\d,]+)\s*[–-]\s*\$([\d,]+)/);
+  if (!match) return null;
+  const low = Number(match[1].replace(/,/g, ''));
+  const high = Number(match[2].replace(/,/g, ''));
+  if (!Number.isFinite(low) || !Number.isFinite(high)) return null;
+  return { low, high };
+}
+
+const toastForCorrection = (c: 'lower' | 'higher' | 'same'): string =>
+  c === 'lower' ? 'AI lowered the price'
+  : c === 'higher' ? 'AI raised the price'
+  : 'AI confident in prior price';
 
 const STATUS_OPTIONS: ItemStatus[] = ['unlisted', 'listed', 'sold'];
 const KNOWN_PLATFORMS: PlatformType[] = ['Poshmark', 'Depop', 'eBay', 'Mercari', 'Facebook Marketplace', 'Vinted', 'Shopify'];
@@ -456,9 +470,23 @@ export default function DetailScreen() {
     const photoUri = snapshot?.sourceImageUri || item.img;
     if (!photoUri) { showToast('No photo to rescan'); return; }
     const wasHandmade = snapshot?.isCustom === true;
+    const priorRange = snapshot?.profit ? parseProfitRange(snapshot.profit) : null;
+    const prior: ScanScenario = {
+      name: item.name,
+      sub: snapshot?.sub ?? '',
+      profit: snapshot?.profit ?? '',
+      ideas: snapshot?.ideas ?? [],
+      category: item.cat,
+      isCustom: snapshot?.isCustom ?? false,
+      confidence: snapshot?.confidence,
+      suggestedResaleLow: priorRange?.low,
+      suggestedResaleHigh: priorRange?.high,
+    };
     setRescanningWrong(true);
     try {
-      const result = wasHandmade ? await rescanAsHandmade(photoUri) : await scanWithGemini(photoUri);
+      const result = wasHandmade
+        ? await rescanAsHandmade(photoUri, undefined, prior)
+        : await scanWithGemini(photoUri, undefined, undefined, prior);
       const newLow = Math.max(result.suggestedResaleLow ?? 0, 0);
       const newHigh = Math.max(result.suggestedResaleHigh ?? 0, 0);
       const newResale = newLow > 0 ? Math.round((newLow + newHigh) / 2) : 0;
@@ -485,6 +513,7 @@ export default function DetailScreen() {
       setCustomDismissed(false);
       setWrongScanDismissed(false);
       AsyncStorage.removeItem(`tv_prompt_dismissed_${item.id}`);
+      if (result.correction) showToast(toastForCorrection(result.correction));
     } catch {
       showToast("Couldn't rescan — try again");
     } finally {

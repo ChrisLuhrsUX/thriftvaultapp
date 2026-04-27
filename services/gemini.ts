@@ -88,7 +88,8 @@ Guidelines:
     suggestedResaleLow = materials + (labor hrs × $15). Estimate labor hours by technique: simple mods/rework 1–2hr, intermediate crochet/knit/sewing 4–8hr, complex fiber art/tapestry/quilting 10–20hr.
     suggestedResaleHigh = materials + (labor hrs × $25) + 30% uniqueness premium. Trending handmade categories (crochet tops, visible mending on non-denim, handmade jewelry, polymer clay, tufting, punch needle) add another 20–30%. Benchmark against Etsy and Depop sold prices for similar handmade items — do not lowball handmade work.
     DENIM EXCEPTION — if category = "denim": IGNORE the labor-hour formula. The denim resale market prices the finished aesthetic, not hours of labor, and upcycled jeans is a saturated category on Depop/Etsy. Price by finished look: simple mods (crops, distress, basic patches, dye/bleach) $25–$55; moderate rework (panel swap, contrasting patchwork, decorative topstitching, studded) $45–$85; elaborate custom (intricate beading/embroidery, franken-construction, verifiable vintage Big E/501XX base, known creator) $70–$140. Hard ceiling: do not exceed $140 for upcycled denim unless the base is documented vintage Levi's Big E/501XX or the maker is a named established creator — in which case cap at $220. Do NOT apply the trending-handmade +20–30% boost to denim.
-    ALTERED FACTORY BASE EXCEPTION — if the item is a factory-made base (sneaker, hoodie, t-shirt, jacket, bag, cap) with hand-added surface decoration (paint, patches, studs, hand embroidery, hand-painted design, rhinestones) rather than from-scratch handmade construction: IGNORE the labor-hour formula. Price = base brand tier as starting point + 30–60% customization premium for detail and craftsmanship. Hard caps: painted or customized sneakers $120 unbranded / $180 branded (Nike, Adidas, Vans, Converse) / $260 for hyped silhouettes (Jordan 1/4, Dunk, Yeezy) — exceed only if the artist is a named established creator with documented resale history. Altered hoodies/tees/jackets: $60 unbranded / $90 branded / $130 premium streetwear or designer base. Altered pants/trousers/joggers (NON-DENIM — for denim see DENIM EXCEPTION above): pants are a secondary canvas vs jackets and the resale ceiling is lower. Light paint/few patches $40–$70; skilled hand-painted or dense applique/embroidery $80–$140 unbranded / $100–$160 branded base; hard ceiling $180 unless the maker is a named established creator with documented resale history. Do NOT price altered pants in jacket tiers ($200+). Custom bags/caps: $40 unbranded / $80 branded. Do NOT apply the trending-handmade +20–30% boost to altered factory bases. This exception does NOT apply to genuinely from-scratch handmade items (crochet, knit, sewn from raw fabric, fiber art) — those still use the labor-hour formula.
+    ALTERED FACTORY BASE EXCEPTION — if the item is a factory-made base (sneaker, top, jacket, bag, cap) with hand-added surface decoration (paint, patches, studs, hand embroidery, hand-painted design, rhinestones) rather than from-scratch handmade construction: IGNORE the labor-hour formula. Price = base brand tier as starting point + 30–60% customization premium for detail and craftsmanship. Hard caps: painted or customized sneakers $120 unbranded / $180 branded (Nike, Adidas, Vans, Converse) / $260 for hyped silhouettes (Jordan 1/4, Dunk, Yeezy) — exceed only if the artist is a named established creator with documented resale history. Altered tops (hoodies, tees, halter tops, tank tops, crop tops, blouses, camis) and jackets: $60 unbranded / $90 branded / $130 premium streetwear or designer base. Altered pants/trousers/joggers (NON-DENIM — for denim see DENIM EXCEPTION above): pants are a secondary canvas vs jackets and the resale ceiling is lower. Light paint/few patches $40–$70; skilled hand-painted or dense applique/embroidery $80–$140 unbranded / $100–$160 branded base; hard ceiling $180 unless the maker is a named established creator with documented resale history. Do NOT price altered pants in jacket tiers ($200+). Custom bags/caps: $40 unbranded / $80 branded. Do NOT apply the trending-handmade +20–30% boost to altered factory bases. This exception does NOT apply to genuinely from-scratch handmade items (crochet, knit, sewn from raw fabric, fiber art) — those still use the labor-hour formula.
+    HANDMADE TOP CEILING — for ANY isCustom = true item where category = "tops" (whether altered factory base OR from-scratch crochet/knit/sewn halter, tank, crop top, blouse, cami): hard ceiling $180 unless the maker is a named established creator with documented resale history. The trending-handmade +20–30% boost may apply to from-scratch crochet/knit tops but the final price must NOT exceed $180. Do NOT price handmade tops in jacket-altered or pants-altered tiers ($200+).
 
   ► IF isCustom = false → FACTORY ITEM PRICING (use this path; ignore handmade section above):
     suggestedPaid: typical thrift store shelf price ($3–$30). For jewelry: thrift stores often underprice precious metals/stones — if gold, gemstones, or designer marks are visible, suggestedPaid can be $5–$100+.
@@ -410,7 +411,7 @@ async function callWithFallback(
   throw new Error(`All scan providers failed — ${parts}`);
 }
 
-async function runScanPipeline(photoUris: string[], promptSuffix = '', signal?: AbortSignal): Promise<ScanScenario> {
+async function runScanPipeline(photoUris: string[], promptSuffix = '', signal?: AbortSignal, priorResult?: ScanScenario): Promise<ScanScenario> {
   const resolved = await Promise.all(photoUris.map(uri => resolveReadableUri(uri)));
   const images = await Promise.all(
     resolved.map(async ({ uri, mimeType }) => ({
@@ -441,6 +442,36 @@ async function runScanPipeline(photoUris: string[], promptSuffix = '', signal?: 
     const scale = 180 / resaleHigh;
     resaleHigh = 180;
     resaleLow = Math.max(40, Math.round(resaleLow * scale));
+  }
+  const isAlteredTop = parsed.category === 'tops' && isCustomScan;
+  if (isAlteredTop && resaleHigh > 180) {
+    const scale = 180 / resaleHigh;
+    resaleHigh = 180;
+    resaleLow = Math.max(30, Math.round(resaleLow * scale));
+  }
+
+  let correction: 'lower' | 'higher' | 'same' | undefined;
+  if (priorResult) {
+    const priorLow = priorResult.suggestedResaleLow ?? 0;
+    const priorHigh = priorResult.suggestedResaleHigh ?? 0;
+    const priorMid = (priorLow + priorHigh) / 2;
+    const newMid = (resaleLow + resaleHigh) / 2;
+    const rawVerdict = parsed.correction;
+    const claimed: 'lower' | 'higher' | 'same' | undefined =
+      rawVerdict === 'lower' || rawVerdict === 'higher' || rawVerdict === 'same' ? rawVerdict : undefined;
+    const threshold = Math.max(2, priorMid * 0.05);
+    let actual: 'lower' | 'higher' | 'same';
+    if (priorMid <= 0) actual = claimed ?? 'same';
+    else if (newMid < priorMid - threshold) actual = 'lower';
+    else if (newMid > priorMid + threshold) actual = 'higher';
+    else actual = 'same';
+    if (claimed === 'same' || (!claimed && actual === 'same')) {
+      resaleLow = priorLow;
+      resaleHigh = priorHigh;
+      correction = 'same';
+    } else {
+      correction = actual;
+    }
   }
 
   if (resaleLow > resaleHigh) [resaleLow, resaleHigh] = [resaleHigh, resaleLow];
@@ -478,12 +509,14 @@ async function runScanPipeline(photoUris: string[], promptSuffix = '', signal?: 
     redFlags: Array.isArray(parsed.redFlags)
       ? parsed.redFlags.slice(0, 3).map((f: unknown) => String(f || '')).filter(Boolean)
       : [],
+    ...(correction ? { correction } : {}),
   };
 }
 
-export async function scanWithGemini(photoUris: string | string[], signal?: AbortSignal, onPhaseChange?: (status: string) => void): Promise<ScanScenario> {
+export async function scanWithGemini(photoUris: string | string[], signal?: AbortSignal, onPhaseChange?: (status: string) => void, priorResult?: ScanScenario): Promise<ScanScenario> {
   const uris = Array.isArray(photoUris) ? photoUris : [photoUris];
-  return runScanPipeline(uris, '', signal);
+  const suffix = priorResult ? RESCAN_CORRECTION_SUFFIX(priorResult) : '';
+  return runScanPipeline(uris, suffix, signal, priorResult);
 }
 
 function buildUpcyclePrompt(itemName?: string, category?: string, sub?: string): string {
@@ -540,8 +573,35 @@ const HANDMADE_SUFFIX = `\n\nIMPORTANT: The user has confirmed this item IS hand
 Pricing: estimate labor hours by complexity (simple mods/rework 1–2hr, intermediate crochet/knit/sewing 4–8hr, complex fiber art/tapestry 10–20hr). suggestedPaid = materials cost estimate. suggestedResaleLow = materials + (labor hrs × $15). suggestedResaleHigh = materials + (labor hrs × $25) + 30% uniqueness premium. Trending handmade (crochet tops, visible mending on non-denim, cottagecore, handmade jewelry, polymer clay earrings, tufting, punch needle) adds 20–30% more. Benchmark against Etsy and Depop sold prices for similar handmade items — do not lowball handmade work.
 CONDITION ADJUSTMENT: reduce both low and high by 30–50% for visible damage (stains, non-decorative holes, heavy pilling, fading, broken hardware, scuffed/peeling leather, tarnish). Reduce 15–25% for moderate wear. NWT/like-new commands the top of the range. Unclear condition = assume "used-good" and no adjustment.
 DENIM EXCEPTION — if category = "denim": IGNORE the labor-hour formula. Upcycled jeans is saturated on Depop/Etsy and prices by finished look, not labor hours. Simple mods (crops/distress/basic patches/dye) $25–$55; moderate rework (panel swap, contrasting patchwork, studded) $45–$85; elaborate custom (intricate beading, franken-construction, verifiable vintage Big E/501XX base) $70–$140. Hard ceiling $140 unless the base is documented vintage Levi's Big E/501XX or maker is a named established creator (then cap $220). Do NOT apply the trending-handmade +20–30% boost to denim.
-ALTERED FACTORY BASE EXCEPTION — if the item is a factory-made base (sneaker, hoodie, t-shirt, jacket, bag, cap) with hand-added surface decoration (paint, patches, studs, hand embroidery, rhinestones) rather than from-scratch construction: IGNORE the labor-hour formula. Price = base brand tier + 30–60% customization premium. Caps: painted sneakers $120 unbranded / $180 branded (Nike, Adidas, Vans) / $260 hyped silhouettes (Jordan, Dunk, Yeezy) — exceed only for named established artists. Altered hoodies/tops: $60 unbranded / $90 branded / $130 premium streetwear. Altered pants/trousers/joggers (NON-DENIM — for denim see DENIM EXCEPTION above): pants are a secondary canvas vs jackets and the resale ceiling is lower. Light paint/few patches $40–$70; skilled hand-painted or dense applique/embroidery $80–$140 unbranded / $100–$160 branded base; hard ceiling $180 unless the maker is a named established creator. Do NOT price altered pants in jacket tiers ($200+). Custom bags/caps: $40 unbranded / $80 branded. Do NOT apply the trending-handmade +20–30% boost to altered factory bases. This exception does NOT apply to from-scratch handmade (crochet, knit, sewn from raw fabric, fiber art).`;
+ALTERED FACTORY BASE EXCEPTION — if the item is a factory-made base (sneaker, top, jacket, bag, cap) with hand-added surface decoration (paint, patches, studs, hand embroidery, rhinestones) rather than from-scratch construction: IGNORE the labor-hour formula. Price = base brand tier + 30–60% customization premium. Caps: painted sneakers $120 unbranded / $180 branded (Nike, Adidas, Vans) / $260 hyped silhouettes (Jordan, Dunk, Yeezy) — exceed only for named established artists. Altered tops (hoodies, tees, halter tops, tank tops, crop tops, blouses, camis) and jackets: $60 unbranded / $90 branded / $130 premium streetwear. Altered pants/trousers/joggers (NON-DENIM — for denim see DENIM EXCEPTION above): pants are a secondary canvas vs jackets and the resale ceiling is lower. Light paint/few patches $40–$70; skilled hand-painted or dense applique/embroidery $80–$140 unbranded / $100–$160 branded base; hard ceiling $180 unless the maker is a named established creator. Do NOT price altered pants in jacket tiers ($200+). Custom bags/caps: $40 unbranded / $80 branded. Do NOT apply the trending-handmade +20–30% boost to altered factory bases. This exception does NOT apply to from-scratch handmade (crochet, knit, sewn from raw fabric, fiber art).
+HANDMADE TOP CEILING — for ANY isCustom item where category = "tops" (altered factory base OR from-scratch crochet/knit/sewn halter, tank, crop top, blouse, cami): hard ceiling $180 unless the maker is a named established creator. Trending-handmade +20–30% boost may apply to from-scratch crochet/knit tops but final price must NOT exceed $180. Do NOT price handmade tops in jacket-altered or pants-altered tiers ($200+).`;
 
-export async function rescanAsHandmade(photoUri: string, signal?: AbortSignal): Promise<ScanScenario> {
-  return runScanPipeline([photoUri], HANDMADE_SUFFIX, signal);
+const RESCAN_CORRECTION_SUFFIX = (prior: ScanScenario) => `\n\nIMPORTANT: This is a RESCAN. The user tapped "this scan is wrong" on your previous output for this exact photo. Your previous output was:
+- name: "${prior.name}"
+- sub: "${prior.sub}"
+- category: "${prior.category ?? 'other'}"
+- isCustom: ${prior.isCustom === true}
+- suggestedResaleLow: $${prior.suggestedResaleLow ?? 0}
+- suggestedResaleHigh: $${prior.suggestedResaleHigh ?? 0}
+- confidence: ${prior.confidence ?? 'low'}
+
+Re-examine the photo with FRESH EYES. The user believes something is wrong — but did NOT say what. Consider what you may have missed:
+1. BRAND — visible logo, label, or stitching you overlooked? Misidentified brand can swing price 3–10x.
+2. CONDITION — pilling, stains, holes, fading, hardware damage that should pull price DOWN?
+3. ERA / MATERIAL — vintage construction (single-stitch, union-made tag, chain-stitched hem), genuine leather, silk, cashmere, wool that should pull price UP?
+4. CATEGORY — did you miscategorize? (e.g. dress called a top, denim called bottoms)
+5. CUSTOM/HANDMADE — is this actually reworked/handmade in a way that changes the pricing tier?
+
+Then return your normal JSON output PLUS one extra top-level field:
+"correction": "lower" | "higher" | "same"
+
+- "lower" — prior price was too HIGH; output new lower prices.
+- "higher" — prior price was too LOW; output new higher prices.
+- "same" — after genuine re-examination you stand by the prior price; output the same prices and use "sub" to refine the description, brand, or condition.
+
+Do NOT default to "same" out of laziness. The user explicitly flagged this scan. If you change your mind on category/brand/material, that almost always means a price change. Only choose "same" if you genuinely re-examined and remain confident.`;
+
+export async function rescanAsHandmade(photoUri: string, signal?: AbortSignal, priorResult?: ScanScenario): Promise<ScanScenario> {
+  const suffix = HANDMADE_SUFFIX + (priorResult ? RESCAN_CORRECTION_SUFFIX(priorResult) : '');
+  return runScanPipeline([photoUri], suffix, signal, priorResult);
 }

@@ -66,6 +66,56 @@ const DUPLICATE_STOP_WORDS = new Set([
   'and', 'with', 'the', 'of', 'in', 'on', 'at', 'for', 'to',
 ]);
 
+const COLOR_TOKENS = new Set([
+  'red','crimson','burgundy','maroon','pink','rose','blush','salmon','coral',
+  'orange','peach','rust','brown','tan','beige','cream','ivory','white','offwhite',
+  'yellow','mustard','gold','olive','green','sage','mint','teal','turquoise','aqua',
+  'blue','navy','denim','indigo','cobalt','royal','periwinkle','purple','lavender',
+  'violet','plum','magenta','fuchsia','black','charcoal','grey','gray','silver',
+]);
+
+const MULTICOLOR_TOKENS = new Set([
+  'multicolor','multi','pastel','neon','striped','stripe','floral','plaid',
+  'checkered','check','animal','leopard','zebra','tiedye','rainbow','patchwork',
+]);
+
+const BRAND_TOKENS = new Set([
+  'nike','adidas','puma','reebok','converse','vans','jordan','newbalance','asics','fila',
+  'levis','wrangler','lee','gap','oldnavy','jcrew','bananarepublic','express','zara',
+  'hm','uniqlo','forever21','aerie','americaneagle','hollister','abercrombie','madewell',
+  'patagonia','northface','tnf','columbia','carhartt','dickies','arcteryx','lululemon','athleta',
+  'gucci','prada','louisvuitton','lv','coach','michaelkors','toryburch','katespade',
+  'ralphlauren','poloralphlauren','tommyhilfiger','calvinklein','dkny','versace','burberry',
+  'champion','kappa','supreme','stussy','obey','huf','bape',
+]);
+
+const MATERIAL_TOKENS = new Set([
+  'leather','suede','denim','cotton','wool','cashmere','silk','satin','linen',
+  'velvet','corduroy','flannel','fleece','rayon','polyester','nylon',
+  'mesh','knit','crochet','lace','sequin','beaded','embroidered',
+]);
+
+type TokenClass = 'brand' | 'color' | 'multicolor' | 'material' | 'generic';
+const TOKEN_WEIGHTS: Record<TokenClass, number> = {
+  brand: 3.0, color: 2.0, material: 1.5, multicolor: 1.0, generic: 1.0,
+};
+const DUPLICATE_SCORE_THRESHOLD = 0.55;
+const DUPLICATE_BORDERLINE_MIN = 0.40;
+const SNAPSHOT_LOOKBACK = 5;
+
+function classifyToken(t: string): TokenClass {
+  if (BRAND_TOKENS.has(t)) return 'brand';
+  if (COLOR_TOKENS.has(t)) return 'color';
+  if (MULTICOLOR_TOKENS.has(t)) return 'multicolor';
+  if (MATERIAL_TOKENS.has(t)) return 'material';
+  return 'generic';
+}
+
+const toastForCorrection = (c: 'lower' | 'higher' | 'same'): string =>
+  c === 'lower' ? 'AI lowered the price'
+  : c === 'higher' ? 'AI raised the price'
+  : 'AI confident in prior price';
+
 const SCAN_BG_SOURCE = require('@/assets/logo/thriftvault_logo.jpg');
 
 function ScanResultCard({
@@ -1048,26 +1098,76 @@ export default function ScanScreen() {
     setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: true }), 50);
   }, []);
 
-  const normalizeName = useCallback((name: string) => name.trim().toLowerCase(), []);
-
-  /** Tokenize a name to distinctive words: drop short fillers and generic garment nouns. */
-  const tokenize = useCallback((name: string) => {
-    return normalizeName(name)
+  /**
+   * Tokenize free text to distinctive words: drop short fillers and generic garment nouns.
+   * Reused for both new scan results and existing item names/subs during duplicate matching.
+   */
+  const tokenizeRich = useCallback((text: string): string[] => {
+    return text.toLowerCase()
       .replace(/[^a-z0-9]/g, ' ')
       .split(/\s+/)
       .filter((w) => w.length > 1 && !DUPLICATE_STOP_WORDS.has(w));
-  }, [normalizeName]);
+  }, []);
 
-  /** Check if two item names are similar enough to be the same item. */
-  const isSimilarName = useCallback((a: string, b: string) => {
-    if (normalizeName(a) === normalizeName(b)) return true;
-    const tokensA = tokenize(a);
-    const tokensB = tokenize(b);
-    if (tokensA.length < 2 || tokensB.length < 2) return false;
-    const setB = new Set(tokensB);
-    const intersection = tokensA.filter(t => setB.has(t)).length;
-    return intersection / Math.min(tokensA.length, tokensB.length) >= 0.70;
-  }, [normalizeName, tokenize]);
+  /**
+   * Weighted multi-signal duplicate score in [0, 1]. ≥ DUPLICATE_SCORE_THRESHOLD = candidate.
+   * Brand/color/material tokens carry more weight than generic descriptors.
+   * Color conflicts (no shared color when both sides assert one) get a hard penalty,
+   * unless either side is multicolor/floral/striped (those are too noisy to enforce).
+   * Sparse-token rescue lets short matched names like "Red T-Shirt"/"Red Cotton Tee" still match.
+   * Mines historical scanSnapshots[].sub so AI naming variance across rescans doesn't lose the link.
+   */
+  const scoreItemAgainstResult = useCallback((item: Item, res: ScanScenario): number => {
+    const aTokens = tokenizeRich(`${res.name} ${res.sub ?? ''}`);
+    const snapshots = (item.scanSnapshots ?? []).slice(0, SNAPSHOT_LOOKBACK);
+    const bTokens = [
+      ...tokenizeRich(item.name),
+      ...snapshots.flatMap((s) => tokenizeRich(s.sub ?? '')),
+    ];
+    if (aTokens.length === 0 || bTokens.length === 0) return 0;
+    const bSet = new Set(bTokens);
+
+    let matchedWeight = 0;
+    let totalWeightA = 0;
+    let brandMatch = false;
+    let colorMatch = false;
+    const aColors = new Set<string>();
+    const bColors = new Set<string>();
+    let hasMulticolor = false;
+
+    for (const t of aTokens) {
+      const cls = classifyToken(t);
+      const w = TOKEN_WEIGHTS[cls];
+      totalWeightA += w;
+      if (bSet.has(t)) {
+        matchedWeight += w;
+        if (cls === 'brand') brandMatch = true;
+        if (cls === 'color') colorMatch = true;
+      }
+      if (cls === 'color') aColors.add(t);
+      if (cls === 'multicolor') hasMulticolor = true;
+    }
+    for (const t of bTokens) {
+      const cls = classifyToken(t);
+      if (cls === 'color') bColors.add(t);
+      if (cls === 'multicolor') hasMulticolor = true;
+    }
+
+    let score = matchedWeight / Math.max(totalWeightA, 1);
+    if (brandMatch) score += 0.15;
+    if (colorMatch) score += 0.10;
+
+    if (!hasMulticolor && aColors.size > 0 && bColors.size > 0) {
+      const anyShared = [...aColors].some((c) => bColors.has(c));
+      if (!anyShared) score -= 0.30;
+    }
+
+    if (aTokens.length <= 1 && bTokens.length <= 1 && matchedWeight > 0) {
+      score = Math.max(score, 0.6);
+    }
+
+    return Math.min(Math.max(score, 0), 1);
+  }, [tokenizeRich]);
 
   const persistPhotos = useCallback(async (itemId: number, uris: string[]): Promise<string[]> => {
     const docDir = FileSystem.documentDirectory;
@@ -1215,37 +1315,81 @@ export default function ScanScreen() {
     return ageMs > OLD_ITEM_DAYS_THRESHOLD * 24 * 60 * 60 * 1000;
   }, []);
 
-  const handleDuplicateChoice = useCallback((intent: 'flip' | 'closet') => {
+  const handleDuplicateChoice = useCallback(async (intent: 'flip' | 'closet') => {
     if (!result) return;
-    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
-    const now = Date.now();
-    const matches = inventory.filter((item) => {
-      if (!isSimilarName(item.name, result.name)) return false;
-      if (!result.category || item.cat !== result.category) return false;
-      if (item.status === 'sold') return false;
-      const itemDate = new Date(item.date).getTime();
-      if (!Number.isFinite(itemDate)) return false;
-      return now - itemDate <= THIRTY_DAYS_MS;
-    });
-    if (matches.length === 0) {
+
+    const stagedSizes = new Set<number>();
+    await Promise.all(stagedPhotos.map(async (uri) => {
+      try {
+        const info = await FileSystem.getInfoAsync(uri);
+        if (info.exists && typeof (info as any).size === 'number') {
+          stagedSizes.add((info as any).size);
+        }
+      } catch { /* ignore */ }
+    }));
+
+    const scored: { item: Item; score: number }[] = [];
+    const sizeCheckQueue: Item[] = [];
+    for (const item of inventory) {
+      if (item.status === 'sold') continue;
+      const score = scoreItemAgainstResult(item, result);
+      const categoryOk = !!result.category && item.cat === result.category;
+      if (categoryOk && score >= DUPLICATE_SCORE_THRESHOLD) {
+        scored.push({ item, score });
+        continue;
+      }
+      if (stagedSizes.size > 0 && (categoryOk || score >= DUPLICATE_BORDERLINE_MIN)) {
+        sizeCheckQueue.push(item);
+      }
+    }
+
+    if (stagedSizes.size > 0 && sizeCheckQueue.length > 0) {
+      const CHUNK = 20;
+      for (let i = 0; i < sizeCheckQueue.length; i += CHUNK) {
+        const chunk = sizeCheckQueue.slice(i, i + CHUNK);
+        await Promise.all(chunk.map(async (item) => {
+          const snapUri = item.scanSnapshots?.[0]?.sourceImageUri;
+          if (!snapUri) return;
+          try {
+            const info = await FileSystem.getInfoAsync(snapUri);
+            if (info.exists && typeof (info as any).size === 'number' && stagedSizes.has((info as any).size)) {
+              scored.push({ item, score: 0.99 });
+            }
+          } catch { /* ignore */ }
+        }));
+      }
+    }
+
+    if (scored.length === 0) {
       void createItemFromScan(intent);
       return;
     }
+
+    const seen = new Set<number>();
+    const candidates = scored
+      .sort((a, b) => b.score - a.score)
+      .filter(({ item }) => {
+        if (seen.has(item.id)) return false;
+        seen.add(item.id);
+        return true;
+      })
+      .map(({ item }) => item);
+
     setPendingIntent(intent);
-    setDuplicateCandidates(matches);
+    setDuplicateCandidates(candidates);
     setDuplicateChoiceVisible(true);
-  }, [result, isSimilarName, inventory, createItemFromScan]);
+  }, [result, stagedPhotos, scoreItemAgainstResult, inventory, createItemFromScan]);
 
   const handleBuyAndTrack = useCallback(async () => {
     if (!result) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    handleDuplicateChoice('flip');
+    await handleDuplicateChoice('flip');
   }, [result, handleDuplicateChoice]);
 
   const handleAddToCloset = useCallback(async () => {
     if (!result) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    handleDuplicateChoice('closet');
+    await handleDuplicateChoice('closet');
   }, [result, handleDuplicateChoice]);
 
   const handleSkip = useCallback(() => {
@@ -1284,10 +1428,13 @@ export default function ScanScreen() {
     setRescanningWrong(true);
     try {
       const wasHandmade = result?.isCustom === true;
+      const prior = result ?? undefined;
       const updated = wasHandmade
-        ? await rescanAsHandmade(photoUri, controller.signal)
-        : await scanWithGemini(photoUri, controller.signal);
+        ? await rescanAsHandmade(photoUri, controller.signal, prior)
+        : await scanWithGemini(photoUri, controller.signal, undefined, prior);
+      if (controller.signal.aborted) return;
       setResult((prev) => prev === null ? null : { ...updated, isCustom: wasHandmade || updated.isCustom });
+      if (updated.correction) showToast(toastForCorrection(updated.correction));
     } catch (err) {
       if (__DEV__) console.log('[Wrong rescan] error:', err);
       showToast(isOverloadError(err) ? 'AI is busy — try again in a moment' : "Couldn't rescan — try again");

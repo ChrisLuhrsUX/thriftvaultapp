@@ -100,4 +100,6 @@ export interface ScanScenario {
   category?: ItemCategory;
   /** True if item appears handmade, reworked, or custom. */
   isCustom?: boolean;
+  /** Transient: AI's verdict from a "wrong scan" rescan. Not persisted in ItemScanSnapshot. */
+  correction?: 'lower' | 'higher' | 'same';
 }
