@@ -41,7 +41,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const SAVED_LATER_KEY = 'tv_saved_later';
 const TV_PENDING_SCAN_KEY = 'tv_pending_scan';
-type SavedScanItem = ScanScenario & { savedAt: number; photoUri?: string | null; photoUris?: string[]; promptCustomDismissed?: boolean; promptWrongScanDismissed?: boolean };
+type SavedScanItem = ScanScenario & { savedAt: number; photoUri?: string | null; photoUris?: string[]; promptCustomDismissed?: boolean; promptWrongScanDismissed?: boolean; promptRedFlagDismissed?: boolean; redFlagDismissed?: boolean };
 const SNAPSHOT_CAP = 5;
 const MAX_STAGED_PHOTOS = 5;
 const OLD_ITEM_DAYS_THRESHOLD = 90;
@@ -135,6 +135,10 @@ function ScanResultCard({
   onDismissCustom,
   wrongScanDismissed,
   onDismissWrongScan,
+  redFlagPromptDismissed,
+  redFlagDismissed,
+  onConfirmRedFlag,
+  onMarkRedFlagFalseAlarm,
   theme,
   styles,
 }: {
@@ -154,6 +158,10 @@ function ScanResultCard({
   onDismissCustom: () => void;
   wrongScanDismissed: boolean;
   onDismissWrongScan: () => void;
+  redFlagPromptDismissed: boolean;
+  redFlagDismissed: boolean;
+  onConfirmRedFlag: () => void;
+  onMarkRedFlagFalseAlarm: () => void;
   theme: Theme;
   styles: ReturnType<typeof createScanStyles>;
 }) {
@@ -162,6 +170,7 @@ function ScanResultCard({
     c === 'low' || c === 'medium' || c === 'high' ? getConfidencePresentation(c, theme) : null;
 
   const hasRedFlags = !!(scenario.redFlags && scenario.redFlags.length > 0);
+  const redFlagBannerActive = hasRedFlags && !redFlagDismissed;
   const [editingName, setEditingName] = useState(false);
   const [editedName, setEditedName] = useState(scenario.name);
   const [upcycleExpanded, setUpcycleExpanded] = useState(false);
@@ -224,7 +233,7 @@ function ScanResultCard({
         </View>
       </View>
       <Text style={styles.resultSub}>{scenario.sub}</Text>
-      {hasRedFlags && (
+      {hasRedFlags && !redFlagDismissed && (
         <View style={styles.redFlagSection}>
           <View style={styles.redFlagHeader}>
             <AppIcon name="flag" size={15} color={theme.colors.loss} />
@@ -237,6 +246,35 @@ function ScanResultCard({
               <Text style={styles.redFlagText}>{flag}</Text>
             </View>
           ))}
+          {!redFlagPromptDismissed && (
+            <View style={styles.redFlagPromptRow}>
+              <Text style={styles.redFlagPromptText}>Look fake to you?</Text>
+              <Pressable
+                style={({ pressed }) => [styles.redFlagYes, pressed && { opacity: 0.7 }]}
+                onPress={onConfirmRedFlag}
+                hitSlop={12}
+                accessibilityLabel="Yes, this looks fake"
+                accessibilityRole="button"
+              >
+                <Text style={styles.redFlagYesText}>Yes</Text>
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [styles.redFlagNo, pressed && { opacity: 0.7 }]}
+                onPress={onMarkRedFlagFalseAlarm}
+                hitSlop={12}
+                accessibilityLabel="No, false alarm"
+                accessibilityRole="button"
+              >
+                <Text style={styles.redFlagNoText}>No</Text>
+              </Pressable>
+            </View>
+          )}
+        </View>
+      )}
+      {hasRedFlags && redFlagDismissed && (
+        <View style={styles.redFlagDismissedPill}>
+          <AppIcon name="flag-outline" size={12} color={theme.colors.loss} />
+          <Text style={styles.redFlagDismissedText}>Possibly fake — dismissed</Text>
         </View>
       )}
 <View style={styles.pillRow}>
@@ -252,7 +290,7 @@ function ScanResultCard({
               <Text style={styles.customBannerText}>Handmade</Text>
             </View>
           </View>
-        ) : !customDismissed && !hasRedFlags ? (
+        ) : !customDismissed && !redFlagBannerActive ? (
           <View style={styles.handmadePromptRow}>
             <AppIcon name="brush-outline" size={14} color={theme.colors.mauve} />
             <Text style={styles.handmadePromptText}>Is this handmade?</Text>
@@ -281,7 +319,7 @@ function ScanResultCard({
             <ActivityIndicator size="small" color={theme.colors.vintageBlueDark} />
             <Text style={styles.handmadePromptText}>Rescanning...</Text>
           </View>
-        ) : !wrongScanDismissed && !hasRedFlags && (
+        ) : !wrongScanDismissed && !redFlagBannerActive && (
           <View style={styles.handmadePromptRow}>
             <AppIcon name="alert-circle-outline" size={14} color={theme.colors.mauve} />
             <Text style={styles.handmadePromptText}>Is this scan wrong?</Text>
@@ -647,6 +685,60 @@ function createScanStyles(theme: Theme, formMaxWidth?: number) {
       flex: 1,
       lineHeight: 20,
     },
+    redFlagPromptRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginTop: 6,
+      paddingTop: 8,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.surfaceVariant,
+    },
+    redFlagPromptText: {
+      ...theme.typography.caption,
+      color: theme.colors.loss,
+      flex: 1,
+    },
+    redFlagYes: {
+      justifyContent: 'center',
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+      borderRadius: theme.radius.full,
+      backgroundColor: theme.colors.surface,
+    },
+    redFlagYesText: {
+      ...theme.typography.caption,
+      fontWeight: '600',
+      color: theme.colors.loss,
+    },
+    redFlagNo: {
+      justifyContent: 'center',
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+      borderRadius: theme.radius.full,
+      backgroundColor: theme.colors.surface,
+    },
+    redFlagNoText: {
+      ...theme.typography.caption,
+      fontWeight: '600',
+      color: theme.colors.mauve,
+    },
+    redFlagDismissedPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      gap: 6,
+      marginTop: theme.spacing.md,
+      paddingVertical: 5,
+      paddingHorizontal: 10,
+      borderRadius: theme.radius.full,
+      backgroundColor: theme.colors.blush,
+    },
+    redFlagDismissedText: {
+      ...theme.typography.caption,
+      color: theme.colors.loss,
+      fontWeight: '600',
+    },
     authSection: {
       marginTop: theme.spacing.md,
       borderTopWidth: 1,
@@ -854,6 +946,8 @@ export default function ScanScreen() {
   const [refreshingUpcycle, setRefreshingUpcycle] = useState(false);
   const [promptCustomDismissed, setPromptCustomDismissed] = useState(false);
   const [promptWrongScanDismissed, setPromptWrongScanDismissed] = useState(false);
+  const [promptRedFlagDismissed, setPromptRedFlagDismissed] = useState(false);
+  const [redFlagDismissed, setRedFlagDismissed] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const cameraRef = useRef<{ takePictureAsync: (opts?: { quality?: number }) => Promise<{ uri: string }> } | null>(null);
   const scanningRef = useRef(false);
@@ -896,6 +990,10 @@ export default function ScanScreen() {
             setPromptCustomDismissed(true);
           if (parsed.promptWrongScanDismissed)
             setPromptWrongScanDismissed(true);
+          if (parsed.promptRedFlagDismissed)
+            setPromptRedFlagDismissed(true);
+          if (parsed.redFlagDismissed)
+            setRedFlagDismissed(true);
         }
       } catch {
         // ignore corrupt data
@@ -915,9 +1013,11 @@ export default function ScanScreen() {
         placeholderImageUri,
         promptCustomDismissed,
         promptWrongScanDismissed,
+        promptRedFlagDismissed,
+        redFlagDismissed,
       }));
     }
-  }, [result, stagedPhotos, placeholderImageUri, promptCustomDismissed, promptWrongScanDismissed]);
+  }, [result, stagedPhotos, placeholderImageUri, promptCustomDismissed, promptWrongScanDismissed, promptRedFlagDismissed, redFlagDismissed]);
 
   const cancelScan = useCallback(() => {
     abortControllerRef.current?.abort();
@@ -934,6 +1034,8 @@ export default function ScanScreen() {
     setResult(null);
     setPromptCustomDismissed(false);
     setPromptWrongScanDismissed(false);
+    setPromptRedFlagDismissed(false);
+    setRedFlagDismissed(false);
     setScanning(true);
     setCameraActive(false);
     setCameraReady(false);
@@ -983,46 +1085,38 @@ export default function ScanScreen() {
     return () => sub.remove();
   }, []);
 
+  // Auto-scan once the live camera fills the staging cap. Cancel button stays
+  // available during the scan if the user wants to bail out.
+  useEffect(() => {
+    if (
+      cameraActive &&
+      stagedPhotos.length >= MAX_STAGED_PHOTOS &&
+      !result &&
+      !scanningRef.current
+    ) {
+      handleScanStagedRef.current();
+    }
+  }, [stagedPhotos.length, cameraActive, result]);
+
   const handleCapturePhoto = useCallback(async () => {
     if (!__DEV__ && !isPro) { setPaywallVisible(true); return; }
     if (!CAMERA_AVAILABLE || scanning || !cameraReady || scanningRef.current) return;
+    if (stagedPhotos.length >= MAX_STAGED_PHOTOS) {
+      showToast(`Maximum ${MAX_STAGED_PHOTOS} photos per scan`);
+      return;
+    }
     try {
       const photo = await cameraRef.current?.takePictureAsync?.({ quality: 0.8 });
       if (!photo?.uri) return;
-      setPlaceholderImageUri(photo.uri);
-      setStagedPhotos([photo.uri]);
-      setCameraActive(false);
-      setCameraReady(false);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      const controller = new AbortController();
-      abortControllerRef.current = controller;
-      scanningRef.current = true;
-      setResult(null);
-      setPromptCustomDismissed(false);
-      setPromptWrongScanDismissed(false);
-      setScanning(true);
-      try {
-        const geminiResult = await scanWithGemini([photo.uri], controller.signal, setScanStatus);
-        pendingRetryRef.current = false; // scan succeeded — don't retry on foreground
-        setResult(geminiResult);
-      } catch (error) {
-        if ((error as Error)?.name === 'AbortError') return;
-        const message = error instanceof Error ? error.message : String(error ?? '');
-        if (/API (429|503|529)/i.test(message) || /overloaded|high demand/i.test(message)) {
-          showToast('AI is busy right now — try again in a moment');
-        } else {
-          showToast("Couldn't identify — try getting the label in frame");
-        }
-      } finally {
-        scanningRef.current = false;
-        setScanning(false);
-        setScanStatus(null);
-        abortControllerRef.current = null;
-      }
+      setStagedPhotos((prev) => {
+        if (prev.length === 0) setPlaceholderImageUri(photo.uri);
+        return [...prev, photo.uri];
+      });
     } catch {
       showToast("Couldn't capture photo — try again");
     }
-  }, [cameraReady, scanning, isPro, showToast]);
+  }, [cameraReady, scanning, isPro, showToast, stagedPhotos.length]);
 
   const handleRemoveStagedPhoto = useCallback((index: number) => {
     setStagedPhotos(prev => {
@@ -1092,6 +1186,8 @@ export default function ScanScreen() {
     setPlaceholderImageUri(null);
     setPromptCustomDismissed(false);
     setPromptWrongScanDismissed(false);
+    setPromptRedFlagDismissed(false);
+    setRedFlagDismissed(false);
     setRescanningHandmade(false);
     setRescanningWrong(false);
     AsyncStorage.removeItem(TV_PENDING_SCAN_KEY);
@@ -1232,12 +1328,17 @@ export default function ScanScreen() {
       activeScanSnapshotId: snapshot.id,
     };
     addItem(newItem);
-    if (promptCustomDismissed || promptWrongScanDismissed) {
-      AsyncStorage.setItem(`tv_prompt_dismissed_${id}`, JSON.stringify({ handmade: promptCustomDismissed, wrongScan: promptWrongScanDismissed }));
+    if (promptCustomDismissed || promptWrongScanDismissed || promptRedFlagDismissed || redFlagDismissed) {
+      AsyncStorage.setItem(`tv_prompt_dismissed_${id}`, JSON.stringify({
+        handmade: promptCustomDismissed,
+        wrongScan: promptWrongScanDismissed,
+        redFlagPrompt: promptRedFlagDismissed,
+        redFlagBanner: redFlagDismissed,
+      }));
     }
     clearResultAndPhoto();
     router.push({ pathname: '/detail', params: { itemId: String(id), fromScan: '1' } });
-  }, [result, persistPhotos, stagedPhotos, createSnapshot, addItem, promptCustomDismissed, promptWrongScanDismissed, clearResultAndPhoto, router]);
+  }, [result, persistPhotos, stagedPhotos, createSnapshot, addItem, promptCustomDismissed, promptWrongScanDismissed, promptRedFlagDismissed, redFlagDismissed, clearResultAndPhoto, router]);
 
   const updateExistingFromScan = useCallback(async (target: Item) => {
     if (!result) return;
@@ -1463,7 +1564,7 @@ export default function ScanScreen() {
   const handleSaveForLater = useCallback(() => {
     if (!result) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const saved: SavedScanItem = { ...result, savedAt: Date.now(), photoUri: stagedPhotos[0] ?? null, photoUris: stagedPhotos, promptCustomDismissed, promptWrongScanDismissed };
+    const saved: SavedScanItem = { ...result, savedAt: Date.now(), photoUri: stagedPhotos[0] ?? null, photoUris: stagedPhotos, promptCustomDismissed, promptWrongScanDismissed, promptRedFlagDismissed, redFlagDismissed };
     setSavedForLater((prev) => {
       const next = [...prev, saved];
       persistSavedForLater(next);
@@ -1486,6 +1587,8 @@ export default function ScanScreen() {
     setResult(saved);
     setPromptCustomDismissed(saved.promptCustomDismissed === true);
     setPromptWrongScanDismissed(saved.promptWrongScanDismissed === true);
+    setPromptRedFlagDismissed(saved.promptRedFlagDismissed === true);
+    setRedFlagDismissed(saved.redFlagDismissed === true);
   }, [persistSavedForLater]);
 
   const recents = useMemo(
@@ -1544,6 +1647,13 @@ export default function ScanScreen() {
                     <AppIcon name="close" size={22} color={theme.colors.white} />
                   </Pressable>
                 </BlurView>
+                {stagedPhotos.length > 0 && (
+                  <BlurView intensity={40} tint="dark" style={[styles.cameraOverlayBtnBlur, styles.stagedCounterPos]}>
+                    <View style={styles.stagedCounterInner}>
+                      <Text style={styles.stagedCounterText}>{stagedPhotos.length}/{MAX_STAGED_PHOTOS}</Text>
+                    </View>
+                  </BlurView>
+                )}
                 <BlurView intensity={40} tint="dark" style={[styles.cameraOverlayBtnBlur, styles.cameraOverlayFlip]}>
                   <Pressable
                     hitSlop={8}
@@ -1571,6 +1681,19 @@ export default function ScanScreen() {
                     </Pressable>
                   </BlurView>
                 </View>
+                {stagedPhotos.length > 0 && (
+                  <BlurView intensity={40} tint="dark" style={[styles.cameraOverlayBtnBlur, styles.cameraOverlayScan]}>
+                    <Pressable
+                      hitSlop={8}
+                      style={({ pressed }) => [styles.cameraOverlayIconBtn, pressed && styles.cameraPressed]}
+                      onPress={handleScanStaged}
+                      accessibilityLabel={`Scan ${stagedPhotos.length} photo${stagedPhotos.length === 1 ? '' : 's'}`}
+                      accessibilityRole="button"
+                    >
+                      <AppIcon name="search" size={22} color={theme.colors.white} />
+                    </Pressable>
+                  </BlurView>
+                )}
               </View>
             </>
           ) : (
@@ -1755,16 +1878,20 @@ export default function ScanScreen() {
             onSkip={handleSkip}
             onSaveForLater={handleSaveForLater}
             onNameChange={(name) => setResult((prev) => prev ? { ...prev, name } : null)}
-            onConfirmHandmade={handleConfirmHandmade}
+            onConfirmHandmade={() => { Haptics.selectionAsync(); handleConfirmHandmade(); }}
             rescanningHandmade={rescanningHandmade}
-            onRescanWrong={handleRescanWrong}
+            onRescanWrong={() => { Haptics.selectionAsync(); handleRescanWrong(); }}
             rescanningWrong={rescanningWrong}
             onRefreshUpcycle={handleRefreshUpcycle}
             refreshingUpcycle={refreshingUpcycle}
             customDismissed={promptCustomDismissed}
-            onDismissCustom={() => setPromptCustomDismissed(true)}
+            onDismissCustom={() => { Haptics.selectionAsync(); setPromptCustomDismissed(true); }}
             wrongScanDismissed={promptWrongScanDismissed}
-            onDismissWrongScan={() => setPromptWrongScanDismissed(true)}
+            onDismissWrongScan={() => { Haptics.selectionAsync(); setPromptWrongScanDismissed(true); }}
+            redFlagPromptDismissed={promptRedFlagDismissed}
+            redFlagDismissed={redFlagDismissed}
+            onConfirmRedFlag={() => { Haptics.selectionAsync(); setPromptRedFlagDismissed(true); }}
+            onMarkRedFlagFalseAlarm={() => { Haptics.selectionAsync(); setPromptRedFlagDismissed(true); setRedFlagDismissed(true); }}
             theme={theme}
             styles={scanStyles}
           />
@@ -2072,6 +2199,11 @@ function createStyles(
   cameraOverlayFlip: {
     position: 'absolute',
     bottom: 24,
+    left: 20,
+  },
+  cameraOverlayScan: {
+    position: 'absolute',
+    bottom: 24,
     right: 20,
   },
   cameraOverlayBtn: {
@@ -2171,17 +2303,6 @@ function createStyles(
     fontWeight: '700',
     color: theme.colors.white,
   },
-  stagedStripCamera: {
-    position: 'absolute',
-    bottom: 90,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-    zIndex: 10,
-  },
   stagedStripOverlay: {
     position: 'absolute',
     bottom: 16,
@@ -2210,17 +2331,6 @@ function createStyles(
     position: 'absolute',
     top: 2,
     right: 2,
-  },
-  stagedAddMore: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: theme.colors.overlayWhiteMid,
-    borderStyle: 'dashed' as const,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.colors.overlay,
   },
   stagedClearBlur: {
     borderRadius: 9999,

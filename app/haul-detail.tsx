@@ -348,6 +348,14 @@ export default function HaulDetailScreen() {
             >
               <Text style={styles.haulStoreApplyText}>Apply</Text>
             </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.haulStoreCancelBtn, pressed && { opacity: 0.6 }]}
+              onPress={() => setStoreModalVisible(false)}
+              accessibilityLabel="Cancel"
+              accessibilityRole="button"
+            >
+              <Text style={styles.haulStoreCancelText}>Cancel</Text>
+            </Pressable>
           </Pressable>
         </View>
       </Modal>
@@ -645,6 +653,17 @@ function createStyles(theme: Theme) {
       ...theme.typography.body,
       fontWeight: '600',
       color: theme.colors.onPrimary,
+    },
+    haulStoreCancelBtn: {
+      paddingVertical: theme.spacing.sm,
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: theme.minTouchTargetSize,
+      marginTop: theme.spacing.sm,
+    },
+    haulStoreCancelText: {
+      ...theme.typography.bodySmall,
+      color: theme.colors.mauve,
     },
   });
 }

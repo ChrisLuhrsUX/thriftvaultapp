@@ -134,6 +134,8 @@ export default function DetailScreen() {
   const [authExpanded, setAuthExpanded] = useState(false);
   const [customDismissed, setCustomDismissed] = useState(false);
   const [wrongScanDismissed, setWrongScanDismissed] = useState(false);
+  const [redFlagPromptDismissed, setRedFlagPromptDismissed] = useState(false);
+  const [redFlagDismissed, setRedFlagDismissed] = useState(false);
   const promptDismissedLoaded = useRef(false);
   const [rescanningHandmade, setRescanningHandmade] = useState(false);
   const [rescanningWrong, setRescanningWrong] = useState(false);
@@ -313,9 +315,11 @@ export default function DetailScreen() {
     AsyncStorage.getItem(`tv_prompt_dismissed_${id}`).then((raw) => {
       if (!raw) return;
       try {
-        const flags = JSON.parse(raw) as { handmade?: boolean; wrongScan?: boolean };
+        const flags = JSON.parse(raw) as { handmade?: boolean; wrongScan?: boolean; redFlagPrompt?: boolean; redFlagBanner?: boolean };
         if (flags.handmade) setCustomDismissed(true);
         if (flags.wrongScan) setWrongScanDismissed(true);
+        if (flags.redFlagPrompt) setRedFlagPromptDismissed(true);
+        if (flags.redFlagBanner) setRedFlagDismissed(true);
       } catch {
         // ignore
       }
@@ -454,15 +458,20 @@ export default function DetailScreen() {
       updateItem(item.id, changes);
       // Don't reset dismissed states — isCustom:true on the new snapshot shows the pill
       // instead of the prompt. Preserve wrongScan dismissal so it doesn't reappear.
-      if (wrongScanDismissed) {
-        AsyncStorage.setItem(`tv_prompt_dismissed_${item.id}`, JSON.stringify({ handmade: false, wrongScan: true }));
+      if (wrongScanDismissed || redFlagPromptDismissed || redFlagDismissed) {
+        AsyncStorage.setItem(`tv_prompt_dismissed_${item.id}`, JSON.stringify({
+          handmade: false,
+          wrongScan: wrongScanDismissed,
+          redFlagPrompt: redFlagPromptDismissed,
+          redFlagBanner: redFlagDismissed,
+        }));
       }
     } catch {
       showToast("Couldn't rescan — try again");
     } finally {
       setRescanningHandmade(false);
     }
-  }, [item, wrongScanDismissed, getActiveSnapshot, update, updateItem, showToast]);
+  }, [item, wrongScanDismissed, redFlagPromptDismissed, redFlagDismissed, getActiveSnapshot, update, updateItem, showToast]);
 
   const rescanWrong = useCallback(async () => {
     if (!item) return;
@@ -512,6 +521,8 @@ export default function DetailScreen() {
       updateItem(item.id, changes);
       setCustomDismissed(false);
       setWrongScanDismissed(false);
+      setRedFlagPromptDismissed(false);
+      setRedFlagDismissed(false);
       AsyncStorage.removeItem(`tv_prompt_dismissed_${item.id}`);
       if (result.correction) showToast(toastForCorrection(result.correction));
     } catch {
@@ -1071,7 +1082,7 @@ export default function DetailScreen() {
                     <Text style={styles.insightsCustomPromptText}>Is this handmade?</Text>
                     <Pressable
                       style={({ pressed }) => [styles.insightsCustomYes, pressed && { opacity: 0.7 }]}
-                      onPress={() => confirmHandmade()}
+                      onPress={() => { Haptics.selectionAsync(); confirmHandmade(); }}
                       hitSlop={8}
                       accessibilityLabel="Yes, this is handmade"
                       accessibilityRole="button"
@@ -1080,7 +1091,7 @@ export default function DetailScreen() {
                     </Pressable>
                     <Pressable
                       style={({ pressed }) => [styles.insightsCustomNo, pressed && { opacity: 0.7 }]}
-                      onPress={() => { setCustomDismissed(true); AsyncStorage.setItem(`tv_prompt_dismissed_${id}`, JSON.stringify({ handmade: true, wrongScan: wrongScanDismissed })); }}
+                      onPress={() => { Haptics.selectionAsync(); setCustomDismissed(true); AsyncStorage.setItem(`tv_prompt_dismissed_${id}`, JSON.stringify({ handmade: true, wrongScan: wrongScanDismissed, redFlagPrompt: redFlagPromptDismissed, redFlagBanner: redFlagDismissed })); }}
                       hitSlop={8}
                       accessibilityLabel="No, not handmade"
                       accessibilityRole="button"
@@ -1100,7 +1111,7 @@ export default function DetailScreen() {
                     <Text style={styles.insightsCustomPromptText}>Is this scan wrong?</Text>
                     <Pressable
                       style={({ pressed }) => [styles.insightsCustomYes, pressed && { opacity: 0.7 }]}
-                      onPress={rescanWrong}
+                      onPress={() => { Haptics.selectionAsync(); rescanWrong(); }}
                       hitSlop={8}
                       accessibilityLabel="Yes, rescan this item"
                       accessibilityRole="button"
@@ -1109,7 +1120,7 @@ export default function DetailScreen() {
                     </Pressable>
                     <Pressable
                       style={({ pressed }) => [styles.insightsCustomNo, pressed && { opacity: 0.7 }]}
-                      onPress={() => { setWrongScanDismissed(true); AsyncStorage.setItem(`tv_prompt_dismissed_${id}`, JSON.stringify({ handmade: customDismissed, wrongScan: true })); }}
+                      onPress={() => { Haptics.selectionAsync(); setWrongScanDismissed(true); AsyncStorage.setItem(`tv_prompt_dismissed_${id}`, JSON.stringify({ handmade: customDismissed, wrongScan: true, redFlagPrompt: redFlagPromptDismissed, redFlagBanner: redFlagDismissed })); }}
                       hitSlop={8}
                       accessibilityLabel="No, scan is correct"
                       accessibilityRole="button"
@@ -1118,7 +1129,7 @@ export default function DetailScreen() {
                     </Pressable>
                   </View>
                 ) : null}
-                {activeSnapshot.redFlags && activeSnapshot.redFlags.length > 0 && (
+                {activeSnapshot.redFlags && activeSnapshot.redFlags.length > 0 && !redFlagDismissed && (
                   <View style={styles.insightsRedFlagSection}>
                     <View style={styles.insightsRedFlagHeader}>
                       <AppIcon name="flag" size={15} color={theme.colors.loss} />
@@ -1131,6 +1142,44 @@ export default function DetailScreen() {
                         <Text style={styles.insightsRedFlagText}>{flag}</Text>
                       </View>
                     ))}
+                    {!redFlagPromptDismissed && (
+                      <View style={styles.insightsRedFlagPromptRow}>
+                        <Text style={styles.insightsRedFlagPromptText}>Look fake to you?</Text>
+                        <Pressable
+                          style={({ pressed }) => [styles.insightsRedFlagYes, pressed && { opacity: 0.7 }]}
+                          onPress={() => {
+                            Haptics.selectionAsync();
+                            setRedFlagPromptDismissed(true);
+                            AsyncStorage.setItem(`tv_prompt_dismissed_${id}`, JSON.stringify({ handmade: customDismissed, wrongScan: wrongScanDismissed, redFlagPrompt: true, redFlagBanner: redFlagDismissed }));
+                          }}
+                          hitSlop={8}
+                          accessibilityLabel="Yes, this looks fake"
+                          accessibilityRole="button"
+                        >
+                          <Text style={styles.insightsRedFlagYesText}>Yes</Text>
+                        </Pressable>
+                        <Pressable
+                          style={({ pressed }) => [styles.insightsRedFlagNo, pressed && { opacity: 0.7 }]}
+                          onPress={() => {
+                            Haptics.selectionAsync();
+                            setRedFlagPromptDismissed(true);
+                            setRedFlagDismissed(true);
+                            AsyncStorage.setItem(`tv_prompt_dismissed_${id}`, JSON.stringify({ handmade: customDismissed, wrongScan: wrongScanDismissed, redFlagPrompt: true, redFlagBanner: true }));
+                          }}
+                          hitSlop={8}
+                          accessibilityLabel="No, false alarm"
+                          accessibilityRole="button"
+                        >
+                          <Text style={styles.insightsRedFlagNoText}>No</Text>
+                        </Pressable>
+                      </View>
+                    )}
+                  </View>
+                )}
+                {activeSnapshot.redFlags && activeSnapshot.redFlags.length > 0 && redFlagDismissed && (
+                  <View style={styles.insightsRedFlagDismissedPill}>
+                    <AppIcon name="flag-outline" size={12} color={theme.colors.loss} />
+                    <Text style={styles.insightsRedFlagDismissedText}>Possibly fake — dismissed</Text>
                   </View>
                 )}
                 <View style={styles.insightsIdeas}>
@@ -2592,6 +2641,60 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     color: theme.colors.charcoal,
     flex: 1,
     lineHeight: 20,
+  },
+  insightsRedFlagPromptRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 6,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.surfaceVariant,
+  },
+  insightsRedFlagPromptText: {
+    ...theme.typography.caption,
+    color: theme.colors.loss,
+    flex: 1,
+  },
+  insightsRedFlagYes: {
+    justifyContent: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.surface,
+  },
+  insightsRedFlagYesText: {
+    ...theme.typography.caption,
+    fontWeight: '600',
+    color: theme.colors.loss,
+  },
+  insightsRedFlagNo: {
+    justifyContent: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.surface,
+  },
+  insightsRedFlagNoText: {
+    ...theme.typography.caption,
+    fontWeight: '600',
+    color: theme.colors.mauve,
+  },
+  insightsRedFlagDismissedPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    marginTop: theme.spacing.md,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.blush,
+  },
+  insightsRedFlagDismissedText: {
+    ...theme.typography.caption,
+    color: theme.colors.loss,
+    fontWeight: '600',
   },
   insightsAuthHeader: {
     flexDirection: 'row',

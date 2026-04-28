@@ -102,4 +102,8 @@ export interface ScanScenario {
   isCustom?: boolean;
   /** Transient: AI's verdict from a "wrong scan" rescan. Not persisted in ItemScanSnapshot. */
   correction?: 'lower' | 'higher' | 'same';
+  /** Transient: user answered the red-flag yes/no prompt (hides the prompt row). Not persisted in ItemScanSnapshot. */
+  promptRedFlagDismissed?: boolean;
+  /** Transient: user marked the red flag as a false alarm (collapses banner to thin pill). Not persisted in ItemScanSnapshot. */
+  redFlagDismissed?: boolean;
 }
