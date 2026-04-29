@@ -1,0 +1,44 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(eas submit*)",
+      "Bash(eas build --profile production*)",
+      "Bash(eas update --branch production*)",
+      "Bash(npx expo prebuild*)",
+      "Bash(expo prebuild*)",
+      "Bash(bunx expo prebuild*)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean -f*)",
+      "Bash(git clean -fd*)",
+      "Bash(git checkout -- .*)",
+      "Bash(git checkout .*)",
+      "Bash(git branch -D*)",
+      "Bash(git tag -d*)",
+      "Bash(git tag --delete*)",
+      "Bash(gh repo delete*)",
+      "Bash(gh release delete*)",
+      "Bash(gh pr close*)",
+      "Bash(gcloud*)",
+      "Bash(aws*)",
+      "Bash(fastlane*)",
+      "Bash(railway*)",
+      "Bash(heroku*)",
+      "Bash(firebase*)",
+      "Bash(supabase*)"
+    ],
+    "ask": [
+      "Bash(eas update*)",
+      "Bash(eas build*)",
+      "Bash(eas secret:delete*)",
+      "Bash(eas secret:create*)",
+      "Bash(eas:*)",
+      "Bash(npm uninstall*)",
+      "Bash(npm install -g*)",
+      "Bash(npx expo install --fix*)",
+      "Bash(npx expo install *)"
+    ]
+  }
+}

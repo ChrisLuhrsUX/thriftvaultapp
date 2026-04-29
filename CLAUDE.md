@@ -4,6 +4,10 @@
 
 ThriftVault is a mobile-first thrift reselling app built with Expo + React Native. Thrifters can scan items, track inventory, and estimate resale profit. All data is local — no backend.
 
+## Agent Safety
+
+See [SAFETY.md](SAFETY.md) — never-run list, confirm-before list, and recovery playbooks. Hard enforcement in `.claude/settings.json`. The agent treats both as load-bearing.
+
 ## Tech Stack
 
 - **Framework:** Expo 54, React 19.1, React Native 0.81.5
@@ -205,14 +209,17 @@ interface ScanScenario {
 - **iOS minimum = 15.1** — Expo 54 + expo-camera + expo-image-picker floor. Covers iPhone XS→16 Pro Max. Portrait-locked, no tablet.
 - **Background scan** — iOS suspends network requests after brief grace period when backgrounded. Result appears on return. Full fix requires iOS Background Fetch entitlement — deferred post-launch.
 - **RevenueCat** — Code is 100% ready (`hooks/usePurchases.ts`, `PaywallModal`). Blockers are all infrastructure: Paid Apps agreement, 3 App Store Connect products, RevenueCat dashboard, `npm install react-native-purchases`, `app.json` plugin, `.env` key, `npx expo prebuild`. **Expo Go breaks permanently after prebuild** — must switch to dev client or TestFlight. See `MVP.md` for 9-step sequence.
-- **Anti-counterfeit** — "Reselling this?" disclaimer on Verify authenticity blocks (`scan.tsx`, `detail.tsx`). TOS Section 4 prohibits counterfeit use. **Needs GH Pages push to go live.**
+- **Anti-counterfeit** — "Reselling this?" disclaimer on Verify authenticity blocks (`scan.tsx`, `detail.tsx`). TOS Section 4 prohibits counterfeit use; live on GH Pages.
 - **Invested = lifetime cost basis** — stats reducer accumulates `invested += paid` for every item regardless of status (selling doesn't reduce invested).
 
 ### Business State
 
 - **Apple Developer** — Individual enrollment active ($99/yr, enrolled 2026-03-28). D-U-N-S issued 145002422. Emailed Apple Developer Support 2026-04-26 requesting Individual → Organization conversion (used their dedicated category; 1–2 business day response). If Apple can convert in-place, new enrollment not needed. If not, must create new Apple ID + re-enroll as Org ($99/yr).
 - **ThriftVault LLC** — Formed in TN ~2026-04-16, EIN issued. Chris signs as "Chris Luhrs, Member, ThriftVault LLC." Annual overhead: ~$400/yr TN ($300 annual report due April 1 + $100 min franchise) + 6.5% excise on net earnings. Legal docs: `C:\Users\Chris\Downloads\ThriftVault\ThriftVault_LLC\`.
-- **Pre-launch follow-ups:** (1) Push updated legal docs to GH Pages (LLC name + TN law + Sentry — done in code, not yet pushed). (2) Export 1024×1024 PNG icon; update three `app.json` icon/splash/favicon paths. (3) D-U-N-S → new Org Apple Developer enrollment; fill `ascAppId` + `appleTeamId` in `eas.json`.
+- **Pre-launch follow-ups:** (1) Export 1024×1024 PNG icon; update three `app.json` icon/splash/favicon paths. (2) D-U-N-S → new Org Apple Developer enrollment; fill `ascAppId` + `appleTeamId` in `eas.json`.
+
+### Session — 2026-04-29
+- **`ALTERED FACTORY BASE` clamps extended to 5 categories** (`services/gemini.ts`) — Mirrors 4/26 pants + 4/27 tops clamps. Ceilings: dresses $200, skirts $140, shorts $120, swimwear $120, non-sneaker shoes $200 (floors $40/$30/$25/$25/$40). Skirts/shorts/swimwear keyword-gated via name/sub regex (no enum value); non-sneaker shoes gate on `!isSneakerText` so prompt-only sneaker tiers ($120/$180/$260) survive. Dresses/skirts respect `isExceptionalDenim` for the $300 override. Mirrored tiers in `PROMPT` and `HANDMADE_SUFFIX` with unlock vocabulary that matches the regex.
 
 ### Session — 2026-04-28
 - **Red flag yes/no prompt** (`types/inventory.ts`, `app/(tabs)/scan.tsx`, `app/detail.tsx`, `app/(tabs)/index.tsx`, `context/InventoryContext.tsx`) — User had no escape hatch when the AI red-flagged a real item. Added `promptRedFlagDismissed` + `redFlagDismissed` (transient, on `ScanScenario` only — not on `ItemScanSnapshot`, mirrors the `correction` field pattern). "Look fake to you?" Yes/No row inside the red-flag banner; tapping No drops the camera-box red border and renders the result as a normal scan card (we initially shipped a "Possibly fake — dismissed" pill, then ripped it — user wanted clean dismissal). Dismissal persists per-item via the existing `tv_prompt_dismissed_${id}` key with two new fields: `redFlagPrompt` (hides the prompt row) and `redFlagBanner` (collapses the banner). `sanitizeSnapshot` already extracts `redFlags`. Vault grid (`index.tsx`) reads all `tv_prompt_dismissed_${id}` keys via `AsyncStorage.multiGet` inside `useFocusEffect`; the resulting `redFlagDismissedIds` Set hides the red-flag badge on cards where `redFlagBanner: true`. Re-reads on tab focus so dismissals from detail screen show up immediately. Suppression of handmade/wrong-scan prompts now ties to `redFlagBannerActive = hasRedFlags && !redFlagDismissed` — collapsed banner unblocks those prompts again.
@@ -260,25 +267,13 @@ interface ScanScenario {
 - **Bug fix: rescans dropped `authFlags` + `redFlags`** — `confirmHandmade` and `rescanWrong` in `detail.tsx` created new `ItemScanSnapshot` objects without including `authFlags` or `redFlags` from the AI result. Fixed: both now include them, matching `scan.tsx` behavior.
 - **Bug fix: `formatMoney` missing in rescan profit strings** — `detail.tsx` used raw `$${low}–$${high}` instead of `formatMoney()` for rescan profit display. Four-figure items showed `$1000` instead of `$1,000`. Fixed in both `confirmHandmade` and `rescanWrong`.
 - **Type safety: chip toggles** — Category, platform, and status chip deselect used `'' as any` which violates `ItemCategory`/`ItemStatus` types. Fixed: category deselects to `'other'`, status deselects to `'unlisted'`.
-- **Dead code cleanup** — `constants/Colors.ts` → `components/Themed.tsx` → `app/+not-found.tsx` was an unused Expo boilerplate chain. Rewrote `+not-found.tsx` to use real theme; `Colors.ts` and `Themed.tsx` are orphaned (safe to delete).
 - **Accessibility labels pass** — Added `accessibilityLabel`, `accessibilityRole`, and `accessibilityState` across all interactive elements. 37 → 169 attributes across 9 files. Covers: all chips (with `selected` state), toggles (with `expanded` state), camera controls, action buttons, modals, navigation, tab switcher (with `tab` role), plan cards, legal links. Sufficient for App Store review; Dynamic Type and Reduce Motion are post-launch polish.
 
-### Session — 2026-04-22
-- **Red Flag system** — New `redFlags?: string[]` field on `ScanScenario` + `ItemScanSnapshot`. Dedicated `RED FLAG DETECTION — HARD RULE` section in Gemini prompt (separate from `authFlags`) detects all-over sublimation prints and AI-generated artwork on garments. Prompt uses aggressive "err on the side of flagging" language matching `isCustom` enforcement pattern. Initial attempt embedding AI detection in `authFlags` failed — Gemini ignored it alongside luxury brand checks. Separate field + hard rule fixed it.
-- **Red Flag UI** — Non-collapsible `blush` banner with filled `flag` icon + `loss` accent in both `scan.tsx` and `detail.tsx`, placed above listing suggestions. Subtitle: "This item may be fake or use AI-generated artwork." Red circle + white flag badge on item cards in vault grid (`index.tsx`) for at-a-glance visibility.
-- **`authFlags` reverted** — Back to luxury/designer-only criteria. AI print detection lives exclusively in `redFlags`.
-
-### Session — 2026-04-21
-- **Legal docs updated** — `terms.html` + `privacy-policy.html` now name "ThriftVault LLC", add TN governing law section, and disclose Sentry crash reporting. Privacy policy date corrected March → April 2026. **Still needs GH Pages push.**
-- **`app.json`** — Added `minimumOsVersion: "15.1"` (matches Expo 54 + expo-camera floor). Icon is still a `.jpg` — Apple requires 1024×1024 PNG; needs manual export before submission.
-- **`eas.json` created** — dev/preview/production profiles. Fill `ascAppId` + `appleTeamId` once Org account is live.
-- **PaywallModal** — Added Restore Purchases button (Apple requirement; was missing). Added "Haul tracking & profit analytics" to features list. Fixed Season Pass period string (`/ 3 mo` → `/3 mo`). Switched features from `ScrollView` to `View`. Stacked period below price in plan cards to prevent text wrapping. Removed "Popular" badge from Season Pass (no data yet).
-- **Profile screen** — "Upgrade to Pro" button moved from bottom of scroll to just below header (visible on load).
-- **detail.tsx scan card** — Description (`sub`) now renders above handmade pill/prompt, matching scan.tsx order.
-
-### Compressed Sessions — 2026-04-12 to 2026-04-19
+### Compressed Sessions — 2026-04-12 to 2026-04-22
 *Older than 7 days; full notes summarized below. Major decisions consolidated into "Key Decisions" above.*
 
+- **Red Flag system inception (4/22)** — Added `redFlags?: string[]` field + dedicated `RED FLAG DETECTION — HARD RULE` prompt block (separate from `authFlags` after embedding-in-authFlags failed; Gemini ignored it alongside luxury checks). `blush` banner with `flag` icon in scan.tsx + detail.tsx; red badge on vault grid items. Heavily iterated 4/23–4/28.
+- **Pre-launch compliance pass (4/21)** — Legal docs (`terms.html` + `privacy-policy.html`) updated for LLC + TN law + Sentry disclosure. `app.json` `minimumOsVersion: "15.1"`. `eas.json` created (dev/preview/production). PaywallModal: Restore Purchases added (Apple requirement), `/3 mo` formatting, "Popular" badge dropped, period stacked below price. Profile "Upgrade to Pro" moved above the fold.
 - **Sentry + ESM fix (4/19)** — `@sentry/react-native` wired in `_layout.tsx` (`Sentry.wrap(RootLayout)`, `enabled: !!EXPO_PUBLIC_SENTRY_DSN` — inert until DSN set). `metro.config.js` created with `unstable_enablePackageExports: true` to fix Sentry's ESM resolution. Native crash reporting activates after prebuild.
 - **Android readiness (4/19)** — `ANDROID.md` created; assessed as not ready (missing package, versionCode, PNG adaptive icon, EAS config, Play account, RevenueCat Google Play). iOS-first launch confirmed.
 - **Expo 54 longevity (4/19)** — safe through mid-to-late 2026; upgrade pressure begins when Expo 56/57 drops 54 from EAS.
@@ -292,8 +287,6 @@ interface ScanScenario {
 - **Money formatting** — `formatMoney()` for 4-figure ranges (`$600–$1,200`) (4/17). `formatMoneyWithSign()` for profit display.
 - **Sold-state zombie fix pattern (4/12)** — Sync `soldStr`/`resaleStr` string state at every programmatic write site in `detail.tsx`. Photo dedup on rescan via `FileSystem.getInfoAsync` size comparison.
 - **FlatList scroll reset on tab switch (4/13)** — Include `view` in FlatList `key` so each tab mounts a fresh list at top.
-- **Style fix (4/17)** — `scanStatusPill` background `terraLight` was invisible over dark camera overlay; switched to `surface`.
-- **Legal disclaimers (4/14)** — "AI estimates — actual resale and authenticity not guaranteed" added in `scan.tsx`/`detail.tsx`. TOS Sections 6–9 expanded. **Still needs GH Pages push.**
 
 ## Post-Launch Ideas
 
