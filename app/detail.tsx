@@ -56,10 +56,8 @@ function parseProfitRange(profit: string): { low: number; high: number } | null 
   return { low, high };
 }
 
-const toastForCorrection = (c: 'lower' | 'higher' | 'same'): string =>
-  c === 'lower' ? 'AI lowered the price'
-  : c === 'higher' ? 'AI raised the price'
-  : 'AI confident in prior price';
+const toastForCorrection = (c: 'lower' | 'higher'): string =>
+  c === 'lower' ? 'AI lowered the price' : 'AI raised the price';
 
 const STATUS_OPTIONS: ItemStatus[] = ['unlisted', 'listed', 'sold'];
 const KNOWN_PLATFORMS: PlatformType[] = ['Poshmark', 'Depop', 'eBay', 'Mercari', 'Facebook Marketplace', 'Vinted', 'Shopify'];
@@ -1174,12 +1172,6 @@ export default function DetailScreen() {
                         </Pressable>
                       </View>
                     )}
-                  </View>
-                )}
-                {activeSnapshot.redFlags && activeSnapshot.redFlags.length > 0 && redFlagDismissed && (
-                  <View style={styles.insightsRedFlagDismissedPill}>
-                    <AppIcon name="flag-outline" size={12} color={theme.colors.loss} />
-                    <Text style={styles.insightsRedFlagDismissedText}>Possibly fake — dismissed</Text>
                   </View>
                 )}
                 <View style={styles.insightsIdeas}>
@@ -2679,22 +2671,6 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     ...theme.typography.caption,
     fontWeight: '600',
     color: theme.colors.mauve,
-  },
-  insightsRedFlagDismissedPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: 6,
-    marginTop: theme.spacing.md,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: theme.radius.full,
-    backgroundColor: theme.colors.blush,
-  },
-  insightsRedFlagDismissedText: {
-    ...theme.typography.caption,
-    color: theme.colors.loss,
-    fontWeight: '600',
   },
   insightsAuthHeader: {
     flexDirection: 'row',

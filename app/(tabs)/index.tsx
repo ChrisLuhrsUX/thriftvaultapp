@@ -1,7 +1,8 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
@@ -152,17 +153,19 @@ const ItemCard = React.memo(function ItemCard({
   item,
   isCloset,
   onPress,
+  redFlagDismissed,
   styles,
   theme,
 }: {
   item: Item;
   isCloset: boolean;
   onPress: (id: number) => void;
+  redFlagDismissed: boolean;
   styles: ReturnType<typeof createStyles>;
   theme: Theme;
 }) {
   const activeSnapshot = item.scanSnapshots?.find(s => s.id === item.activeScanSnapshotId) ?? item.scanSnapshots?.[0];
-  const hasRedFlags = (activeSnapshot?.redFlags?.length ?? 0) > 0;
+  const hasRedFlags = (activeSnapshot?.redFlags?.length ?? 0) > 0 && !redFlagDismissed;
   const paid = Number(item.paid) || 0;
   const resale = Number(item.resale) || 0;
   const soldPrice = item.soldPrice != null ? Number(item.soldPrice) : null;
@@ -235,6 +238,38 @@ export default function InventoryScreen() {
   const [search, setSearch] = useState('');
   const [haulSearch, setHaulSearch] = useState('');
   const [filter, setFilter] = useState('all');
+  const [redFlagDismissedIds, setRedFlagDismissedIds] = useState<Set<number>>(() => new Set());
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      (async () => {
+        const ids = inventory.map((i) => i.id);
+        if (ids.length === 0) {
+          if (!cancelled) setRedFlagDismissedIds(new Set());
+          return;
+        }
+        const keys = ids.map((id) => `tv_prompt_dismissed_${id}`);
+        try {
+          const pairs = await AsyncStorage.multiGet(keys);
+          if (cancelled) return;
+          const next = new Set<number>();
+          for (const [key, raw] of pairs) {
+            if (!raw) continue;
+            try {
+              const flags = JSON.parse(raw) as { redFlagBanner?: boolean };
+              if (flags.redFlagBanner) {
+                const id = Number(key.slice('tv_prompt_dismissed_'.length));
+                if (Number.isFinite(id)) next.add(id);
+              }
+            } catch { /* ignore */ }
+          }
+          setRedFlagDismissedIds(next);
+        } catch { /* ignore */ }
+      })();
+      return () => { cancelled = true; };
+    }, [inventory])
+  );
   const numColumns = gridColumns;
   const styles = useMemo(
     () => createStyles(theme, hPad, headerHPad, numColumns),
@@ -746,6 +781,7 @@ export default function InventoryScreen() {
               item={item}
               isCloset={view === 'closet'}
               onPress={handleItemPress}
+              redFlagDismissed={redFlagDismissedIds.has(item.id)}
               styles={styles}
               theme={theme}
             />

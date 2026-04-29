@@ -111,10 +111,8 @@ function classifyToken(t: string): TokenClass {
   return 'generic';
 }
 
-const toastForCorrection = (c: 'lower' | 'higher' | 'same'): string =>
-  c === 'lower' ? 'AI lowered the price'
-  : c === 'higher' ? 'AI raised the price'
-  : 'AI confident in prior price';
+const toastForCorrection = (c: 'lower' | 'higher'): string =>
+  c === 'lower' ? 'AI lowered the price' : 'AI raised the price';
 
 const SCAN_BG_SOURCE = require('@/assets/logo/thriftvault_logo.jpg');
 
@@ -269,12 +267,6 @@ function ScanResultCard({
               </Pressable>
             </View>
           )}
-        </View>
-      )}
-      {hasRedFlags && redFlagDismissed && (
-        <View style={styles.redFlagDismissedPill}>
-          <AppIcon name="flag-outline" size={12} color={theme.colors.loss} />
-          <Text style={styles.redFlagDismissedText}>Possibly fake — dismissed</Text>
         </View>
       )}
 <View style={styles.pillRow}>
@@ -722,22 +714,6 @@ function createScanStyles(theme: Theme, formMaxWidth?: number) {
       ...theme.typography.caption,
       fontWeight: '600',
       color: theme.colors.mauve,
-    },
-    redFlagDismissedPill: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      alignSelf: 'flex-start',
-      gap: 6,
-      marginTop: theme.spacing.md,
-      paddingVertical: 5,
-      paddingHorizontal: 10,
-      borderRadius: theme.radius.full,
-      backgroundColor: theme.colors.blush,
-    },
-    redFlagDismissedText: {
-      ...theme.typography.caption,
-      color: theme.colors.loss,
-      fontWeight: '600',
     },
     authSection: {
       marginTop: theme.spacing.md,
@@ -1227,6 +1203,7 @@ export default function ScanScreen() {
     let totalWeightA = 0;
     let brandMatch = false;
     let colorMatch = false;
+    const matchedTokens = new Set<string>();
     const aColors = new Set<string>();
     const bColors = new Set<string>();
     let hasMulticolor = false;
@@ -1237,6 +1214,7 @@ export default function ScanScreen() {
       totalWeightA += w;
       if (bSet.has(t)) {
         matchedWeight += w;
+        matchedTokens.add(t);
         if (cls === 'brand') brandMatch = true;
         if (cls === 'color') colorMatch = true;
       }
@@ -1260,6 +1238,14 @@ export default function ScanScreen() {
 
     if (aTokens.length <= 1 && bTokens.length <= 1 && matchedWeight > 0) {
       score = Math.max(score, 0.6);
+    }
+
+    // Distinct-match floor: a single weak token (color-only, material-only, or
+    // a stray generic word) shouldn't be enough to clear DUPLICATE_SCORE_THRESHOLD,
+    // even after the brand/color bonuses stack. Brand match is the lone single-token
+    // override since brand identity is uniquely distinctive within a category.
+    if (matchedTokens.size < 2 && !brandMatch) {
+      score = Math.min(score, DUPLICATE_BORDERLINE_MIN);
     }
 
     return Math.min(Math.max(score, 0), 1);
@@ -1610,7 +1596,7 @@ export default function ScanScreen() {
           <Text style={styles.title}>Scan</Text>
           <Text style={styles.sub}>Find your next flip</Text>
         </View>
-        <View style={[styles.cameraBoxWrap, result?.redFlags?.length ? styles.cameraBoxRedFlag : null]}>
+        <View style={[styles.cameraBoxWrap, result?.redFlags?.length && !redFlagDismissed ? styles.cameraBoxRedFlag : null]}>
         <View style={styles.cameraBox}>
           {CAMERA_AVAILABLE && permission && !permission.granted && !permission.canAskAgain ? (
             <View style={styles.permissionDenied}>
