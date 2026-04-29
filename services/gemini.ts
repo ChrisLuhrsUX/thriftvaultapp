@@ -88,7 +88,7 @@ Guidelines:
     suggestedResaleLow = materials + (labor hrs × $15). Estimate labor hours by technique: simple mods/rework 1–2hr, intermediate crochet/knit/sewing 4–8hr, complex fiber art/tapestry/quilting 10–20hr.
     suggestedResaleHigh = materials + (labor hrs × $25) + 30% uniqueness premium. Trending handmade categories (crochet tops, visible mending on non-denim, handmade jewelry, polymer clay, tufting, punch needle) add another 20–30%. Benchmark against Etsy and Depop sold prices for similar handmade items — do not lowball handmade work.
     DENIM EXCEPTION — if category = "denim": IGNORE the labor-hour formula. The denim resale market prices the finished aesthetic, not hours of labor, and upcycled jeans is a saturated category on Depop/Etsy. Price by finished look: simple mods (crops, distress, basic patches, dye/bleach) $25–$55; moderate rework (panel swap, contrasting patchwork, decorative topstitching, studded) $45–$85; elaborate custom (intricate beading/embroidery, franken-construction, verifiable vintage Big E/501XX base, known creator) $70–$140. Hard ceiling: do not exceed $140 for upcycled denim unless the base is documented vintage Levi's Big E/501XX or the maker is a named established creator — in which case cap at $220. EXCEPTIONAL CONSTRUCTION OVERRIDE — rare case only: when denim is rebuilt into a new garment shape via woven/lattice patchwork, sculpted halter/corset/bustier, deconstructed couture-style assembly, or denim quilted into a wholly new silhouette, price $150–$300. To unlock this band you MUST include at least one of these exact words in the "sub" field so the band can be recognized: "lattice", "woven denim", "sculpted", "corset", "bustier", "halter", "deconstructed", "couture", or "quilted denim". Without exceptional construction stay under $140. Do NOT apply the trending-handmade +20–30% boost to denim.
-    ALTERED FACTORY BASE EXCEPTION — if the item is a factory-made base (sneaker, top, jacket, bag, cap) with hand-added surface decoration (paint, patches, studs, hand embroidery, hand-painted design, rhinestones) rather than from-scratch handmade construction: IGNORE the labor-hour formula. Price = base brand tier as starting point + 30–60% customization premium for detail and craftsmanship. Hard caps: painted or customized sneakers $120 unbranded / $180 branded (Nike, Adidas, Vans, Converse) / $260 for hyped silhouettes (Jordan 1/4, Dunk, Yeezy) — exceed only if the artist is a named established creator with documented resale history. Altered tops (hoodies, tees, halter tops, tank tops, crop tops, blouses, camis) and jackets: $60 unbranded / $90 branded / $130 premium streetwear or designer base. Altered pants/trousers/joggers (NON-DENIM — for denim see DENIM EXCEPTION above): pants are a secondary canvas vs jackets and the resale ceiling is lower. Light paint/few patches $40–$70; skilled hand-painted or dense applique/embroidery $80–$140 unbranded / $100–$160 branded base; hard ceiling $180 unless the maker is a named established creator with documented resale history. Do NOT price altered pants in jacket tiers ($200+). Custom bags/caps: $40 unbranded / $80 branded. Do NOT apply the trending-handmade +20–30% boost to altered factory bases. This exception does NOT apply to genuinely from-scratch handmade items (crochet, knit, sewn from raw fabric, fiber art) — those still use the labor-hour formula.
+    ALTERED FACTORY BASE EXCEPTION — if the item is a factory-made base (sneaker, top, jacket, bag, cap) with hand-added surface decoration (paint, patches, studs, hand embroidery, hand-painted design, rhinestones) rather than from-scratch handmade construction: IGNORE the labor-hour formula. Price = base brand tier as starting point + 30–60% customization premium for detail and craftsmanship. Hard caps: painted or customized sneakers $120 unbranded / $180 branded (Nike, Adidas, Vans, Converse) / $260 for hyped silhouettes (Jordan 1/4, Dunk, Yeezy) — exceed only if the artist is a named established creator with documented resale history. Altered tops (hoodies, tees, halter tops, tank tops, crop tops, blouses, camis) and jackets: $60 unbranded / $90 branded / $130 premium streetwear or designer base. Altered pants/trousers/joggers (NON-DENIM — for denim see DENIM EXCEPTION above): pants are a secondary canvas vs jackets and the resale ceiling is lower. Light paint/few patches $40–$70; skilled hand-painted or dense applique/embroidery $80–$140 unbranded / $100–$160 branded base; hard ceiling $180 unless the maker is a named established creator with documented resale history. Do NOT price altered pants in jacket tiers ($200+). Custom bags/caps: $40 unbranded / $80 branded. Altered dresses (NON-DENIM — for denim see DENIM EXCEPTION above): $40 to $200 ceiling, unless named established maker. Altered skirts (NON-DENIM — mini, midi, maxi): $30 to $140 ceiling. Altered shorts (NON-DENIM): $25 to $120 ceiling. Custom swimwear (swimsuit, bikini, one-piece, swimwear, trunks): $25 to $120 ceiling. Altered non-sneaker shoes (boots, heels, sandals, loafers): $40 to $200 ceiling. To unlock these bands you MUST include the relevant term ("skirt", "shorts", "bikini", "swim", "boots", "heels", "sandals", "loafers") in the "name" or "sub" field. Do NOT apply the trending-handmade +20–30% boost to altered factory bases. This exception does NOT apply to genuinely from-scratch handmade items (crochet, knit, sewn from raw fabric, fiber art) — those still use the labor-hour formula.
     HANDMADE TOP CEILING — for ANY isCustom = true item where category = "tops" (whether altered factory base OR from-scratch crochet/knit/sewn halter, tank, crop top, blouse, cami): hard ceiling $180 unless the maker is a named established creator with documented resale history. The trending-handmade +20–30% boost may apply to from-scratch crochet/knit tops but the final price must NOT exceed $180. Do NOT price handmade tops in jacket-altered or pants-altered tiers ($200+). Exemption: denim-based handmade tops that meet the DENIM EXCEPTION exceptional-construction override (woven/lattice denim, sculpted halter/corset/bustier, deconstructed couture, quilted denim) follow that override's $300 ceiling, not this $180 cap. Routine denim halters/tops without exceptional construction stay under $180.
 
   ► IF isCustom = false → FACTORY ITEM PRICING (use this path; ignore handmade section above):
@@ -465,6 +465,56 @@ async function runScanPipeline(photoUris: string[], promptSuffix = '', signal?: 
     }
   }
 
+  const isSkirtText = /\b(skirts?|mini-skirt|midi-skirt|maxi-skirt)\b/i.test(exceptionalText);
+  const isShortsText = /\bshorts?\b/i.test(exceptionalText);
+  const isSwimText = /\b(swim|swimsuit|bikini|one[\s-]?piece|swimwear|trunks)\b/i.test(exceptionalText);
+  const isSneakerText = /\b(sneakers?|nike|adidas|vans|converse|jordan|dunk|yeezy|puma|new\s*balance|reebok|asics)\b/i.test(exceptionalText);
+
+  const isAlteredDress = parsed.category === 'dresses' && isCustomScan && !isSkirtText && !isSwimText;
+  if (isAlteredDress) {
+    const cap = isExceptionalDenim ? 300 : 200;
+    if (resaleHigh > cap) {
+      const scale = cap / resaleHigh;
+      resaleHigh = cap;
+      resaleLow = Math.max(40, Math.round(resaleLow * scale));
+    }
+  }
+
+  // Skirts have no enum value — AI tags as dresses, bottoms, or other. Keyword-gated.
+  const isAlteredSkirt = isCustomScan && isSkirtText && !isDenim;
+  if (isAlteredSkirt) {
+    const cap = isExceptionalDenim ? 300 : 140;
+    if (resaleHigh > cap) {
+      const scale = cap / resaleHigh;
+      resaleHigh = cap;
+      resaleLow = Math.max(30, Math.round(resaleLow * scale));
+    }
+  }
+
+  // Tightens isAlteredPants further — shorts have less canvas than full-length pants.
+  const isAlteredShorts = isCustomScan && isShortsText && !isDenim;
+  if (isAlteredShorts && resaleHigh > 120) {
+    const scale = 120 / resaleHigh;
+    resaleHigh = 120;
+    resaleLow = Math.max(25, Math.round(resaleLow * scale));
+  }
+
+  // Swimwear has no enum value — AI tags across categories. Keyword-gated.
+  const isAlteredSwim = isCustomScan && isSwimText;
+  if (isAlteredSwim && resaleHigh > 120) {
+    const scale = 120 / resaleHigh;
+    resaleHigh = 120;
+    resaleLow = Math.max(25, Math.round(resaleLow * scale));
+  }
+
+  // Sneakers stay on prompt-only tiers ($120/$180/$260); only non-sneaker shoes clamp.
+  const isAlteredShoe = parsed.category === 'shoes' && isCustomScan && !isSneakerText;
+  if (isAlteredShoe && resaleHigh > 200) {
+    const scale = 200 / resaleHigh;
+    resaleHigh = 200;
+    resaleLow = Math.max(40, Math.round(resaleLow * scale));
+  }
+
   let correction: 'lower' | 'higher' | undefined;
   if (priorResult) {
     const priorLow = priorResult.suggestedResaleLow ?? 0;
@@ -579,7 +629,7 @@ const HANDMADE_SUFFIX = `\n\nIMPORTANT: The user has confirmed this item IS hand
 Pricing: estimate labor hours by complexity (simple mods/rework 1–2hr, intermediate crochet/knit/sewing 4–8hr, complex fiber art/tapestry 10–20hr). suggestedPaid = materials cost estimate. suggestedResaleLow = materials + (labor hrs × $15). suggestedResaleHigh = materials + (labor hrs × $25) + 30% uniqueness premium. Trending handmade (crochet tops, visible mending on non-denim, cottagecore, handmade jewelry, polymer clay earrings, tufting, punch needle) adds 20–30% more. Benchmark against Etsy and Depop sold prices for similar handmade items — do not lowball handmade work.
 CONDITION ADJUSTMENT: reduce both low and high by 30–50% for visible damage (stains, non-decorative holes, heavy pilling, fading, broken hardware, scuffed/peeling leather, tarnish). Reduce 15–25% for moderate wear. NWT/like-new commands the top of the range. Unclear condition = assume "used-good" and no adjustment.
 DENIM EXCEPTION — if category = "denim": IGNORE the labor-hour formula. Upcycled jeans is saturated on Depop/Etsy and prices by finished look, not labor hours. Simple mods (crops/distress/basic patches/dye) $25–$55; moderate rework (panel swap, contrasting patchwork, studded) $45–$85; elaborate custom (intricate beading, franken-construction, verifiable vintage Big E/501XX base) $70–$140. Hard ceiling $140 unless the base is documented vintage Levi's Big E/501XX or maker is a named established creator (then cap $220). EXCEPTIONAL CONSTRUCTION OVERRIDE — rare case only: denim rebuilt into a new garment shape via woven/lattice patchwork, sculpted halter/corset/bustier, deconstructed couture-style assembly, or denim quilted into a wholly new silhouette: $150–$300. To unlock you MUST include at least one of "lattice", "woven denim", "sculpted", "corset", "bustier", "halter", "deconstructed", "couture", or "quilted denim" in the sub field. Without exceptional construction stay under $140. Do NOT apply the trending-handmade +20–30% boost to denim.
-ALTERED FACTORY BASE EXCEPTION — if the item is a factory-made base (sneaker, top, jacket, bag, cap) with hand-added surface decoration (paint, patches, studs, hand embroidery, rhinestones) rather than from-scratch construction: IGNORE the labor-hour formula. Price = base brand tier + 30–60% customization premium. Caps: painted sneakers $120 unbranded / $180 branded (Nike, Adidas, Vans) / $260 hyped silhouettes (Jordan, Dunk, Yeezy) — exceed only for named established artists. Altered tops (hoodies, tees, halter tops, tank tops, crop tops, blouses, camis) and jackets: $60 unbranded / $90 branded / $130 premium streetwear. Altered pants/trousers/joggers (NON-DENIM — for denim see DENIM EXCEPTION above): pants are a secondary canvas vs jackets and the resale ceiling is lower. Light paint/few patches $40–$70; skilled hand-painted or dense applique/embroidery $80–$140 unbranded / $100–$160 branded base; hard ceiling $180 unless the maker is a named established creator. Do NOT price altered pants in jacket tiers ($200+). Custom bags/caps: $40 unbranded / $80 branded. Do NOT apply the trending-handmade +20–30% boost to altered factory bases. This exception does NOT apply to from-scratch handmade (crochet, knit, sewn from raw fabric, fiber art).
+ALTERED FACTORY BASE EXCEPTION — if the item is a factory-made base (sneaker, top, jacket, bag, cap) with hand-added surface decoration (paint, patches, studs, hand embroidery, rhinestones) rather than from-scratch construction: IGNORE the labor-hour formula. Price = base brand tier + 30–60% customization premium. Caps: painted sneakers $120 unbranded / $180 branded (Nike, Adidas, Vans) / $260 hyped silhouettes (Jordan, Dunk, Yeezy) — exceed only for named established artists. Altered tops (hoodies, tees, halter tops, tank tops, crop tops, blouses, camis) and jackets: $60 unbranded / $90 branded / $130 premium streetwear. Altered pants/trousers/joggers (NON-DENIM — for denim see DENIM EXCEPTION above): pants are a secondary canvas vs jackets and the resale ceiling is lower. Light paint/few patches $40–$70; skilled hand-painted or dense applique/embroidery $80–$140 unbranded / $100–$160 branded base; hard ceiling $180 unless the maker is a named established creator. Do NOT price altered pants in jacket tiers ($200+). Custom bags/caps: $40 unbranded / $80 branded. Altered dresses (NON-DENIM — for denim see DENIM EXCEPTION above): $40 to $200 ceiling, unless named established maker. Altered skirts (NON-DENIM — mini, midi, maxi): $30 to $140 ceiling. Altered shorts (NON-DENIM): $25 to $120 ceiling. Custom swimwear (swimsuit, bikini, one-piece, swimwear, trunks): $25 to $120 ceiling. Altered non-sneaker shoes (boots, heels, sandals, loafers): $40 to $200 ceiling. To unlock these bands you MUST include the relevant term ("skirt", "shorts", "bikini", "swim", "boots", "heels", "sandals", "loafers") in the "name" or "sub" field. Do NOT apply the trending-handmade +20–30% boost to altered factory bases. This exception does NOT apply to from-scratch handmade (crochet, knit, sewn from raw fabric, fiber art).
 HANDMADE TOP CEILING — for ANY isCustom item where category = "tops" (altered factory base OR from-scratch crochet/knit/sewn halter, tank, crop top, blouse, cami): hard ceiling $180 unless the maker is a named established creator. Trending-handmade +20–30% boost may apply to from-scratch crochet/knit tops but final price must NOT exceed $180. Do NOT price handmade tops in jacket-altered or pants-altered tiers ($200+).`;
 
 const RESCAN_CORRECTION_SUFFIX = (prior: ScanScenario) => `\n\nIMPORTANT: This is a RESCAN. The user tapped "this scan is wrong" on your previous output for this exact photo. Your previous output was:
