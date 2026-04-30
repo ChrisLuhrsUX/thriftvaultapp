@@ -22,6 +22,14 @@ These commands are blocked in `.claude/settings.json`. The agent will refuse the
 | `git tag -d*` / `--delete*` | Removes release markers |
 | `gh repo delete*` / `release delete*` / `pr close*` | Destructive on GitHub remote |
 | `gcloud*`, `aws*`, `fastlane*`, `railway*`, `heroku*`, `firebase*`, `supabase*` | Cloud-write CLIs — direct API access is exactly the Cursor incident vector |
+| `psql*`, `mysql*`, `mysqldump*`, `mongo*`, `mongosh*`, `mongodump*`, `mongorestore*`, `redis-cli*`, `sqlite3*` | Database CLIs — connection-string-in-env + interactive shell can run `DROP`, `TRUNCATE`, `DELETE` against live data. ThriftVault has no backend today, but these are denied prophylactically. |
+| `prisma migrate reset*` (and `npx`/`bunx` variants) | Drops the database and re-runs every migration — the literal "wiped during migration" failure mode. |
+| `prisma db push --force-reset*` / `--accept-data-loss*` (and `npx` variants) | Same destruction with friendlier flag name. Always denied. |
+| `sequelize-cli db:drop*`, `db:migrate:undo:all*` (and `npx` variants) | Drop database / undo all migrations. |
+| `knex migrate:rollback --all*` (and `npx` variant) | Reverts every migration; can leave the DB in a state that makes data unrecoverable. |
+| `drizzle-kit drop*` (and `npx` variant) | Drops schema. |
+| `typeorm schema:drop*` (and `npx` variant) | Drops schema. |
+| `node -e *` / `--eval *` / `-p *` / `--print *` | Inline Node script execution. The Cursor-incident shape: agent reaches a cloud API directly via `fetch()` from inline JS, bypassing every Bash CLI denylist. Always denied; legitimate uses are essentially zero in this codebase. |
 
 The user's global `~/.claude/settings.json` already denies `rm`, `mv`, `cp`, `sudo`, `curl`, `wget` and asks on `git push` / `git commit` — those are not duplicated here.
 
@@ -38,6 +46,9 @@ The agent will surface a confirmation prompt for each of these. Read the prompt 
 | `npm uninstall*` | Removing a package can break the build |
 | `npm install -g*` | Global installs leak across projects |
 | `npx expo install*` / `--fix` | Bumps Expo-ecosystem package versions |
+| `prisma migrate*`, `prisma db push*` (and `npx` variants) | Non-destructive migration ops still touch live schema; review each call. |
+| `knex migrate*`, `sequelize-cli db:migrate*` (and `npx` variants) | Same — apply migrations is intentional, not casual. |
+| `drizzle-kit*`, `typeorm migration:*` (and `npx` variants) | Same. |
 
 ## 3. Recovery playbooks
 
@@ -79,6 +90,28 @@ This commits `ios/` and `android/` native folders into the project and modifies 
 
 After any prebuild revert: delete `node_modules/`, `npm install`, `npx expo start --clear`.
 
+### Database wiped or migration disaster
+
+ThriftVault has no backend today. If/when one is added (Supabase, Postgres, Mongo, etc.), this playbook is the contract. The Cursor incident is exactly this scenario; treat it as load-bearing.
+
+**Before any migration runs, the user (NOT the agent) must:**
+1. Take a snapshot or export — managed Postgres/MySQL/Mongo all support point-in-time backups; trigger one and verify it lists in the dashboard.
+2. Run the migration against a **staging** DB first. Never run an untested migration directly against production.
+3. After staging verifies, run against production with the snapshot ID written down. Do NOT drop the snapshot until the migration has been live for at least 24 hours under real traffic.
+
+**If a destructive migration runs against production anyway:**
+1. Stop writes — put the app in maintenance mode (RevenueCat / App Store Connect "Remove from Sale" if there's no in-app maintenance toggle).
+2. Restore from the most recent snapshot — every managed DB platform has "Restore to point in time" or "Restore from backup" in its console.
+3. Re-run only the **non-destructive** migration steps after restore.
+4. Diff the restored data against any user activity that happened between the snapshot and the disaster — that window may need manual reconciliation.
+5. If no snapshot exists: data is gone. There is no "undelete" for a `DROP TABLE` against a DB without backups. This is why pre-migration snapshots are non-negotiable.
+
+**Why the agent is denied here**, not just "asked":
+- Migration commands look mundane (`prisma migrate reset` reads like "reset" not "destroy").
+- The cost of a wrong click is total user data loss.
+- The cost of a confirmation prompt is 5 seconds.
+- Asymmetric. Always deny outright; user runs them manually.
+
 ### Accidental `AsyncStorage.clear()` in code
 
 This is the highest-blast-radius local incident: every user's vault data is lost on next launch with no server backup.
@@ -95,7 +128,27 @@ This is the highest-blast-radius local incident: every user's vault data is lost
 
 If the bug is bad enough to warrant pulling the app: App Store Connect → Pricing and Availability → "Remove from Sale" while you fix.
 
-## 4. Backup discipline
+## 4. Code-level destructive patterns
+
+`.claude/settings.json` blocks Bash commands but cannot block code edits. The patterns below are blast-radius equivalent to running a destructive CLI, except they run inside the user's app on every device. The agent must NOT write any of these into production code paths without an explicit user request and a `__DEV__` gate.
+
+| Pattern | Why dangerous |
+|---------|--------------|
+| `AsyncStorage.clear()` | Wipes every key for the app — vault, onboarding flag, prompt dismissals, scan saves. No remote backup. |
+| `AsyncStorage.removeItem('tv_inv')` | Wipes the user's entire vault. Same outcome as a backend DROP TABLE for a no-backend app. |
+| `AsyncStorage.multiRemove([...keys])` | Same as above when keys include `tv_inv` or any persisted state. |
+| `FileSystem.deleteAsync(uri, ...)` on a directory | Cascading delete; can wipe scan photos / cached state. |
+| Bulk `setInventory([])` | Functional equivalent of clearing — persists `[]` to storage on next tick. |
+| Direct `fetch()` to a destructive cloud endpoint from app code | The Cursor incident, ported into the bundle. Same outcome, different attack surface. |
+
+**Rules for the agent:**
+
+1. Never write any of the above outside of a path gated by `if (__DEV__) { ... }` AND only when the user has explicitly asked for a debug-clear feature.
+2. Never wire a destructive call into a UI affordance the user could tap by accident (e.g. a profile-screen "Reset" button without a typed-confirmation modal).
+3. When refactoring `InventoryContext.tsx` or `sanitizeSnapshot`, treat the rehydration path as load-bearing — a refactor that drops a field silently corrupts every user's vault on next launch (this has happened twice already with `redFlags` and `authFlags`; see CLAUDE.md session notes).
+4. When a user-visible "delete" action exists, it must operate on a single item by id — never on the collection.
+
+## 5. Backup discipline
 
 | Asset | Where | Cadence |
 |-------|-------|---------|
@@ -105,7 +158,7 @@ If the bug is bad enough to warrant pulling the app: App Store Connect → Prici
 | RevenueCat dashboard config | Screenshots same location | Every entitlement/offering change |
 | Apple Developer identifiers (D-U-N-S 145002422, team ID, bundle ID `com.thriftvault.app`) | Stable doc next to LLC paperwork | Once at enrollment, then on any change |
 
-## 5. API key rotation runbook
+## 6. API key rotation runbook
 
 If any `EXPO_PUBLIC_*` key is exposed (leaked, abused, or rotated as policy):
 
@@ -115,7 +168,7 @@ If any `EXPO_PUBLIC_*` key is exposed (leaked, abused, or rotated as policy):
 4. **Revoke old key** in the console after the OTA update has propagated (~24h to be safe — users with backgrounded apps may not have updated yet).
 5. **Log the rotation** in `CLAUDE.md` under the current session notes (date, which key, why).
 
-## 6. When NOT to defer to the agent
+## 7. When NOT to defer to the agent
 
 These operations remain manual user actions, regardless of how mundane they seem:
 
@@ -125,12 +178,15 @@ These operations remain manual user actions, regardless of how mundane they seem
 - Force pushes
 - Hard resets
 - Cloud-CLI write commands (gcloud, aws, fastlane, railway, etc.)
+- Database CLIs (psql, mysql, mongo*, redis-cli, sqlite3) — even read-only-looking sessions can run destructive SQL
+- Migration tools' destructive variants (prisma migrate reset, db push --force-reset, sequelize db:drop / undo:all, knex rollback --all, drizzle-kit drop, typeorm schema:drop)
+- Inline Node script execution (`node -e`, `node --eval`, `node -p`) — Cursor-incident bypass vector
 - Apple Developer / RevenueCat dashboard changes (these are web UI anyway, but if a CLI ever exists, treat as denied)
 - Granting any new MCP server cloud-write authority without first reviewing the permission scope
 
 The agent treats `.claude/settings.json` as load-bearing. The fence is real, not decoration.
 
-## 7. Reading order for the agent
+## 8. Reading order for the agent
 
 When the agent starts work that touches:
 - Deployment, release, build infra
@@ -138,5 +194,7 @@ When the agent starts work that touches:
 - RevenueCat, Sentry, EAS
 - Anything in `.env` or EAS Secrets
 - API keys or rate limits
+- Any database, ORM, schema, or migration file (Prisma, Drizzle, Knex, Sequelize, TypeORM, raw SQL)
+- `InventoryContext.tsx`, `sanitizeSnapshot`, or any AsyncStorage write site
 
 → Read this file first. If a planned action isn't covered here, surface the question to the user before acting.
