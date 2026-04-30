@@ -214,7 +214,7 @@ interface ScanScenario {
 
 ### Business State
 
-- **Apple Developer** — Individual enrollment active ($99/yr, enrolled 2026-03-28). D-U-N-S issued 145002422. Emailed Apple Developer Support 2026-04-26 requesting Individual → Organization conversion (used their dedicated category; 1–2 business day response). If Apple can convert in-place, new enrollment not needed. If not, must create new Apple ID + re-enroll as Org ($99/yr).
+- **Apple Developer** — Individual enrollment active ($99/yr, enrolled 2026-03-28). D-U-N-S 145002422. Emailed Dev Support 2026-04-26 requesting Individual → Org conversion. They replied 2026-04-29 asking for founder confirmation, legal entity name, and D-U-N-S; Chris replied yes (sole founder), ThriftVault LLC, 145002422. Awaiting next step — either in-place conversion or new Apple ID + fresh Org enrollment ($99/yr).
 - **ThriftVault LLC** — Formed in TN ~2026-04-16, EIN issued. Chris signs as "Chris Luhrs, Member, ThriftVault LLC." Annual overhead: ~$400/yr TN ($300 annual report due April 1 + $100 min franchise) + 6.5% excise on net earnings. Legal docs: `C:\Users\Chris\Downloads\ThriftVault\ThriftVault_LLC\`.
 - **Pre-launch follow-ups:** (1) Export 1024×1024 PNG icon; update three `app.json` icon/splash/favicon paths. (2) D-U-N-S → new Org Apple Developer enrollment; fill `ascAppId` + `appleTeamId` in `eas.json`.
 
