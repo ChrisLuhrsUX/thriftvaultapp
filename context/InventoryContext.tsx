@@ -4,6 +4,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { ITEM_CATEGORIES, type Item, type ItemCategory, type ItemIntent, type ItemScanSnapshot } from '@/types/inventory';
 
 const TV_INV_KEY = 'tv_inv';
+const TV_HAUL_TITLES_KEY = 'tv_haul_titles';
 
 const sanitizeSnapshot = (raw: unknown): ItemScanSnapshot | null => {
   if (!raw || typeof raw !== 'object') return null;
@@ -56,12 +57,15 @@ interface InventoryContextValue {
   removeItem: (id: number) => void;
   setInventory: (items: Item[]) => void;
   getItemById: (id: number) => Item | undefined;
+  haulTitles: Record<string, string>;
+  setHaulTitle: (date: string, title: string) => void;
 }
 
 const InventoryContext = createContext<InventoryContextValue | null>(null);
 
 export function InventoryProvider({ children }: { children: React.ReactNode }) {
   const [inventory, setInventoryState] = useState<Item[]>([]);
+  const [haulTitles, setHaulTitlesState] = useState<Record<string, string>>({});
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -133,6 +137,21 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         setInventoryState([]);
         persist([]);
       }
+      try {
+        const titlesRaw = await AsyncStorage.getItem(TV_HAUL_TITLES_KEY);
+        if (titlesRaw) {
+          const parsed = JSON.parse(titlesRaw);
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            const clean: Record<string, string> = {};
+            for (const [k, v] of Object.entries(parsed)) {
+              if (typeof k === 'string' && typeof v === 'string' && v.trim().length > 0) {
+                clean[k] = v.trim();
+              }
+            }
+            setHaulTitlesState(clean);
+          }
+        }
+      } catch { /* ignore — titles are non-critical */ }
       setHydrated(true);
     })();
   }, []);
@@ -144,6 +163,25 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       console.error('[ThriftVault] Failed to save inventory:', e);
     }
   }, []);
+
+  const persistTitles = useCallback(async (next: Record<string, string>) => {
+    try {
+      await AsyncStorage.setItem(TV_HAUL_TITLES_KEY, JSON.stringify(next));
+    } catch (e) {
+      console.error('[ThriftVault] Failed to save haul titles:', e);
+    }
+  }, []);
+
+  const setHaulTitle = useCallback((date: string, title: string) => {
+    setHaulTitlesState((prev) => {
+      const trimmed = title.trim();
+      const next = { ...prev };
+      if (trimmed.length === 0) delete next[date];
+      else next[date] = trimmed.slice(0, 60);
+      persistTitles(next);
+      return next;
+    });
+  }, [persistTitles]);
 
   const addItem = useCallback(
     (item: Item) => {
@@ -194,10 +232,21 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       setInventoryState((prev) => {
         const next = prev.filter((i) => i.id !== id);
         persist(next);
+        setHaulTitlesState((titlesPrev) => {
+          const remainingDates = new Set(next.map((i) => i.date));
+          let changed = false;
+          const cleaned: Record<string, string> = {};
+          for (const [date, title] of Object.entries(titlesPrev)) {
+            if (remainingDates.has(date)) cleaned[date] = title;
+            else changed = true;
+          }
+          if (changed) persistTitles(cleaned);
+          return changed ? cleaned : titlesPrev;
+        });
         return next;
       });
     },
-    [persist]
+    [persist, persistTitles]
   );
 
   const setInventory = useCallback(
@@ -222,7 +271,9 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     removeItem,
     setInventory,
     getItemById,
-  }), [inventory, addItem, addItems, updateItem, updateItemsByDate, removeItem, setInventory, getItemById]);
+    haulTitles,
+    setHaulTitle,
+  }), [inventory, addItem, addItems, updateItem, updateItemsByDate, removeItem, setInventory, getItemById, haulTitles, setHaulTitle]);
 
   if (!hydrated) {
     return null;

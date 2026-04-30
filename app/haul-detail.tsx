@@ -63,7 +63,7 @@ export default function HaulDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const { inventory, removeItem, updateItem, updateItemsByDate } = useInventory();
+  const { inventory, removeItem, updateItem, updateItemsByDate, haulTitles, setHaulTitle } = useInventory();
   const { showToast } = useToast();
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   const [storeModalVisible, setStoreModalVisible] = useState(false);
@@ -160,6 +160,29 @@ export default function HaulDetailScreen() {
     setStoreModalVisible(false);
   }, [date, updateItemsByDate, showToast]);
 
+  const title = haulTitles[date] ?? '';
+  const [titleModalVisible, setTitleModalVisible] = useState(false);
+  const [titleDraft, setTitleDraft] = useState('');
+
+  const openTitleModal = useCallback(() => {
+    Haptics.selectionAsync();
+    setTitleDraft(title);
+    setTitleModalVisible(true);
+  }, [title]);
+
+  const handleApplyTitle = useCallback(() => {
+    setHaulTitle(date, titleDraft);
+    showToast(titleDraft.trim() ? 'Haul renamed' : 'Title cleared');
+    setTitleModalVisible(false);
+  }, [date, titleDraft, setHaulTitle, showToast]);
+
+  const handleClearTitle = useCallback(() => {
+    setHaulTitle(date, '');
+    setTitleDraft('');
+    showToast('Title cleared');
+    setTitleModalVisible(false);
+  }, [date, setHaulTitle, showToast]);
+
   const empty = !date || (items.length === 0 && !deleted);
 
   if (empty) {
@@ -206,6 +229,14 @@ export default function HaulDetailScreen() {
           <View style={styles.headerRight}>
             <Pressable
               style={({ pressed }) => [styles.headerBtn, pressed && { opacity: 0.6 }]}
+              onPress={openTitleModal}
+              accessibilityLabel={title ? 'Edit haul title' : 'Add haul title'}
+              accessibilityRole="button"
+            >
+              <AppIcon name="create-outline" size={22} color={theme.colors.charcoal} />
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.headerBtn, pressed && { opacity: 0.6 }]}
               onPress={openStoreModal}
               accessibilityLabel="Set store for haul"
             >
@@ -229,9 +260,10 @@ export default function HaulDetailScreen() {
         </View>
         <View style={styles.headerTitleBlock}>
           <Text style={styles.headerHeroTitle} numberOfLines={2}>
-            {date}
+            {title || date}
           </Text>
           <Text style={styles.headerMetaLine}>
+            {title ? `${date} · ` : ''}
             {items.length} find{items.length !== 1 ? 's' : ''} · {formatMoney(totalSpent)} spent
             {haulProfit > 0 ? (
               <Text style={styles.headerProfit}> · {formatMoneyWithSign(haulProfit)} profit</Text>
@@ -351,6 +383,61 @@ export default function HaulDetailScreen() {
             <Pressable
               style={({ pressed }) => [styles.haulStoreCancelBtn, pressed && { opacity: 0.6 }]}
               onPress={() => setStoreModalVisible(false)}
+              accessibilityLabel="Cancel"
+              accessibilityRole="button"
+            >
+              <Text style={styles.haulStoreCancelText}>Cancel</Text>
+            </Pressable>
+          </Pressable>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={titleModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setTitleModalVisible(false)}
+      >
+        <View style={styles.haulStoreOverlay}>
+          <Pressable style={styles.haulStoreBackdrop} onPress={() => setTitleModalVisible(false)} accessibilityLabel="Dismiss" accessibilityRole="button" />
+          <Pressable style={styles.haulStoreSheet} onPress={() => Keyboard.dismiss()}>
+            <Text style={styles.haulStoreTitle}>Name this haul</Text>
+            <Text style={styles.haulStoreHint}>
+              A title shows above the date in your vault. Leave blank to clear.
+            </Text>
+            <TextInput
+              style={styles.haulStoreInput}
+              value={titleDraft}
+              onChangeText={(t) => setTitleDraft(t.slice(0, 60))}
+              placeholder="e.g. Goodwill bin run"
+              placeholderTextColor={theme.colors.mauve}
+              autoCapitalize="sentences"
+              autoCorrect
+              maxLength={60}
+              returnKeyType="done"
+              onSubmitEditing={handleApplyTitle}
+            />
+            {title.length > 0 && (
+              <Pressable
+                style={({ pressed }) => [styles.haulStoreClearBtn, pressed && { opacity: 0.6 }]}
+                onPress={handleClearTitle}
+                accessibilityLabel="Clear title"
+                accessibilityRole="button"
+              >
+                <Text style={styles.haulStoreClearText}>Clear title</Text>
+              </Pressable>
+            )}
+            <Pressable
+              style={({ pressed }) => [styles.haulStoreApplyBtn, pressed && { opacity: 0.85 }]}
+              onPress={handleApplyTitle}
+              accessibilityLabel="Save title"
+              accessibilityRole="button"
+            >
+              <Text style={styles.haulStoreApplyText}>Save</Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.haulStoreCancelBtn, pressed && { opacity: 0.6 }]}
+              onPress={() => setTitleModalVisible(false)}
               accessibilityLabel="Cancel"
               accessibilityRole="button"
             >

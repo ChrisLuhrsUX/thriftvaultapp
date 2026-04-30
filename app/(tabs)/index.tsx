@@ -28,6 +28,7 @@ import { formatMoney, formatMoneyWithSign } from '@/utils/currency';
 
 interface Haul {
   date: string;
+  title?: string;
   items: Item[];
   stores: string[];
   totalSpent: number;
@@ -135,14 +136,29 @@ const HaulCard = React.memo(function HaulCard({
         </View>
       </View>
       <View style={styles.haulCardCaption}>
-        <Text style={styles.haulDate}>{haul.date}</Text>
-        {(!!storesLabel || haul.profit > 0) && (
-          <Text style={styles.haulCaptionLine} numberOfLines={2}>
-            {storesLabel || ''}
-            {haul.profit > 0 ? (
-              <Text style={styles.haulCaptionProfit}>{storesLabel ? ' · ' : ''}{formatMoneyWithSign(haul.profit)} profit</Text>
-            ) : null}
-          </Text>
+        {haul.title ? (
+          <>
+            <Text style={styles.haulDate} numberOfLines={1}>{haul.title}</Text>
+            <Text style={styles.haulCaptionLine} numberOfLines={1}>
+              {haul.date}
+              {storesLabel ? ` · ${storesLabel}` : ''}
+              {haul.profit > 0 ? (
+                <Text style={styles.haulCaptionProfit}> · {formatMoneyWithSign(haul.profit)} profit</Text>
+              ) : null}
+            </Text>
+          </>
+        ) : (
+          <>
+            <Text style={styles.haulDate}>{haul.date}</Text>
+            {(!!storesLabel || haul.profit > 0) && (
+              <Text style={styles.haulCaptionLine} numberOfLines={2}>
+                {storesLabel || ''}
+                {haul.profit > 0 ? (
+                  <Text style={styles.haulCaptionProfit}>{storesLabel ? ' · ' : ''}{formatMoneyWithSign(haul.profit)} profit</Text>
+                ) : null}
+              </Text>
+            )}
+          </>
         )}
       </View>
     </Pressable>
@@ -231,7 +247,7 @@ export default function InventoryScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { theme } = useTheme();
-  const { inventory, addItem, addItems } = useInventory();
+  const { inventory, addItem, addItems, haulTitles } = useInventory();
   const { showToast } = useToast();
   const { gridColumns, hPad, headerHPad, contentMaxWidth, isTablet } = useResponsive();
   const [view, setView] = useState<VaultView>('flips');
@@ -457,7 +473,7 @@ export default function InventoryScreen() {
       const profit = items
         .filter((i) => i.intent === 'flip' && i.status === 'sold' && i.soldPrice != null)
         .reduce((s, i) => s + (Number(i.soldPrice) - (Number(i.paid) || 0)), 0);
-      result.push({ date, items, stores, totalSpent, profit });
+      result.push({ date, title: haulTitles[date], items, stores, totalSpent, profit });
     });
     result.sort((a, b) => {
       const dA = new Date(a.date).getTime();
@@ -465,7 +481,7 @@ export default function InventoryScreen() {
       return Number.isNaN(dB) && Number.isNaN(dA) ? 0 : (Number.isNaN(dB) ? -1 : Number.isNaN(dA) ? 1 : dB - dA);
     });
     return result;
-  }, [inventory]);
+  }, [inventory, haulTitles]);
 
   const filteredHauls = useMemo(() => {
     const getHaulDayStart = (haul: Haul): number | null => {
@@ -490,6 +506,7 @@ export default function InventoryScreen() {
       list = list.filter(
         (haul) =>
           haul.date.toLowerCase().includes(q) ||
+          (haul.title?.toLowerCase().includes(q) ?? false) ||
           haul.stores.some((s) => s.toLowerCase().includes(q)) ||
           haul.items.some((i) => i.name.toLowerCase().includes(q))
       );
