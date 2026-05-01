@@ -6,6 +6,7 @@
 - [x] **App Store Connect app created**
 - [ ] **RevenueCat subscriptions** — code side 100% ready (`hooks/usePurchases.ts`, `PaywallModal`, `monetization.ts`). Remaining = dashboard clicks + prebuild. See full sequence below.
 - [ ] **Screenshots** — 6.7" and 6.5" iPhone (simulator or TestFlight build)
+- [ ] **App icon re-export** — current `assets/logo/thriftvault_logo_v2.png` is 834×836 with alpha + transparent corners. Apple App Store icon requires **exactly 1024×1024 PNG, no alpha, full-bleed square** (cream `#F8F1E9` extending to all four corners — iOS applies its own rounded mask, so the circle frame must NOT be baked in). Splash + Android `foregroundImage` can stay alpha-OK but still need 1024×1024. Web favicon can be smaller. Until re-exported, `app.json` icon paths point to a non-compliant asset.
 
 ### RevenueCat — remaining sequence
 
@@ -31,7 +32,7 @@ See [POST_LAUNCH.md](POST_LAUNCH.md) — scoped todos and unscoped ideas live th
 - [x] **Real AI scan** — Gemini 2.5 Flash vision API via `services/gemini.ts`
 - [x] **Store listing** — `STORE_LISTING.md`
 - [x] **Paywall modal UI** — 3-plan picker (Monthly / Season Pass / Annual), trial copy, plan-aware fine print
-- [x] **App icon** — 1024×1024 for App Store (`assets/logo/thriftvault_logo.jpg`)
+- [x] ~~**App icon**~~ — original `.jpg` swapped for `thriftvault_logo_v2.png` (2026-05-01); v2 is 834×836 with alpha → moved back to Blocking pending re-export
 - [x] **Privacy policy** — live at `https://chrisluhrsux.github.io/thriftvaultapp/assets/privacy-policy.html`
 - [x] Onboarding carousel with skip
 - [x] Inventory CRUD with AsyncStorage persistence

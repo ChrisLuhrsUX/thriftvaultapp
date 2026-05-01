@@ -80,7 +80,7 @@ export function WebSidebar() {
     <View style={styles.sidebar}>
       <View style={styles.logoArea}>
         <Image
-          source={require('@/assets/logo/thriftvault_logo.jpg')}
+          source={require('@/assets/logo/thriftvault_logo_v2.png')}
           style={styles.logo}
           resizeMode="cover"
         />

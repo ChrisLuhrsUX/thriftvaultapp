@@ -218,6 +218,9 @@ interface ScanScenario {
 - **ThriftVault LLC** — Formed in TN, EIN issued. Annual overhead: ~$400/yr TN ($300 annual report + $100 min franchise) + 6.5% excise on net earnings. Legal docs tracked outside the repo.
 - **Pre-launch follow-ups:** (1) Export 1024×1024 PNG icon; update three `app.json` icon/splash/favicon paths. (2) Org Apple Developer enrollment; fill `ascAppId` + `appleTeamId` in `eas.json`.
 
+### Session — 2026-05-01
+- **App logo swap to v2 + App Store compliance blocker surfaced** (`app.json`, `components/WebSidebar.tsx`, `MVP.md`) — Repointed all active logo references from `assets/logo/thriftvault_logo.jpg` to `thriftvault_logo_v2.png`: `app.json` icon/splash.image/Android adaptiveIcon.foregroundImage/web favicon (4 paths) + `WebSidebar.tsx:83`. `app/(tabs)/scan.tsx:117` was already on v2. Skipped `MVP.md:34` historical checklist note and `ANDROID.md:29` (separate `thriftvault_logo_android.png` path). Verified v2 file specs via System.Drawing: **834×836, Format32bppArgb (alpha channel), with transparent corners around a circular frame** — fails Apple App Store icon requirements (must be exactly 1024×1024, opaque RGB, full-bleed square; iOS applies its own rounded mask so a baked-in circle frame would render as a small circle inside iOS's rounded square). Splash + Android foreground tolerate alpha but still need 1024×1024. Moved icon line from MVP.md Done back to Blocking with full re-export specs called out. Native icon updates won't render until next `expo prebuild` / EAS build regardless of file fix.
+
 ### Session — 2026-04-30
 
 #### Cursor
