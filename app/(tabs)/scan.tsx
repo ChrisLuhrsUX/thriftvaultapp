@@ -114,7 +114,7 @@ function classifyToken(t: string): TokenClass {
 const toastForCorrection = (c: 'lower' | 'higher'): string =>
   c === 'lower' ? 'AI lowered the price' : 'AI raised the price';
 
-const SCAN_BG_SOURCE = require('@/assets/logo/thriftvault_logo.jpg');
+const SCAN_BG_SOURCE = require('@/assets/logo/thriftvault_logo_v2.png');
 
 function ScanResultCard({
   scenario,
@@ -270,19 +270,28 @@ function ScanResultCard({
         </View>
       )}
 <View style={styles.pillRow}>
+        {!rescanningHandmade && (scenario.isCustom || scenario.beforeAfterDetected) && (
+          <View style={styles.staticPillRow}>
+            {scenario.isCustom && (
+              <View style={styles.customBanner}>
+                <AppIcon name="brush-outline" size={14} color={theme.colors.terra} />
+                <Text style={styles.customBannerText}>Handmade</Text>
+              </View>
+            )}
+            {scenario.beforeAfterDetected && (
+              <View style={styles.customBanner}>
+                <AppIcon name="swap-horizontal-outline" size={14} color={theme.colors.terra} />
+                <Text style={styles.customBannerText}>Before / After</Text>
+              </View>
+            )}
+          </View>
+        )}
         {rescanningHandmade ? (
           <View style={styles.handmadePromptRow}>
             <ActivityIndicator size="small" color={theme.colors.terra} />
             <Text style={styles.handmadePromptText}>Updating scan...</Text>
           </View>
-        ) : scenario.isCustom ? (
-          <View style={styles.handmadePromptRow}>
-            <View style={styles.customBanner}>
-              <AppIcon name="brush-outline" size={14} color={theme.colors.terra} />
-              <Text style={styles.customBannerText}>Handmade</Text>
-            </View>
-          </View>
-        ) : !customDismissed && !redFlagBannerActive ? (
+        ) : !scenario.isCustom && !customDismissed && !redFlagBannerActive ? (
           <View style={styles.handmadePromptRow}>
             <AppIcon name="brush-outline" size={14} color={theme.colors.mauve} />
             <Text style={styles.handmadePromptText}>Is this handmade?</Text>
@@ -820,6 +829,12 @@ function createScanStyles(theme: Theme, formMaxWidth?: number) {
       gap: 6,
       marginTop: 8,
     },
+    staticPillRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
     confidenceBanner: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -998,6 +1013,7 @@ export default function ScanScreen() {
   const cancelScan = useCallback(() => {
     abortControllerRef.current?.abort();
     abortControllerRef.current = null;
+    pendingRetryRef.current = false;
     setScanning(false);
     scanningRef.current = false;
   }, []);
@@ -1021,6 +1037,10 @@ export default function ScanScreen() {
       setResult(geminiResult);
     } catch (error) {
       if ((error as Error)?.name === 'AbortError') return;
+      // We backgrounded mid-scan — failure is almost always iOS suspending the
+      // network. Suppress the toast; the finally block (or AppState 'active'
+      // handler) will fire a seamless retry without resetting the spinner.
+      if (pendingRetryRef.current) return;
       if (__DEV__) console.log('[Scan] error:', error);
       const message = error instanceof Error ? error.message : String(error ?? '');
       if (/API (429|503|529)/i.test(message) || /overloaded|high demand/i.test(message)) {
@@ -1030,9 +1050,19 @@ export default function ScanScreen() {
       }
     } finally {
       scanningRef.current = false;
-      setScanning(false);
-      setScanStatus(null);
       abortControllerRef.current = null;
+      if (pendingRetryRef.current && appStateRef.current === 'active') {
+        // Already foreground — AppState handler skipped retry while scanningRef
+        // was true. Fire it from here without touching the scanning UI so the
+        // spinner stays continuous.
+        pendingRetryRef.current = false;
+        queueMicrotask(() => handleScanStagedRef.current());
+      } else if (!pendingRetryRef.current) {
+        setScanning(false);
+        setScanStatus(null);
+      }
+      // If pendingRetryRef is still true (still backgrounded), leave scanning
+      // UI up. AppState 'active' will fire the retry on resume.
     }
   }, [stagedPhotos, showToast]);
 
@@ -1053,7 +1083,15 @@ export default function ScanScreen() {
         // would kill a scan that's about to succeed.
         pendingRetryRef.current = true;
       }
-      if (prev !== 'active' && next === 'active' && pendingRetryRef.current) {
+      if (
+        prev !== 'active' &&
+        next === 'active' &&
+        pendingRetryRef.current &&
+        !scanningRef.current
+      ) {
+        // Only fire retry once the original promise has settled (scanningRef
+        // false). If it's still in flight, leave the flag set — handleScanStaged's
+        // finally block will fire the retry when the original rejects.
         pendingRetryRef.current = false;
         handleScanStagedRef.current();
       }
@@ -1277,6 +1315,7 @@ export default function ScanScreen() {
     upcycle: Array.isArray(scenario.upcycle) ? scenario.upcycle.slice(0, 3) : [],
     authFlags: Array.isArray(scenario.authFlags) ? scenario.authFlags.slice(0, 3) : [],
     redFlags: Array.isArray(scenario.redFlags) ? scenario.redFlags.slice(0, 3) : [],
+    beforeAfterDetected: scenario.beforeAfterDetected === true,
     sourceImageUri: sourceImageUris?.[0],
     sourceImageUris,
   }), []);

@@ -44,6 +44,8 @@ export interface ItemScanSnapshot {
   authFlags?: string[];
   /** Red flags — prominent warnings (AI prints, etc). */
   redFlags?: string[];
+  /** True when AI saw a transformation pair: cover photo shows custom work, another staged photo shows the plain base. */
+  beforeAfterDetected?: boolean;
   sourceImageUri?: string;
   sourceImageUris?: string[];
 }
@@ -100,6 +102,8 @@ export interface ScanScenario {
   category?: ItemCategory;
   /** True if item appears handmade, reworked, or custom. */
   isCustom?: boolean;
+  /** True when AI saw a transformation pair: cover photo shows custom work, another staged photo shows the plain base. Persisted to ItemScanSnapshot. */
+  beforeAfterDetected?: boolean;
   /** Transient: AI's verdict from a "wrong scan" rescan. Not persisted in ItemScanSnapshot. */
   correction?: 'lower' | 'higher';
   /** Transient: user answered the red-flag yes/no prompt (hides the prompt row). Not persisted in ItemScanSnapshot. */

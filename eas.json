@@ -17,7 +17,6 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "chrisluhrsdesign@gmail.com",
         "ascAppId": "",
         "appleTeamId": ""
       }

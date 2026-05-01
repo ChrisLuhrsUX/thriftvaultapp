@@ -156,7 +156,7 @@ If the bug is bad enough to warrant pulling the app: App Store Connect → Prici
 | `.env` | 1Password (or equivalent) | On every key add/rotate |
 | App Store Connect product config | Screenshots → `C:\Users\Chris\Downloads\ThriftVault\ThriftVault_LLC\` | Every product/price change |
 | RevenueCat dashboard config | Screenshots same location | Every entitlement/offering change |
-| Apple Developer identifiers (D-U-N-S 145002422, team ID, bundle ID `com.thriftvault.app`) | Stable doc next to LLC paperwork | Once at enrollment, then on any change |
+| Apple Developer identifiers (D-U-N-S, team ID, bundle ID `com.thriftvault.app`) | Stable doc next to LLC paperwork — kept outside the repo | Once at enrollment, then on any change |
 
 ## 6. API key rotation runbook
 

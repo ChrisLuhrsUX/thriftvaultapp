@@ -1,6 +1,6 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import { ITEM_CATEGORIES, type ItemCategory, type ScanScenario } from '@/types/inventory';
-import { formatMoney } from '@/utils/currency';
+import { formatMoney, roundDisplayPrice } from '@/utils/currency';
 
 const GEMINI_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY ?? '';
 const ANTHROPIC_KEY = process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY ?? '';
@@ -46,7 +46,8 @@ Return ONLY a valid JSON object with this exact structure — no markdown fences
     "Third distinct upcycle idea using a different technique"
   ],
   "authFlags": ["Specific physical check to verify authenticity (only for items prone to counterfeiting)"],
-  "redFlags": ["Prominent warning about AI-generated prints or other red flags — see RED FLAG DETECTION rule"]
+  "redFlags": ["Prominent warning about AI-generated prints or other red flags — see RED FLAG DETECTION rule"],
+  "beforeAfterDetected": <boolean — only relevant on multi-photo scans; see PHOTO INTERPRETATION rule. Default false on single-photo scans.>
 }
 
 CRITICAL — isCustom detection (evaluate FIRST before anything else):
@@ -94,22 +95,28 @@ Guidelines:
   ► IF isCustom = false → FACTORY ITEM PRICING (use this path; ignore handmade section above):
     suggestedPaid: typical thrift store shelf price ($3–$30). For jewelry: thrift stores often underprice precious metals/stones — if gold, gemstones, or designer marks are visible, suggestedPaid can be $5–$100+.
     suggestedResaleLow: realistic sold-price floor. Use these brand-tier benchmarks:
-      Fast fashion (Shein, H&M, Zara, Forever 21): $10–$20
-      Mall brands (Gap, J.Crew, Banana Republic, Abercrombie, Madewell): $18–$40
-      Athletic/streetwear (Nike, Adidas, Carhartt, Champion, Stussy, New Balance): $25–$65
-      Contemporary (Free People, Anthropologie, Reformation, Patagonia, Aritzia): $35–$90
-      Designer (Coach, Kate Spade, Marc Jacobs, Tory Burch, Vince): $45–$130
-      Luxury (Burberry, Gucci, Louis Vuitton, Chanel, Prada): $80–$500+
+      Fast fashion — Shein/H&M/Forever 21: $5–$25 (basic Shein tees commodity-priced $3–$8 used-good); Zara skews higher, especially dresses: $10–$50, NWT midi/maxi/satin slip $30–$85. Do NOT lump Zara dresses in with Shein.
+      Mall brands — Gap/Old Navy: $8–$18; J.Crew/Banana Republic/Abercrombie: $14–$30; Madewell (premium within tier — wide-leg/flare jeans $30–$60 used-good, NWT to $80; skinny softening $6–$14)
+      Athletic/streetwear (Nike, Adidas, Carhartt, Champion, Stussy, New Balance): standard tees/hoodies/joggers $8–$55; Nike Phoenix Fleece oversized hoodie premium sub-tier $60–$90; Adidas Samba XLG $31–$65. CARHARTT WOMEN'S WJ130/WJ141 JACKET CALLOUT — when the jacket is in a rare color (pink, purple, teal, cream, coral — NOT brown/black/khaki/tan) it commands $100–$350, far above the standard $25–$80 range. Identify by the chest pocket and quilted lining. Standard brown/black/khaki Carhartt stays in the regular range.
+      Sneakers (factory, not custom-painted) — Generic athletic (standard Nike, Adidas, Vans, Converse): $20–$60; Premium athletic (Nike Air Max, Adidas Samba/Gazelle, NB 990/2002R/9060): $30–$80; Hyped silhouettes (Jordan 1 Low women's $40–$97, Jordan 1 High $120–$250, Dunk Low Panda $35–$70, Yeezy 350/700 $80–$200); Designer/collab (Travis Scott Jordan 1 Low $250–$400, NB 2002R Salehe Bembury $108–$253, Margiela/Balenciaga sneakers $250+). For custom-painted/altered sneakers see ALTERED FACTORY BASE EXCEPTION.
+      Contemporary — Aritzia/Wilfred Free: $8–$40; Free People: $14–$85 used-good, NWT to $110 (boho/embroidered/linen/floral actively spiking spring 2026); Anthropologie: $20–$115; Patagonia (outerwear-focused — Nano Puff $87–$138, Down Sweater $100–$155, Synchilla fleece $45–$75; vintage Gore-Tex $70–$300); Reformation (commands retail premium): $80–$195. Arc'teryx and North Face price 2–4x over comparable contemporary outerwear: Arc'teryx fleece/soft-shell used-good $89–$200, NWT $300–$450; North Face shell/puffer $35–$150 standard. Mountain Hardwear and Marmot serve as the budget gorpcore floor: $25–$65 for fleece/jackets.
+      Knit sets / matching lounge sets: mall-tier (Shein, Amazon-adjacent) $8–$25; contemporary-tier (Aritzia, Free People, etc.) $25–$85. For Juicy Couture velour sets, see the Y2K viral brands tier — they price separately and higher.
+      Designer (Coach, Kate Spade, Marc Jacobs, Tory Burch, Vince, Polo Ralph Lauren): Coach pre-owned bags $17–$200, Coach NWT current-season Willow/Maggie $105–$385; Kate Spade $25–$120; Tory Burch $30–$150; vintage Coach signature pre-owned $25–$160; Polo Ralph Lauren tops/sweaters $15–$65
+      Luxury (Burberry, Gucci, Louis Vuitton, Chanel, Prada, Saint Laurent, Balenciaga) — model-dependent, wide spread: LV monogram pre-owned $100–$1700+; LV Neverfull MM $300–$850; LV Speedy 25 bandoulière $500–$1200; LV crossbody/small (Pochette, Saumur) $100–$350; Gucci GG canvas bag $100–$400. Chanel/Hermès authenticated bags start $1000+. NWT/like-new commands top of range; verified-authentic listings (with cards/dust-bags) command 20–40% over otherwise-equivalent.
       Mass-market denim (Levi's 501/550/514/Wedgie, Wrangler, Lee, Old Navy, Gap denim): $15–$35
-      Premium denim (7 For All Mankind, Citizens of Humanity, AG, Paige, Frame, Joe's — brand peaked ~2015, price conservatively): $25–$55
-      Authenticated Y2K premium denim (True Religion big-stitch, Diesel, Rock Revival, Miss Me — check stitching and hardware): $35–$90
-      Vintage Levi's Big E / 501XX / pre-1980s redline selvedge / vintage Wrangler Blue Bell: $60–$250+
+      Premium denim (7 For All Mankind, Citizens of Humanity, AG, Paige, Frame, Joe's, Mother) — CUT MATTERS A LOT: skinny is FALLING ($3–$25 used-good, $14 median, soft); wide-leg / flare / bootcut / Dojo are SPIKING ($30–$70 used-good, NWT to $100). Mother and Citizens skew +20–30% above 7FAM within tier. NWT premium denim wide-leg can reach $100. When you see flare/wide-leg cut, price at the upper band.
+      Authenticated Y2K premium denim (True Religion big-stitch, Diesel, Rock Revival, Miss Me, Buckle, Affliction — check stitching and hardware): standard styles $9–$50; OG LOW-RISE FLARE WITH RHINESTONE / EMBELLISHMENT IS ACTIVELY SPIKING (Q2 2026): True Religion OG flare $35–$95; Diesel flare/wide-leg vintage $45–$120 (+45–58% in 30 days); Rock Revival / Miss Me embellished $20–$65 (+27%). When the item shows visible rhinestones, embellished back pockets, low-rise flare, or factory whiskering, price at the spike band, not the standard band.
+      Y2K viral brands (Juicy Couture, Von Dutch, Ed Hardy, Baby Phat, Apple Bottoms — visible logos required, do NOT infer from silhouette): Juicy Couture velour tracksuit set NWT $55–$130, vintage Y2K USA-made set $100–$200 (+22% spike), Juicy terry tracksuit OG 2000s cotton $100–$165; Von Dutch trucker hat $20–$65; Ed Hardy graphic tee $25–$95; Baby Phat jacket/top $30–$120. These have real resale value now — Q2 2026 active spike reinforced by Euphoria S3 demand. Do NOT confuse with the COMMON HALLUCINATION TRAPS list — that warns against inferring these brands from look-alike silhouettes; this tier applies only when you can read an actual logo.
+      Vintage Levi's tiered: Big E / 501XX / pre-1980s redline raw selvedge: $300–$590 (top of vintage market); LVC Big E selvedge reproduction (501/505/701): $42–$100; Premium Big E 90s–00s 501s: $25–$100; Standard post-Big-E vintage 501s/505s/550s button-fly: $19–$65; Vintage 70505 trucker jacket: $35–$120. Vintage Wrangler Blue Bell: $60–$250+.
+      Vintage non-denim Americana (Pendleton, Filson, LL Bean, Eddie Bauer, Woolrich): Pendleton wool jacket/coat $35–$120, flannel shirt $20–$55; Filson jacket/shirt $45–$180 (premium of the tier); LL Bean fleece/flannel $15–$50; Eddie Bauer vintage down/puffer $25–$85; Woolrich wool coat/jacket $35–$120. These are common thrift finds with real Americana/workwear resale value.
+      Boots — Combat boot (Steve Madden, Free People): $20–$65; Vintage western/cowboy boot: $35–$180 (genuine vintage leather commands the upper band); Knee-high heeled boot (designer-adjacent): $25–$95.
+      Hats — Vintage trucker (Von Dutch era, distressed snapbacks): $20–$65; Branded dad cap (Patagonia, Arc'teryx, North Face, designer logos): $18–$55; Beanie (Carhartt, Patagonia): $10–$28.
       Luxury denim (Acne Studios, Balenciaga, Gucci, Balmain, Saint Laurent, R13): $80–$400+
       Unbranded or generic jeans: $12–$28
       Vintage (20+ years, good condition): add 30–60% over what comparable modern items sell for
       Unknown/unbranded: price by material quality, construction, and visual appeal — $10–$30
       Costume/fashion jewelry (no precious metal or stones, unbranded): $5–$20
-      Sterling silver jewelry (925 stamp, with semi-precious stones — amethyst, turquoise, garnet, opal, citrine): $15–$60
+      Sterling silver jewelry (925 stamp) — sub-tiered: plain ring no stones $8–$35; earrings (plain or stones) $8–$40; maker-signed necklace $15–$85; with semi-precious stones (amethyst, turquoise, garnet, opal, citrine) $15–$60.
       Gold-filled or gold-plated jewelry (vermeil, GF stamp): $20–$65
       Solid gold jewelry (10k/14k/18k/24k — price by karat and weight; heavier = higher): $40–$200+
       Fine jewelry with diamonds (solitaire, halo, pavé — evaluate visible size, cut, setting quality): $80–$500+
@@ -122,6 +129,7 @@ Guidelines:
       Gemstone/crystal-embellished clothing (Swarovski crystals, rhinestone detailing, beaded gowns, crystal appliqués, gem-studded denim): price using the garment's brand tier as base, then add 30–60% for embellishment quality and density. Intact, densely-set crystals on designer pieces command top premiums. Missing stones or loose settings reduce value.
     Platform context: Depop runs higher for Y2K, vintage, trendy aesthetics, and unique pieces; Poshmark higher for workwear, contemporary brands, and NWT items; eBay for sportswear, collectibles, authenticated luxury, and fine jewelry (especially with GIA certs or brand boxes); Etsy for handmade, vintage 20yr+, cottagecore/artisan aesthetics, and estate jewelry.
     Trend premiums (+20–40% to base): gorpcore/outdoor, quiet luxury, coquette, vintage collegiate, 90s minimalism, western/Americana, mesh/sheer, ballet/balletcore. Apply when the item clearly fits.
+    Q2 2026 ACTIVE SPIKES (refresh this list quarterly — current as of 2026-04-30): crochet tops & matching sets, cargo pants, boho/romantic dresses, spring knits, polka dots, surf-aesthetic, peeptoe heels, wedding-guest dresses. Y2K maximalist demand is reinforced by the Euphoria Season 3 × Depop collab — keep Y2K aesthetic premium active. Apply +30–50% over base when an item clearly fits one of these spikes.
     suggestedResaleHigh: best-case sold price, typically 40–60% above low. For hyped items (trending brand + trending aesthetic), can reach 2x low.
 
   CONDITION ADJUSTMENT (applies to both handmade and factory): Reduce both suggestedResaleLow and suggestedResaleHigh by 30–50% for visible damage — prominent stains, non-decorative holes, heavy pilling, faded/washed-out color, stretched or warped necklines, broken zippers, missing buttons, loose stitching, scuffed/cracked/peeling leather, yellowed whites, broken or cloudy hardware, tarnish on jewelry. Reduce by 15–25% for moderate wear — minor pilling, slight fading, small spots, faint creases, light patina. NWT or like-new condition (crisp fabric, intact hardware, no visible wear, original tags) commands the top of the range. When condition is unclear from the photo, assume "used-good" and make no adjustment. Never apply condition bonuses above the tier ceiling.
@@ -421,7 +429,36 @@ async function runScanPipeline(photoUris: string[], promptSuffix = '', signal?: 
   );
 
   const multiPhotoSuffix = images.length > 1
-    ? '\n\nYou are given multiple photos of the SAME item (e.g. front, back, label). Use all photos together to identify the item more accurately. Do not treat them as separate items.'
+    ? `\n\nPHOTO INTERPRETATION — you are given ${images.length} photos. Photo 1 is the COVER (the item being sold).
+
+Most multi-photo scans are SAME-ITEM, MULTI-ANGLE shots — front, back, label, hangtag, condition close-ups. THIS IS THE EXPECTED, COMMON CASE. Most scans will NOT have a "before" photo. Only flag a transformation when the visual evidence is unambiguous.
+
+For each ADDITIONAL photo (slots 2 through ${images.length}, in any order — a "before" photo, if one exists, can land in ANY of these slots; do not assume a fixed position), independently classify it as:
+
+(a) Another angle of the SAME finished item — front/back, label/hangtag close-up, condition detail. (DEFAULT — choose this when uncertain, when no clear transformation is visible, or when the user has just staged angles of one finished piece.)
+
+(b) The BEFORE state — the original thrifted base before the user customized it.
+
+Classify a photo as (b) ONLY when ALL of these are true relative to photo 1:
+  • That photo and photo 1 clearly show the same garment shape/silhouette
+  • Photo 1 has visible hand-applied elements that this photo lacks (paint, patches, embroidery, dye work, studs, hand-distressing, hand-stitching, beadwork)
+  • This photo looks like a plain or factory state of that garment (uniform color, intact factory hems/labels, no surface decoration)
+
+Strong tells for (b):
+  • Color/pattern shift on the same shape: plain white tee → tie-dyed tee, blue denim → bleached/painted denim, plain hoodie → embroidered hoodie
+  • That photo has factory tags or original branding visible; photo 1 has them obscured, removed, or built over with custom work
+  • Photo 1 styled for resale (good lighting, full garment); that photo casual (hanger, floor, harsh lighting)
+
+Tells AGAINST (b) — keep as (a) angle:
+  • Same surface treatment/decoration as photo 1
+  • Clearly a different side or detail of the finished piece (e.g., back of jacket + front of same painted jacket — both painted)
+  • Consistent styling/lighting with photo 1 suggests one product shoot
+
+Outcomes:
+  • All additional photos are (a) → SAME-ITEM scan. Use them together to identify the cover item. Set beforeAfterDetected = false. (Expected default.)
+  • AT LEAST ONE photo is (b) → BEFORE/AFTER scan. Set beforeAfterDetected = true AND isCustom = true. Use any (a) photos to identify the cover item; treat (b) photos as evidence of labor only — do NOT price them as separate items. Pick pricing tier from ALTERED FACTORY BASE EXCEPTION (or DENIM EXCEPTION if denim base).
+
+When uncertain about any single photo, classify it as (a). False positives are worse than false negatives — the existing handmade detection still catches upcycles from photo 1 alone.`
     : '';
 
   const parsed = await callWithFallback(images, promptSuffix + multiPhotoSuffix, signal);
@@ -431,7 +468,11 @@ async function runScanPipeline(photoUris: string[], promptSuffix = '', signal?: 
   let resaleHigh = Number(parsed.suggestedResaleHigh) || resaleLow;
 
   const isDenim = parsed.category === 'denim';
-  const isCustomScan = parsed.isCustom === true || detectCustomFromText(parsed.name, parsed.sub);
+  // Before/after detection forces isCustom: AI saw a transformation pair (cover photo
+  // shows custom work, another staged photo shows the plain base). Only honor on
+  // multi-photo scans; ignore if AI sets it on a single-photo scan.
+  const beforeAfter = parsed.beforeAfterDetected === true && images.length >= 2;
+  const isCustomScan = parsed.isCustom === true || detectCustomFromText(parsed.name, parsed.sub) || beforeAfter;
   // Exceptional-construction override: rare denim items rebuilt into a new garment shape
   // (lattice/woven, sculpted halter/corset/bustier, deconstructed couture, quilted denim)
   // unlock a $300 ceiling. Keyword-gated via the AI's own name/sub vocabulary so common
@@ -531,7 +572,7 @@ async function runScanPipeline(photoUris: string[], promptSuffix = '', signal?: 
   }
 
   if (resaleLow > resaleHigh) [resaleLow, resaleHigh] = [resaleHigh, resaleLow];
-  const resale = resaleLow > 0 ? Math.round((resaleLow + resaleHigh) / 2) : 0;
+  const resale = resaleLow > 0 ? roundDisplayPrice((resaleLow + resaleHigh) / 2) : 0;
 
   return {
     name: String(parsed.name || 'Unknown Item'),
@@ -565,6 +606,7 @@ async function runScanPipeline(photoUris: string[], promptSuffix = '', signal?: 
     redFlags: Array.isArray(parsed.redFlags)
       ? parsed.redFlags.slice(0, 3).map((f: unknown) => String(f || '')).filter(Boolean)
       : [],
+    beforeAfterDetected: beforeAfter,
     ...(correction ? { correction } : {}),
   };
 }
@@ -637,6 +679,7 @@ const RESCAN_CORRECTION_SUFFIX = (prior: ScanScenario) => `\n\nIMPORTANT: This i
 - sub: "${prior.sub}"
 - category: "${prior.category ?? 'other'}"
 - isCustom: ${prior.isCustom === true}
+- beforeAfterDetected: ${prior.beforeAfterDetected === true}
 - suggestedResaleLow: $${prior.suggestedResaleLow ?? 0}
 - suggestedResaleHigh: $${prior.suggestedResaleHigh ?? 0}
 - confidence: ${prior.confidence ?? 'low'}

@@ -441,6 +441,7 @@ export default function DetailScreen() {
         upcycle: Array.isArray(result.upcycle) ? result.upcycle.slice(0, 3) : [],
         authFlags: Array.isArray(result.authFlags) ? result.authFlags.slice(0, 3) : [],
         redFlags: Array.isArray(result.redFlags) ? result.redFlags.slice(0, 3) : [],
+        beforeAfterDetected: result.beforeAfterDetected === true,
         sourceImageUri: photoUri,
       };
       const prev = item.scanSnapshots ?? [];
@@ -485,6 +486,7 @@ export default function DetailScreen() {
       ideas: snapshot?.ideas ?? [],
       category: item.cat,
       isCustom: snapshot?.isCustom ?? false,
+      beforeAfterDetected: snapshot?.beforeAfterDetected === true,
       confidence: snapshot?.confidence,
       suggestedResaleLow: priorRange?.low,
       suggestedResaleHigh: priorRange?.high,
@@ -508,6 +510,7 @@ export default function DetailScreen() {
         upcycle: Array.isArray(result.upcycle) ? result.upcycle.slice(0, 3) : [],
         authFlags: Array.isArray(result.authFlags) ? result.authFlags.slice(0, 3) : [],
         redFlags: Array.isArray(result.redFlags) ? result.redFlags.slice(0, 3) : [],
+        beforeAfterDetected: result.beforeAfterDetected === true,
         sourceImageUri: photoUri,
       };
       const nextSnapshots = [newSnapshot, ...(item.scanSnapshots ?? [])].slice(0, 10);
@@ -1062,19 +1065,28 @@ export default function DetailScreen() {
                 ) : (
                   <Text style={styles.insightsSub}>No additional summary for this scan.</Text>
                 )}
+                {!rescanningHandmade && (activeSnapshot.isCustom || activeSnapshot.beforeAfterDetected) && (
+                  <View style={styles.insightsCustomPillWrap}>
+                    {activeSnapshot.isCustom && (
+                      <View style={styles.insightsCustomPill}>
+                        <AppIcon name="brush-outline" size={14} color={theme.colors.terra} />
+                        <Text style={styles.insightsCustomPillText}>Handmade</Text>
+                      </View>
+                    )}
+                    {activeSnapshot.beforeAfterDetected && (
+                      <View style={styles.insightsCustomPill}>
+                        <AppIcon name="swap-horizontal-outline" size={14} color={theme.colors.terra} />
+                        <Text style={styles.insightsCustomPillText}>Before / After</Text>
+                      </View>
+                    )}
+                  </View>
+                )}
                 {rescanningHandmade ? (
                   <View style={styles.insightsCustomPromptRow}>
                     <ActivityIndicator size="small" color={theme.colors.terra} />
                     <Text style={styles.insightsCustomPromptText}>Updating scan...</Text>
                   </View>
-                ) : activeSnapshot.isCustom ? (
-                  <View style={styles.insightsCustomPillWrap}>
-                    <View style={styles.insightsCustomPill}>
-                      <AppIcon name="brush-outline" size={14} color={theme.colors.terra} />
-                      <Text style={styles.insightsCustomPillText}>Handmade</Text>
-                    </View>
-                  </View>
-                ) : !customDismissed ? (
+                ) : !activeSnapshot.isCustom && !customDismissed ? (
                   <View style={styles.insightsCustomPromptRow}>
                     <AppIcon name="brush-outline" size={14} color={theme.colors.mauve} />
                     <Text style={styles.insightsCustomPromptText}>Is this handmade?</Text>
@@ -2441,6 +2453,9 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
   },
   insightsCustomPillWrap: {
     flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
   },
   insightsCustomPill: {
     flexDirection: 'row',
@@ -2473,26 +2488,26 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     color: theme.colors.mauve,
   },
   insightsCustomYes: {
-    minHeight: 36,
     justifyContent: 'center',
-    paddingHorizontal: 18,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
     borderRadius: theme.radius.full,
     backgroundColor: theme.colors.terraLight,
   },
   insightsCustomYesText: {
-    ...theme.typography.body,
+    ...theme.typography.caption,
     fontWeight: '600',
     color: theme.colors.terra,
   },
   insightsCustomNo: {
-    minHeight: 36,
     justifyContent: 'center',
-    paddingHorizontal: 18,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
     borderRadius: theme.radius.full,
     backgroundColor: theme.colors.mauveLight,
   },
   insightsCustomNoText: {
-    ...theme.typography.body,
+    ...theme.typography.caption,
     fontWeight: '600',
     color: theme.colors.mauve,
   },
