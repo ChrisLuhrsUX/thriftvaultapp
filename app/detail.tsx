@@ -517,7 +517,8 @@ export default function DetailScreen() {
       const resaleUpdate = newResale > 0 ? { resale: newResale } : {};
       if (resaleUpdate.resale) setResaleStr(String(newResale));
       const nameUpdate = result.name ? { name: result.name } : {};
-      const changes = { scanSnapshots: nextSnapshots, activeScanSnapshotId: newSnapshot.id, ...resaleUpdate, ...nameUpdate };
+      const catUpdate = result.category && result.category !== 'other' ? { cat: result.category } : {};
+      const changes = { scanSnapshots: nextSnapshots, activeScanSnapshotId: newSnapshot.id, ...resaleUpdate, ...nameUpdate, ...catUpdate };
       update(changes);
       updateItem(item.id, changes);
       setCustomDismissed(false);

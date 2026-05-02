@@ -16,8 +16,32 @@ const VALID_CATEGORIES: ItemCategory[] = ITEM_CATEGORIES;
 
 const CUSTOM_KEYWORDS = /\b(crochet|crocheted|hand[\s-]?knit|handknit|hand[\s-]?made|handmade|hand[\s-]?crafted|handcrafted|hand[\s-]?sewn|handsewn|hand[\s-]?painted|hand[\s-]?tooled|hand[\s-]?stamped|hand[\s-]?stitched|hand[\s-]?woven|handwoven|hand[\s-]?dyed|macram[eé]|sashiko|visible mending|needle[\s-]?felt|punch[\s-]?needle|latch[\s-]?hook|tufted|tufting|quilted|patchwork|upcycled|reworked|repurposed|one[\s-]?of[\s-]?a[\s-]?kind|ooak|diy|wire[\s-]?wrap|resin[\s-]?cast|polymer[\s-]?clay|block[\s-]?print|lino[\s-]?print|pyrography|wood[\s-]?burn|leather[\s-]?burn|hand[\s-]?embroidered|custom[\s-]?painted|custom[\s-]?dyed|lace[\s-]?knit|granny[\s-]?square|amigurumi|friendship[\s-]?bracelet)\b/i;
 
+const BOOST_BUCKETS: Array<{ key: string; rx: RegExp }> = [
+  { key: 'era', rx: /\b(y2k|2000s|2k|vintage|retro|90s|nineties|80s|eighties|70s|seventies|60s|sixties|deadstock|og)\b/i },
+  { key: 'embellishment', rx: /\b(rhinestone|crystal|swarovski|gem(stone)?|bead(ed|ing)?|sequin|jewel(ed|led)?|embellish(ed|ment)?|stud(ded)?|appliqu[eé]|bedazzl(ed|ing))\b/i },
+  { key: 'trend', rx: /\b(trending|spike|spiking|coquette|gorpcore|balletcore|cottagecore|cargo|boho|romantic|polka|peeptoe|surf|wedding[\s-]?guest|quiet[\s-]?luxury|collegiate|mesh|sheer)\b/i },
+  { key: 'collab', rx: /\b(collab(oration)?|x\s+[A-Z]|travis|virgil|off[\s-]?white|fragment|union|dior\s+jordan|sacai|cact[uú]s\s+jack|signed|named\s+artist|artist[\s-]?collab|celebrity)\b/i },
+  { key: 'denim_spike', rx: /\b(low[\s-]?rise|flare|wide[\s-]?leg|bootcut|whisker(ed|ing)?|big[\s-]?stitch|true\s+religion|diesel|rock\s+revival|miss\s+me|buckle|affliction)\b/i },
+];
+
+const LUXURY_EXEMPT_RX = /\b(louis\s+vuitton|lv\b|chanel|herm[eè]s|gucci|prada|dior|burberry|fendi|balenciaga|saint\s+laurent|ysl|celine|bottega|loewe|valentino|givenchy|alexander\s+mcqueen|acne\s+studios|balmain|r13|maison\s+margiela|margiela|off[\s-]?white|travis\s+scott|virgil|fragment|cact[uú]s\s+jack|union\s+la|sacai|big\s*e\b|501xx|redline|selvedge|lvc|tiffany|cartier|van\s+cleef|harry\s+winston|bulgari|david\s+yurman|john\s+hardy|nwt)\b/i;
+
 function detectCustomFromText(...fields: unknown[]): boolean {
   return fields.some((f) => typeof f === 'string' && CUSTOM_KEYWORDS.test(f));
+}
+
+// Wide price ranges = sparse comps. Downgrade only — never upgrade.
+// 3.0× ratio is normal for a single tier; >3× starts to lie about confidence.
+function confidenceFromRangeWidth(
+  aiConfidence: 'high' | 'medium' | 'low',
+  low: number,
+  high: number,
+): 'high' | 'medium' | 'low' {
+  if (low <= 0 || high <= 0) return aiConfidence;
+  const ratio = high / low;
+  if (ratio > 4) return 'low';
+  if (ratio > 3) return aiConfidence === 'high' ? 'medium' : aiConfidence;
+  return aiConfidence;
 }
 
 /** Gemini 2.5 thinking can consume most of a small output budget; JSON never arrives. */
@@ -28,7 +52,7 @@ const PROMPT = `You are an expert thrift reseller. Analyze this photo of a thrif
 Return ONLY a valid JSON object with this exact structure — no markdown fences, no explanation:
 {
   "name": "Descriptive item name; prepend brand ONLY if a label/logo/tag is visibly readable in the photo",
-  "sub": "Brief description (size guess, color, material, condition)",
+  "sub": "Brief description: estimated size if visible (e.g. \"Women's 8\", \"Men's L\", \"US 10\"), color, material, condition. Omit any field that can't be determined from the photo — never echo the field name as a placeholder.",
   "category": "denim|bottoms|tops|dresses|outerwear|shoes|bags|accessories|other",
   "isCustom": <boolean>,
   "suggestedPaid": <number>,
@@ -129,6 +153,7 @@ Guidelines:
       Gemstone/crystal-embellished clothing (Swarovski crystals, rhinestone detailing, beaded gowns, crystal appliqués, gem-studded denim): price using the garment's brand tier as base, then add 30–60% for embellishment quality and density. Intact, densely-set crystals on designer pieces command top premiums. Missing stones or loose settings reduce value.
     Platform context: Depop runs higher for Y2K, vintage, trendy aesthetics, and unique pieces; Poshmark higher for workwear, contemporary brands, and NWT items; eBay for sportswear, collectibles, authenticated luxury, and fine jewelry (especially with GIA certs or brand boxes); Etsy for handmade, vintage 20yr+, cottagecore/artisan aesthetics, and estate jewelry.
     Trend premiums (+20–40% to base): gorpcore/outdoor, quiet luxury, coquette, vintage collegiate, 90s minimalism, western/Americana, mesh/sheer, ballet/balletcore. Apply when the item clearly fits.
+    BOOST STACKING — HARD RULE: Never compound 3 or more independent percentage boosts on the same factory item. The boost categories are: (a) era — vintage / Y2K / 90s / 80s / 70s / deadstock; (b) embellishment — rhinestone / crystal / beaded / sequin / studded / appliqué; (c) trend — coquette / gorpcore / balletcore / Q2 spikes / quiet luxury; (d) collab/celebrity — Travis Scott, Virgil, Fragment, named-artist collab; (e) denim spike — low-rise / flare / wide-leg / Y2K premium denim brands. Apply at most TWO boosts and pick the highest-percentage one as the primary; treat the rest as already implied by the brand tier. Compounding all of "vintage Y2K rhinestone flare trending Diesel" is double-counting — Diesel's +58% spike already factors in the Y2K low-rise flare aesthetic. Stay anchored to comparable Depop/Poshmark sold-comp prices, not formulaic stacking.
     Q2 2026 ACTIVE SPIKES (refresh this list quarterly — current as of 2026-04-30): crochet tops & matching sets, cargo pants, boho/romantic dresses, spring knits, polka dots, surf-aesthetic, peeptoe heels, wedding-guest dresses. Y2K maximalist demand is reinforced by the Euphoria Season 3 × Depop collab — keep Y2K aesthetic premium active. Apply +30–50% over base when an item clearly fits one of these spikes.
     suggestedResaleHigh: best-case sold price, typically 40–60% above low. For hyped items (trending brand + trending aesthetic), can reach 2x low.
 
@@ -556,6 +581,37 @@ When uncertain about any single photo, classify it as (a). False positives are w
     resaleLow = Math.max(40, Math.round(resaleLow * scale));
   }
 
+  // Boost-stacking guard for FACTORY items only — custom items have their own
+  // clamps above. Catches the compound case: 3+ independent boost buckets
+  // triggered on the same item (era × embellishment × denim_spike × trend).
+  // Single/double legitimate boosts (vintage Big E, Diesel flare alone, NWT
+  // designer drop) stay below threshold and pass through. Luxury keywords
+  // bypass entirely — those tiers price legitimately above the ceilings.
+  if (!isCustomScan) {
+    const stackText = `${parsed.name ?? ''} ${parsed.sub ?? ''}`;
+    if (!LUXURY_EXEMPT_RX.test(stackText)) {
+      const boostCount = BOOST_BUCKETS.reduce((n, b) => n + (b.rx.test(stackText) ? 1 : 0), 0);
+      if (boostCount >= 3) {
+        const cat = parsed.category as ItemCategory | undefined;
+        const ceiling =
+          cat === 'denim' ? 180 :
+          cat === 'tops' ? 130 :
+          cat === 'dresses' ? 130 :
+          cat === 'bottoms' ? 120 :
+          cat === 'outerwear' ? 200 :
+          cat === 'shoes' ? 200 :
+          cat === 'bags' ? 220 :
+          cat === 'accessories' ? 120 :
+          null;
+        if (ceiling != null && resaleHigh > ceiling) {
+          const scale = ceiling / resaleHigh;
+          resaleHigh = ceiling;
+          resaleLow = Math.max(15, Math.round(resaleLow * scale));
+        }
+      }
+    }
+  }
+
   let correction: 'lower' | 'higher' | undefined;
   if (priorResult) {
     const priorLow = priorResult.suggestedResaleLow ?? 0;
@@ -586,9 +642,13 @@ When uncertain about any single photo, classify it as (a). False positives are w
     category: VALID_CATEGORIES.includes(parsed.category as ItemCategory)
       ? (parsed.category as ItemCategory)
       : 'other',
-    confidence: ['high', 'medium', 'low'].includes(parsed.confidence as string)
-      ? (parsed.confidence as 'high' | 'medium' | 'low')
-      : 'low',
+    confidence: confidenceFromRangeWidth(
+      ['high', 'medium', 'low'].includes(parsed.confidence as string)
+        ? (parsed.confidence as 'high' | 'medium' | 'low')
+        : 'low',
+      resaleLow,
+      resaleHigh,
+    ),
     ideas: Array.isArray(parsed.ideas)
       ? parsed.ideas.slice(0, 3).map((idea: Record<string, unknown>) => ({
           e: '',
