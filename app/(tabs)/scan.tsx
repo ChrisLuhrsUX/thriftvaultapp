@@ -114,7 +114,7 @@ function classifyToken(t: string): TokenClass {
 const toastForCorrection = (c: 'lower' | 'higher'): string =>
   c === 'lower' ? 'AI lowered the price' : 'AI raised the price';
 
-const SCAN_BG_SOURCE = require('@/assets/logo/thriftvault_logo_v2.png');
+const SCAN_BG_SOURCE = require('@/assets/logo/thriftvault_logo.jpg');
 
 function ScanResultCard({
   scenario,
@@ -1535,7 +1535,11 @@ export default function ScanScreen() {
       const updated = await rescanAsHandmade(photoUri, controller.signal);
       setResult((prev) => {
         if (!prev) return null;
-        return { ...updated, isCustom: true };
+        return {
+          ...updated,
+          isCustom: true,
+          beforeAfterDetected: updated.beforeAfterDetected === true || prev.beforeAfterDetected === true,
+        };
       });
     } catch (err) {
       if (__DEV__) console.log('[Handmade rescan] error:', err);

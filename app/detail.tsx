@@ -441,7 +441,7 @@ export default function DetailScreen() {
         upcycle: Array.isArray(result.upcycle) ? result.upcycle.slice(0, 3) : [],
         authFlags: Array.isArray(result.authFlags) ? result.authFlags.slice(0, 3) : [],
         redFlags: Array.isArray(result.redFlags) ? result.redFlags.slice(0, 3) : [],
-        beforeAfterDetected: result.beforeAfterDetected === true,
+        beforeAfterDetected: result.beforeAfterDetected === true || snapshot?.beforeAfterDetected === true,
         sourceImageUri: photoUri,
       };
       const prev = item.scanSnapshots ?? [];
