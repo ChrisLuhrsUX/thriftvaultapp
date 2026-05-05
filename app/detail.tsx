@@ -60,7 +60,7 @@ const toastForCorrection = (c: 'lower' | 'higher'): string =>
   c === 'lower' ? 'AI lowered the price' : 'AI raised the price';
 
 const STATUS_OPTIONS: ItemStatus[] = ['unlisted', 'listed', 'sold'];
-const KNOWN_PLATFORMS: PlatformType[] = ['Poshmark', 'Depop', 'eBay', 'Mercari', 'Facebook Marketplace', 'Vinted', 'Shopify'];
+const KNOWN_PLATFORMS: PlatformType[] = ['Poshmark', 'Depop', 'eBay', 'Mercari', 'Facebook Marketplace', 'Craigslist', 'OfferUp', 'Chairish', 'AptDeco', '1stDibs', 'Etsy', 'Vinted', 'Shopify'];
 /** iOS: decimal-pad has no Done key; pairs with InputAccessoryView on profit fields */
 const PRICE_INPUT_ACCESSORY_ID = 'tvPriceInputAccessory';
 

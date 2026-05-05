@@ -7,6 +7,7 @@ export type ItemCategory =
   | 'shoes'
   | 'bags'
   | 'accessories'
+  | 'furniture'
   | 'other';
 
 /** All valid categories; use for pickers and storage validation. */
@@ -19,6 +20,7 @@ export const ITEM_CATEGORIES: ItemCategory[] = [
   'shoes',
   'bags',
   'accessories',
+  'furniture',
   'other',
 ];
 

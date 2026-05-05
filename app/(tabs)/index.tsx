@@ -47,6 +47,7 @@ const CATEGORY_GROUPS: { key: string; label: string; cats: ItemCategory[] }[] = 
   { key: 'denim-outerwear', label: 'Bottoms & Outerwear', cats: ['denim', 'bottoms', 'outerwear'] },
   { key: 'shoes-bags', label: 'Shoes & Bags', cats: ['shoes', 'bags'] },
   { key: 'accessories', label: 'Accessories', cats: ['accessories'] },
+  { key: 'furniture', label: 'Furniture', cats: ['furniture'] },
   { key: 'other', label: 'Other', cats: ['other'] },
 ];
 

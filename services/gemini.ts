@@ -53,7 +53,7 @@ Return ONLY a valid JSON object with this exact structure — no markdown fences
 {
   "name": "Descriptive item name; prepend brand ONLY if a label/logo/tag is visibly readable in the photo",
   "sub": "Brief description: estimated size if visible (e.g. \"Women's 8\", \"Men's L\", \"US 10\"), color, material, condition. Omit any field that can't be determined from the photo — never echo the field name as a placeholder.",
-  "category": "denim|bottoms|tops|dresses|outerwear|shoes|bags|accessories|other",
+  "category": "denim|bottoms|tops|dresses|outerwear|shoes|bags|accessories|furniture|other",
   "isCustom": <boolean>,
   "suggestedPaid": <number>,
   "suggestedResaleLow": <number>,
@@ -92,6 +92,7 @@ Set isCustom = false ONLY when you are confident the item is entirely factory-ma
 
 Guidelines:
 - category: use "bottoms" for pants, leggings, joggers, athletic bottoms, shorts (non-denim); "denim" for jeans; "outerwear" for jackets and coats; "tops" for shirts, sweatshirts worn as tops, hoodies when not outerwear
+- category "furniture": use for any furniture, lighting, mirror, rug, or large home good — chairs, sofas/sectionals/loveseats, dining/coffee/side/console tables, desks, dressers/cabinets/bookshelves/nightstands/sideboards/credenzas/armoires, bed frames/headboards, lamps/sconces/chandeliers, mirrors, rugs, vases/sculptures/wall art, outdoor patio furniture. In the "name" field include the specific subtype (e.g. "Vintage Walnut Credenza", "MCM-Style Dining Chair", "Vintage Brass Floor Lamp", "Persian Wool Rug").
 - BRAND IN NAME — HARD RULE: Only include a brand word in "name" if you can see an actual LOGO, WORDMARK, PRINTED TAG, EMBROIDERED LABEL, WOVEN LABEL, or STAMPED HARDWARE bearing that brand's text or recognized logomark, and it is legible enough to read. You must be able to point to the specific region of the photo where the brand marking appears. DO NOT infer brand from silhouette, cut, aesthetic, era, embellishment pattern, stitching style, fabric weight, hardware style, or resemblance to brands known for a similar look. Inference from aesthetic is a guess, not identification.
 - COMMON HALLUCINATION TRAPS — do NOT assume these brands without a visible label:
   • Y2K low-rise flare jeans with rhinestone swirls, butterflies, crosses, or decorative back-pocket embellishments → NOT Vigoss, Miss Me, Rock Revival, Affliction, True Religion, Buckle, Silver Jeans, Grace in LA, or any "fashion denim" brand
@@ -151,11 +152,58 @@ Guidelines:
       Estate/antique jewelry (Art Deco, Victorian, Edwardian, signed vintage): add 40–80% over base material value
       Celebrity-associated or trending designer collabs: add 20–50% trend premium
       Gemstone/crystal-embellished clothing (Swarovski crystals, rhinestone detailing, beaded gowns, crystal appliqués, gem-studded denim): price using the garment's brand tier as base, then add 30–60% for embellishment quality and density. Intact, densely-set crystals on designer pieces command top premiums. Missing stones or loose settings reduce value.
-    Platform context: Depop runs higher for Y2K, vintage, trendy aesthetics, and unique pieces; Poshmark higher for workwear, contemporary brands, and NWT items; eBay for sportswear, collectibles, authenticated luxury, and fine jewelry (especially with GIA certs or brand boxes); Etsy for handmade, vintage 20yr+, cottagecore/artisan aesthetics, and estate jewelry.
+    Platform context: Depop runs higher for Y2K, vintage, trendy aesthetics, and unique pieces; Poshmark higher for workwear, contemporary brands, and NWT items; eBay for sportswear, collectibles, authenticated luxury, and fine jewelry (especially with GIA certs or brand boxes); Etsy for handmade, vintage 20yr+, cottagecore/artisan aesthetics, and estate jewelry. For furniture: Facebook Marketplace and Craigslist for local-pickup mid-tier (broadest buyer pool, no fees); Chairish and 1stDibs for vetted MCM/vintage premium (commission cuts but prices skew 30–50% higher); AptDeco for NYC/LA local-pickup contemporary; OfferUp for casual local; Etsy for vintage-only smalls (lamps, mirrors, decor under 30 lbs); eBay for shippable smalls (lighting, decor, hardware, small mirrors).
     Trend premiums (+20–40% to base): gorpcore/outdoor, quiet luxury, coquette, vintage collegiate, 90s minimalism, western/Americana, mesh/sheer, ballet/balletcore. Apply when the item clearly fits.
     BOOST STACKING — HARD RULE: Never compound 3 or more independent percentage boosts on the same factory item. The boost categories are: (a) era — vintage / Y2K / 90s / 80s / 70s / deadstock; (b) embellishment — rhinestone / crystal / beaded / sequin / studded / appliqué; (c) trend — coquette / gorpcore / balletcore / Q2 spikes / quiet luxury; (d) collab/celebrity — Travis Scott, Virgil, Fragment, named-artist collab; (e) denim spike — low-rise / flare / wide-leg / Y2K premium denim brands. Apply at most TWO boosts and pick the highest-percentage one as the primary; treat the rest as already implied by the brand tier. Compounding all of "vintage Y2K rhinestone flare trending Diesel" is double-counting — Diesel's +58% spike already factors in the Y2K low-rise flare aesthetic. Stay anchored to comparable Depop/Poshmark sold-comp prices, not formulaic stacking.
     Q2 2026 ACTIVE SPIKES (refresh this list quarterly — current as of 2026-04-30): crochet tops & matching sets, cargo pants, boho/romantic dresses, spring knits, polka dots, surf-aesthetic, peeptoe heels, wedding-guest dresses. Y2K maximalist demand is reinforced by the Euphoria Season 3 × Depop collab — keep Y2K aesthetic premium active. Apply +30–50% over base when an item clearly fits one of these spikes.
     suggestedResaleHigh: best-case sold price, typically 40–60% above low. For hyped items (trending brand + trending aesthetic), can reach 2x low.
+
+  ► IF category = "furniture" → FURNITURE PRICING (use this path; IGNORE the clothing factory tiers and handmade labor formulas above — furniture has its own market dynamics):
+    suggestedPaid: typical thrift/estate-sale shelf price ($10–$150). Antique mall and estate sales price higher than thrift; reflect that in suggestedPaid.
+
+    BRAND/ERA TIERS (resale comp ranges based on Facebook Marketplace, Chairish, 1stDibs, Craigslist, eBay, AptDeco):
+      Mass-market particleboard (IKEA, Wayfair budget, Target Threshold, dorm-tier): $15–$80. Larger dressers/wardrobes top out $80–$120 only when assembled and undamaged.
+      Modern contemporary (West Elm, CB2, Crate & Barrel, Pottery Barn, Article, Joybird): chairs $80–$400, sofas $200–$800, dining tables $150–$600, storage $150–$500. NWT or like-new commands top of range; heavy use drops 50%.
+      Premium contemporary (Restoration Hardware, Room & Board, Design Within Reach, Blu Dot): $200–$1500. RH leather/linen sofas $400–$2000+ used.
+      MCM authenticated (Eames, Knoll, Herman Miller, Hans Wegner, Eero Saarinen, George Nakashima, Arne Jacobsen, Marcel Breuer, Le Corbusier, Mies van der Rohe, George Nelson, Florence Knoll, Cassina, Vitra, B&B Italia, Poltrona Frau): $500–$8000+. Eames Lounge Chair authenticated $2500–$8000; Saarinen Tulip Table $400–$2500; Wegner Wishbone $400–$1200; Barcelona Chair (Knoll/Cassina) $800–$3500; Eames Shell Chair $200–$700; Nelson Bench $400–$2000.
+      Vintage Danish/Scandinavian Modern unbranded (teak/walnut/rosewood, sleek tapered legs, dovetail joints): credenza/sideboard $300–$1500, dining chair set of 4 $300–$1200, dining table $200–$900, lounge chair $200–$700.
+      Vintage American mid-tier (Heywood-Wakefield, Drexel, Lane, Henredon, Baker, Thomasville, Ethan Allen, Stickley, Broyhill Brasilia, Kent Coffey, American of Martinsville): chairs/tables $100–$800, case goods $200–$2000. Stickley Mission and Broyhill Brasilia spike toward upper band.
+      Hollywood Regency / Postmodern 70s–80s (Memphis Group, Karl Springer, Milo Baughman, Gabriella Crespi, Vladimir Kagan, Pierre Cardin): $400–$3000+ (Q2 2026 spike — Memphis revival especially). Lacquer, brass, lucite, mirrored surfaces are tells.
+      Vintage industrial (factory carts, machinist tables, school chairs, warehouse stools, Toledo): $80–$600. Cast iron and patinated steel premium.
+      Generic vintage no-brand decent solid-wood quality: $40–$300 depending on size and condition.
+      Antique 100yr+ solid wood (cherry, oak, walnut, mahogany, dovetail joinery, hand-cut details): $100–$1000; carved/signed/Eastlake/Victorian/Empire/Art Deco $200–$2000+. Look for hand-cut dovetails (irregular, slightly uneven) vs machine-cut (uniform).
+      Outdoor: Brown Jordan / Janus et Cie / Crate & Barrel outdoor / RH outdoor $100–$800; teak outdoor (Smith & Hawken, Gloster) $80–$500; generic plastic patio $20–$100.
+      Lamps: generic floor/table lamp $25–$120; vintage brass/Stiffel/mid-century ceramic $40–$200; designer modern (Artemide, Flos, Louis Poulsen) $150–$800; Tiffany authenticated $500–$5000+; Tiffany-style reproduction $40–$150.
+      Mirrors: generic $20–$100; vintage gilt/MCM/sunburst/convex $80–$400; antique/Art Deco/large floor mirror $150–$800.
+      Rugs: machine-made polypropylene/synthetic $20–$80; wool no-brand $50–$300; vintage Persian/Turkish/Moroccan/Oushak (hand-knotted, natural dye) $150–$2000+; antique Heriz/Kashan/Tabriz $300–$5000+. Look for hand-knotted vs machine-made (back of rug shows individual knots vs uniform machine pattern).
+      Decor smalls (vases, sculpture, wall art, brass objects, ceramics): unbranded $10–$80; signed studio pottery $40–$300; vintage signed sculptors $100–$1000+.
+
+    MATERIAL SIGNALS (price modifier ±30–50%):
+      Solid wood (especially walnut, teak, cherry, mahogany, oak, rosewood): +30–50% over comparable veneer-built piece.
+      Veneer over plywood (legitimate construction technique used by mid-century brands): baseline.
+      Particleboard / MDF / laminate / melamine / pressed wood / engineered wood: HARD FLOOR — rarely above $80 used regardless of original retail price or brand mention. Tells: visible particle texture at edges, wood-grain printed paper veneer (not real wood), swelling around water exposure, weight far less than expected for size.
+      Solid brass / bronze / iron / steel hardware: +20–30%.
+      Marble or stone tops (genuine, not laminate imitation): +30–50%.
+      Genuine leather upholstery in good condition: +20–40%.
+      8-way hand-tied springs (premium sofa/chair construction, visible underneath): premium signal.
+      Dovetail joints, mortise-and-tenon, hand-cut joinery: quality signals reinforcing era/brand authenticity.
+      Stapled/glued/screwed construction: floor signal.
+      Stained, torn, sagging, or pet-damaged upholstery: -50% (assume buyer reupholsters).
+
+    CONDITION (huge for furniture, applied IN ADDITION to the general CONDITION ADJUSTMENT below):
+      Refinishable surface scratches, light wear: neutral to -20%.
+      Structural damage (broken legs, wobbly frame, cracked seat, busted spring): -50% to -80%.
+      Smoke or pet odor: -50% (kills resale even when invisible in photo).
+      Water damage, swelling, mold, bubbling veneer: pulls toward scrap value.
+      Refinished/reupholstered to high standard: +20–50% over base tier (counts as isCustom — treat as labor premium).
+
+    SIZE PENALTY: large items (sofas, sectionals, dining tables seating 6+, beds, full-size dressers, armoires) -30% vs comparable smaller piece because the buyer pool is local-pickup-only on Facebook Marketplace/Craigslist/OfferUp. Small shippable items (lamps, mirrors under 36", side tables, decor under 30 lbs) command full price because they list nationally on eBay/Etsy.
+
+    MCM ATTRIBUTION — HARD RULE: Eames / Knoll / Wegner / Saarinen / Herman Miller / Vitra / Cassina / Nakashima / Jacobsen / Breuer / Le Corbusier / Mies van der Rohe / Nelson attribution requires a visible maker label, sticker, stamp, paper tag, or burn-in mark. Without it, do NOT include the designer name in "name". Describe as "MCM-style", "mid-century", "Danish modern", or "in the manner of [era]" and price as unattributed MCM tier ($80–$300). Silhouette resemblance is NOT identification — knockoffs of Eames Shell Chair, Wegner Wishbone, and Saarinen Tulip Table are mass-produced and common in thrift. Same trap pattern as the COMMON HALLUCINATION TRAPS list for clothing.
+
+    Q2 2026 FURNITURE SPIKES (refresh quarterly): boucle and sherpa reupholstery; limewash and whitewash refinish; cane and rattan accent pieces (chairs, headboards, peacock chairs); postmodern Memphis revival; Italian designer (Cassina, B&B Italia, Poltrona Frau, Minotti) on resale; Japandi minimalism; vintage Persian/Moroccan/Turkish/Oushak rugs; antique wooden ladders; architectural salvage (corbels, mantles, doors); brass and lucite accents. Apply +20–40% over base tier when item clearly fits a spike.
+
+    FURNITURE isCustom: refinished, restained, repainted, limewashed, whitewashed, reupholstered, recaned, or repurposed (dresser → bathroom vanity, ladder → blanket rack, drawer → wall shelf, door → headboard) qualifies as isCustom. Pricing: brand/era tier as base + 20–50% labor premium for skilled work. Do NOT exceed the subcategory ceiling for the base piece — refinished IKEA stays under $120 regardless of effort. Refinishing only meaningfully boosts pieces with quality bones (solid wood, MCM lines, antique structure). Refinish on particleboard adds $0 — call out as red flag if the user invested labor in particleboard.
 
   CONDITION ADJUSTMENT (applies to both handmade and factory): Reduce both suggestedResaleLow and suggestedResaleHigh by 30–50% for visible damage — prominent stains, non-decorative holes, heavy pilling, faded/washed-out color, stretched or warped necklines, broken zippers, missing buttons, loose stitching, scuffed/cracked/peeling leather, yellowed whites, broken or cloudy hardware, tarnish on jewelry. Reduce by 15–25% for moderate wear — minor pilling, slight fading, small spots, faint creases, light patina. NWT or like-new condition (crisp fabric, intact hardware, no visible wear, original tags) commands the top of the range. When condition is unclear from the photo, assume "used-good" and make no adjustment. Never apply condition bonuses above the tier ceiling.
 - ideas[].t = short, actionable tip (no price amounts)
@@ -166,7 +214,8 @@ Guidelines:
   luxury brands (Louis Vuitton, Gucci, Chanel, Prada, Burberry, Hermès, Dior, Fendi, Balenciaga, Saint Laurent),
   designer goods (Coach, Kate Spade, Tory Burch, Michael Kors, Marc Jacobs),
   brand-name sneakers (Nike Dunk, Jordan, Yeezy, New Balance 550/2002R),
-  designer sunglasses, premium denim (True Religion, Diesel), branded watches, precious stones/fine jewelry.
+  designer sunglasses, premium denim (True Religion, Diesel), branded watches, precious stones/fine jewelry,
+  MCM/designer furniture (Eames, Knoll, Herman Miller, Wegner, Saarinen, Cassina, Vitra, Nakashima, Jacobsen, Breuer, Nelson), designer modern repros (Saarinen Tulip Table, Barcelona Chair, Wegner Wishbone, Eames Shell Chair, Eames Lounge), Tiffany lamps, antique signed pieces.
   Each flag = a specific, actionable physical check the buyer can do in-store — e.g.:
   "Check stitching evenness — authentic LV uses single continuous thread, no loose ends"
   "Verify heat stamp depth and font — counterfeits have shallow or inconsistent stamping"
@@ -176,7 +225,10 @@ Guidelines:
   "Check for hallmarks inside the band or clasp — 10k/14k/18k/750/925/PLAT stamps indicate real precious metal"
   "Examine stones closely — real gemstones have natural inclusions; glass and CZ appear flawless and overly brilliant"
   "Test metal weight — genuine gold and platinum feel noticeably heavier than plated or costume metals"
-  Empty array [] for: unbranded items, fast fashion, mall brands, handmade items, basic athletic wear, or anything where counterfeits are uncommon.
+  "Check the underside of seat or inside the drawer for a Herman Miller / Knoll / Cassina / Vitra / maker label, sticker, or burn-in stamp — knockoffs of MCM designer pieces are mass-produced"
+  "Verify Tiffany lamp signature on bronze base and feel the glass weight — leaded glass is significantly heavier than reproduction"
+  "Look for a maker's mark, paper label, or stamp on the back or underside — authenticates antique era and origin"
+  Empty array [] for: unbranded items, fast fashion, mall brands, handmade items, basic athletic wear, generic IKEA-tier furniture, or anything where counterfeits are uncommon.
   Frame as verification tips, not accusations — the goal is to help the buyer verify before purchasing.
 - RED FLAG DETECTION — HARD RULE — populate redFlags (1–2 items) when ANY of the following are true. This is NOT optional — if ANY condition matches, you MUST include at least one redFlag. Empty array [] ONLY when zero conditions match.
 
@@ -215,7 +267,16 @@ Guidelines:
     For AI-GENERATED PHOTO specifically, do NOT err on the side of flagging — require at least one specific artifact from the list above. Real camera photos of upcycled or unusual clothing are common; AI-generated photos of clothing on real humans are rare.
     If genuine AI generation artifacts are present → add the string "stock-photo" to redFlags (no other text — this is an internal trigger only).
   When in doubt about whether a PRINT ON THE GARMENT is AI-generated (AI-GENERATED ARTWORK branch only), ERR ON THE SIDE OF FLAGGING. A false positive on a print is less harmful than a false negative. This erring applies ONLY to the artwork branch — it does NOT apply to ALL-OVER DIGITAL PRINT (require pictorial content) or AI-GENERATED PHOTO (require specific camera artifacts).
-- upcycle[]: exactly 3 short, specific ideas for transforming this item to increase resale value. Before writing, identify: (1) exact material and texture, (2) specific construction details like hardware, seams, collar, lining, silhouette, (3) the era or subculture it references, (4) what niche aesthetic or current resale trend it could tap into if transformed. Use those observations to write ideas that could ONLY apply to this exact item — not any other. Each idea names a specific technique AND the niche aesthetic it creates. BANNED techniques regardless of item: bleach dye, tie-dye, cropping, patches, pins, buttons, generic embroidery — if you catch yourself writing one, think harder about what makes this item unique. BANNED aesthetic defaults — do not use any of these unless the item is literally from that era/style and you can point to a specific visible detail that justifies it: cottagecore, floral, bohemian, coquette, fairy-tale, whimsical, romantic. If you catch yourself writing one of these aesthetics, delete it and think of something more specific to this item. Each of the 3 ideas must target a DIFFERENT aesthetic or subculture — never repeat the same aesthetic across the 3 ideas. Keep each under 15 words. Do not mention platforms or where to sell. Do not say "not applicable"`;
+
+  FURNITURE RED FLAGS — apply ONLY when category = "furniture":
+  PARTICLEBOARD MASQUERADE: the piece appears to be particleboard, MDF, or pressed wood with printed wood-grain paper veneer imitating solid wood. Tells: visible particle texture or peeling paper at edges, swelling around water exposure, weight far less than expected for size, mass-market dorm/IKEA brand context. → Flag: "Verify solid wood vs printed-veneer particleboard before paying solid-wood prices — particleboard rarely resells above $80 regardless of look."
+  MCM KNOCKOFF: the silhouette resembles a famous MCM design (Eames Shell, Wegner Wishbone, Saarinen Tulip, Barcelona Chair, Eames Lounge) but no maker label, sticker, or stamp is visible in the photo. → Flag: "Verify maker stamp or label (typically underside of seat or inside drawer) before paying authenticated-MCM prices — knockoffs are mass-produced and common."
+  HIDDEN ODOR: upholstered furniture from estate sales, curbside, or unclear sources where smoke or pet odor may be present. Odor doesn't show in photos but kills resale value on FB Marketplace. → Flag: "Smell-verify in person — upholstery odor (smoke, pet, mildew) isn't photogenic but tanks resale."
+  BEDBUG INDICATORS: rust-colored or dark spots along mattress seams, upholstery seams, or frame joints. Especially flag for curbside finds, apartment sources, and any mattress. → Flag: "Inspect seams and joints closely for rust-colored stains — bedbug indicators kill resale and create infestation risk."
+  STRUCTURAL DAMAGE: visible broken legs, cracked frame, busted spring, wobble, water damage, mold, or major joint failure. → Flag: "Structural damage visible — verify the piece is sittable/usable; refinishing won't compensate if the bones are compromised."
+- upcycle[]: exactly 3 short, specific ideas for transforming this item to increase resale value. Before writing, identify: (1) exact material and texture, (2) specific construction details like hardware, seams, collar, lining, silhouette, (3) the era or subculture it references, (4) what niche aesthetic or current resale trend it could tap into if transformed. Use those observations to write ideas that could ONLY apply to this exact item — not any other. Each idea names a specific technique AND the niche aesthetic it creates. CLOTHING BANNED techniques (apply when category is NOT "furniture"): bleach dye, tie-dye, cropping, patches, pins, buttons, generic embroidery — if you catch yourself writing one, think harder about what makes this item unique. BANNED aesthetic defaults (apply to ALL categories): do not use any of these unless the item is literally from that era/style and you can point to a specific visible detail that justifies it: cottagecore, floral, bohemian, coquette, fairy-tale, whimsical, romantic. If you catch yourself writing one of these aesthetics, delete it and think of something more specific to this item.
+  FURNITURE upcycle (category = "furniture" only): the clothing BANNED list above does NOT apply. Allowed techniques: refinish (sand to natural / dark walnut stain / whitewash / limewash / cerusing / fuming); reupholster (boucle, mohair, vintage kilim, vintage textile, leather); paint frame (chalk paint, eggshell lacquer, automotive lacquer, milk paint); swap hardware (vintage brass pulls, leather pulls, ceramic knobs, custom-cast); recane or rerush (replace damaged caning or rush seat with new natural fiber); repurpose (dresser → bathroom vanity, ladder → blanket rack, drawer → wall shelf, door → headboard, suitcase → side table). Match technique to current spike — boucle reupholstery, limewash refinish, brass-and-cane revival are all Q2 2026 actively trending. Each idea targets a different aesthetic.
+  Each of the 3 ideas must target a DIFFERENT aesthetic or subculture — never repeat the same aesthetic across the 3 ideas. Keep each under 15 words. Do not mention platforms or where to sell. Do not say "not applicable"`;
 
 function inferMimeType(uri: string): string {
   const u = uri.split('?')[0].toLowerCase();
@@ -637,6 +698,21 @@ When uncertain about any single photo, classify it as (a). False positives are w
     }
   }
 
+  // Furniture-specific clamps. The prompt's MCM HARD RULE handles designer
+  // hallucinations (silhouette ≠ identification); a code-level clamp on
+  // designer name would create false negatives on legitimately authenticated
+  // pieces. Particleboard is the one signal worth a hard floor — printed-paper
+  // veneer on MDF/laminate never resells above $80 regardless of brand.
+  const isFurniture = parsed.category === 'furniture';
+  if (isFurniture) {
+    const furnitureText = `${parsed.name ?? ''} ${parsed.sub ?? ''}`;
+    const PARTICLEBOARD_RX = /\b(particleboard|particle\s*board|mdf|laminate|melamine|press(ed)?\s*(wood|board)|engineered\s*wood)\b/i;
+    if (PARTICLEBOARD_RX.test(furnitureText) && resaleHigh > 80) {
+      resaleHigh = 80;
+      resaleLow = Math.min(resaleLow > 0 ? resaleLow : 20, 40);
+    }
+  }
+
   let correction: 'lower' | 'higher' | undefined;
   if (priorResult) {
     const priorLow = priorResult.suggestedResaleLow ?? 0;
@@ -667,13 +743,20 @@ When uncertain about any single photo, classify it as (a). False positives are w
     category: VALID_CATEGORIES.includes(parsed.category as ItemCategory)
       ? (parsed.category as ItemCategory)
       : 'other',
-    confidence: confidenceFromRangeWidth(
-      ['high', 'medium', 'low'].includes(parsed.confidence as string)
-        ? (parsed.confidence as 'high' | 'medium' | 'low')
-        : 'low',
-      resaleLow,
-      resaleHigh,
-    ),
+    // Furniture has legitimately wide tier ranges ($80–$2000 for unverified
+    // vintage walnut credenza is not low confidence — just sparse comps). Skip
+    // the range-width downgrade for furniture; pass AI confidence through.
+    confidence: parsed.category === 'furniture'
+      ? (['high', 'medium', 'low'].includes(parsed.confidence as string)
+          ? (parsed.confidence as 'high' | 'medium' | 'low')
+          : 'low')
+      : confidenceFromRangeWidth(
+          ['high', 'medium', 'low'].includes(parsed.confidence as string)
+            ? (parsed.confidence as 'high' | 'medium' | 'low')
+            : 'low',
+          resaleLow,
+          resaleHigh,
+        ),
     ideas: Array.isArray(parsed.ideas)
       ? parsed.ideas.slice(0, 3).map((idea: Record<string, unknown>) => ({
           e: '',
