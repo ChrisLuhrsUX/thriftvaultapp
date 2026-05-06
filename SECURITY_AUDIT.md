@@ -13,7 +13,7 @@ Snapshot of safety and security findings against the ThriftVault codebase, plus 
 | Medium | `.claude/settings.json` denied `npx`/`bunx` only; `pnpm`/`yarn` variants walked the fence | Fixed |
 | Medium | `Sentry.init` did not explicitly set `sendDefaultPii: false`; no breadcrumb scrubber | Fixed |
 | Medium | `package.json` `backup` script uses `git add -A` (catches anything ungitignored) | Open — pre-commit secret scan recommended |
-| Low | `EXPO_PUBLIC_SENTRY_DSN` not configured | Open — already on `LAUNCH_OPS.md` |
+| Low | `EXPO_PUBLIC_SENTRY_DSN` not configured | Fixed (wired 2026-05-03) |
 
 ## Repo state at audit time
 
@@ -150,7 +150,7 @@ fi
 
 ### 8. `EXPO_PUBLIC_SENTRY_DSN` not in `.env`
 
-Crash reporting is inert until the DSN is set. Already on `LAUNCH_OPS.md:71`. Not a security issue — visibility issue. Set before TestFlight.
+Crash reporting was inert without the DSN — visibility issue, not a security issue. **Resolved 2026-05-03:** DSN added to `.env`, Metro restarted, smoke-tested with a temporary `Sentry.captureException` row on Profile (added and removed in the same session). Native crash reporting activates after prebuild.
 
 ### 9. Confirmed clean — listed for the record
 
@@ -190,7 +190,7 @@ git config user.email "46426899+ChrisLuhrsUX@users.noreply.github.com"
 
 ## Action checklist
 
-Status as of 2026-04-30 13:14 ET.
+Audit body unchanged from 2026-04-30; checklist refreshed 2026-05-05.
 
 ### Done in this audit
 - [x] Remove `appleId` from `eas.json`
@@ -204,7 +204,7 @@ Status as of 2026-04-30 13:14 ET.
 - [ ] Set Anthropic per-key spend cap at `console.anthropic.com`
 - [ ] Verify Gemini key has iOS bundle-ID restriction `com.thriftvault.app` in Google Cloud Console
 - [ ] (If staying public) configure per-repo `user.email` to GitHub noreply
-- [ ] Wire `EXPO_PUBLIC_SENTRY_DSN` before TestFlight
+- [x] Wire `EXPO_PUBLIC_SENTRY_DSN` (done 2026-05-03; native crash reporting activates after prebuild)
 - [ ] Optional: add `.git/hooks/pre-commit` secret-scan grep, or move to Husky post-launch
 
 ## Methodology — rerun before each major release

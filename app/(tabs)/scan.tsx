@@ -1,4 +1,3 @@
-import * as Clipboard from 'expo-clipboard';
 import { AppIcon } from '@/components/AppIcon';
 import { PaywallModal } from '@/components/PaywallModal';
 import { DEFAULT_ITEM_PLACEHOLDER_IMAGE } from '@/constants/seedItems';
@@ -7,14 +6,15 @@ import { useTheme } from '@/context/ThemeContext';
 import { useToast } from '@/context/ToastContext';
 import { usePurchases } from '@/hooks/usePurchases';
 import { useResponsive } from '@/hooks/useResponsive';
-import { scanWithGemini, rescanAsHandmade, refreshUpcycleIdeas, isOverloadError } from '@/services/gemini';
+import { isOverloadError, refreshUpcycleIdeas, rescanAsHandmade, scanWithGemini } from '@/services/gemini';
 import type { Theme } from '@/theme';
 import type { Item, ItemScanSnapshot, ScanScenario } from '@/types/inventory';
-import { getConfidencePresentation } from '@/utils/confidencePresentation';
+import { getConfidenceColor, getConfidencePresentation } from '@/utils/confidencePresentation';
 import { formatMoney } from '@/utils/currency';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BlurView } from 'expo-blur';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as Clipboard from 'expo-clipboard';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
@@ -22,12 +22,15 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   AppState,
+  Easing,
   FlatList,
   Image,
   ImageBackground,
   Linking,
   Modal,
+  PanResponder,
   Platform,
   Pressable,
   ScrollView,
@@ -42,11 +45,48 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const SAVED_LATER_KEY = 'tv_saved_later';
 const TV_PENDING_SCAN_KEY = 'tv_pending_scan';
 type SavedScanItem = ScanScenario & { savedAt: number; photoUri?: string | null; photoUris?: string[]; promptCustomDismissed?: boolean; promptWrongScanDismissed?: boolean; promptRedFlagDismissed?: boolean; redFlagDismissed?: boolean };
+
+/**
+ * Session-only snapshot kept on the scan tab while the user rescans before
+ * committing to inventory. Carries the full ScanScenario for restoring the
+ * result card; the ItemScanSnapshot fields mirror what we'll persist to the
+ * Item once Buy & Track / Add to Closet runs.
+ */
+type SessionSnapshot = ItemScanSnapshot & { scenario: ScanScenario };
+
+const SESSION_SNAPSHOT_CAP = 10;
 const SNAPSHOT_CAP = 5;
 const MAX_STAGED_PHOTOS = 5;
 const OLD_ITEM_DAYS_THRESHOLD = 90;
 
 const RECENTS_COUNT = 7;
+
+function buildSessionSnapshot(scenario: ScanScenario, photos: string[]): SessionSnapshot {
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    createdAt: Date.now(),
+    sub: scenario.sub ?? '',
+    profit: scenario.profit ?? '',
+    confidence: scenario.confidence,
+    isCustom: scenario.isCustom || false,
+    ideas: Array.isArray(scenario.ideas) ? scenario.ideas.slice(0, 3) : [],
+    upcycle: Array.isArray(scenario.upcycle) ? scenario.upcycle.slice(0, 3) : [],
+    authFlags: Array.isArray(scenario.authFlags) ? scenario.authFlags.slice(0, 3) : [],
+    redFlags: Array.isArray(scenario.redFlags) ? scenario.redFlags.slice(0, 3) : [],
+    beforeAfterDetected: scenario.beforeAfterDetected === true,
+    sourceImageUri: photos[0],
+    sourceImageUris: photos.length > 0 ? [...photos] : undefined,
+    scenario,
+  };
+}
+
+function formatSnapshotTime(createdAt: number): string {
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) return 'Unknown time';
+  const datePart = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const timePart = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  return `${datePart} · ${timePart}`;
+}
 
 /**
  * Generic garment nouns + filler words filtered out before duplicate-name comparison.
@@ -137,6 +177,8 @@ function ScanResultCard({
   redFlagDismissed,
   onConfirmRedFlag,
   onMarkRedFlagFalseAlarm,
+  historyCount,
+  onShowHistory,
   theme,
   styles,
 }: {
@@ -160,6 +202,8 @@ function ScanResultCard({
   redFlagDismissed: boolean;
   onConfirmRedFlag: () => void;
   onMarkRedFlagFalseAlarm: () => void;
+  historyCount: number;
+  onShowHistory: () => void;
   theme: Theme;
   styles: ReturnType<typeof createScanStyles>;
 }) {
@@ -408,6 +452,21 @@ function ScanResultCard({
             </View>
           )}
         </View>
+      )}
+      {historyCount >= 2 && (
+        <Pressable
+          style={({ pressed }) => [styles.historyBtn, pressed && styles.btnPressed]}
+          onPress={onShowHistory}
+          accessibilityLabel="View scan history"
+          accessibilityRole="button"
+        >
+          <AppIcon name="time-outline" size={14} color={theme.colors.vintageBlueDark} />
+          <Text style={styles.historyBtnText}>Scan history</Text>
+          <View style={styles.historyBtnBadge}>
+            <Text style={styles.historyBtnBadgeText}>{historyCount}</Text>
+          </View>
+          <AppIcon name="chevron-forward" size={14} color={theme.colors.vintageBlueDark} />
+        </Pressable>
       )}
       {scenario.upcycle && scenario.upcycle.length > 0 && (
         <View style={styles.upcycleSection}>
@@ -904,6 +963,35 @@ function createScanStyles(theme: Theme, formMaxWidth?: number) {
       fontWeight: '600',
       color: theme.colors.mauve,
     },
+    historyBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.surfaceVariant,
+      paddingVertical: theme.spacing.sm,
+      marginTop: theme.spacing.md,
+      minHeight: theme.minTouchTargetSize,
+    },
+    historyBtnText: {
+      ...theme.typography.caption,
+      color: theme.colors.vintageBlueDark,
+      fontWeight: '600',
+      flex: 1,
+    },
+    historyBtnBadge: {
+      borderRadius: theme.radius.full,
+      borderWidth: 1,
+      borderColor: theme.colors.surfaceVariant,
+      backgroundColor: theme.colors.surfaceVariant,
+      paddingHorizontal: theme.spacing.sm,
+      paddingVertical: 2,
+    },
+    historyBtnBadgeText: {
+      ...theme.typography.caption,
+      color: theme.colors.charcoal,
+      fontWeight: '600',
+    },
   });
 }
 
@@ -939,12 +1027,20 @@ export default function ScanScreen() {
   const [promptWrongScanDismissed, setPromptWrongScanDismissed] = useState(false);
   const [promptRedFlagDismissed, setPromptRedFlagDismissed] = useState(false);
   const [redFlagDismissed, setRedFlagDismissed] = useState(false);
+  const [redFlagDismissedIds, setRedFlagDismissedIds] = useState<Set<number>>(() => new Set());
+  const [sessionSnapshots, setSessionSnapshots] = useState<SessionSnapshot[]>([]);
+  const [activeSessionSnapshotId, setActiveSessionSnapshotId] = useState<string | null>(null);
+  const [scanHistoryVisible, setScanHistoryVisible] = useState(false);
+  const historySheetTranslateY = useRef(new Animated.Value(700)).current;
   const scrollRef = useRef<ScrollView>(null);
   const cameraRef = useRef<{ takePictureAsync: (opts?: { quality?: number }) => Promise<{ uri: string }> } | null>(null);
   const scanningRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const appStateRef = useRef(AppState.currentState);
   const pendingRetryRef = useRef(false);
+  // Latest result captured for async callbacks that don't list `result` in deps
+  // (handleConfirmHandmade) — avoids stale closure when computing rescan merges.
+  const resultRef = useRef<ScanScenario | null>(null);
   const { isTablet, isDesktop, hPad, headerHPad, formMaxWidth } = useResponsive();
   const { width: screenWidth } = useWindowDimensions();
   const scanStyles = useMemo(() => createScanStyles(theme, formMaxWidth), [theme, formMaxWidth]);
@@ -957,6 +1053,99 @@ export default function ScanScreen() {
         setCameraReady(false);
       };
     }, [])
+  );
+
+  useEffect(() => { resultRef.current = result; }, [result]);
+
+  const dismissHistorySheet = useCallback(() => {
+    Animated.timing(historySheetTranslateY, {
+      toValue: 700,
+      duration: 260,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start(() => {
+      historySheetTranslateY.setValue(700);
+      setScanHistoryVisible(false);
+    });
+  }, [historySheetTranslateY]);
+
+  useEffect(() => {
+    if (scanHistoryVisible) {
+      historySheetTranslateY.setValue(700);
+      Animated.spring(historySheetTranslateY, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 55,
+        friction: 11,
+      }).start();
+    }
+  }, [scanHistoryVisible, historySheetTranslateY]);
+
+  const historySheetPanResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onStartShouldSetPanResponderCapture: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponderCapture: () => true,
+        onPanResponderTerminationRequest: () => false,
+        onPanResponderMove: (_, g) => {
+          if (g.dy > 0) historySheetTranslateY.setValue(g.dy);
+        },
+        onPanResponderRelease: (_, g) => {
+          if (g.dy > 100 || g.vy > 0.5) {
+            dismissHistorySheet();
+          } else {
+            Animated.spring(historySheetTranslateY, {
+              toValue: 0,
+              useNativeDriver: true,
+              tension: 80,
+              friction: 12,
+            }).start();
+          }
+        },
+      }),
+    [historySheetTranslateY, dismissHistorySheet]
+  );
+
+  const switchActiveSessionSnapshot = useCallback((snapshotId: string) => {
+    const snap = sessionSnapshots.find(s => s.id === snapshotId);
+    if (!snap) return;
+    Haptics.selectionAsync();
+    setResult(snap.scenario);
+    setActiveSessionSnapshotId(snapshotId);
+    dismissHistorySheet();
+  }, [sessionSnapshots, dismissHistorySheet]);
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      (async () => {
+        const ids = inventory.map((i) => i.id);
+        if (ids.length === 0) {
+          if (!cancelled) setRedFlagDismissedIds(new Set());
+          return;
+        }
+        const keys = ids.map((id) => `tv_prompt_dismissed_${id}`);
+        try {
+          const pairs = await AsyncStorage.multiGet(keys);
+          if (cancelled) return;
+          const next = new Set<number>();
+          for (const [key, raw] of pairs) {
+            if (!raw) continue;
+            try {
+              const flags = JSON.parse(raw) as { redFlagBanner?: boolean };
+              if (flags.redFlagBanner) {
+                const id = Number(key.slice('tv_prompt_dismissed_'.length));
+                if (Number.isFinite(id)) next.add(id);
+              }
+            } catch { /* ignore */ }
+          }
+          setRedFlagDismissedIds(next);
+        } catch { /* ignore */ }
+      })();
+      return () => { cancelled = true; };
+    }, [inventory])
   );
 
   useEffect(() => {
@@ -985,6 +1174,17 @@ export default function ScanScreen() {
             setPromptRedFlagDismissed(true);
           if (parsed.redFlagDismissed)
             setRedFlagDismissed(true);
+          if (Array.isArray(parsed.sessionSnapshots) && parsed.sessionSnapshots.length > 0) {
+            setSessionSnapshots(parsed.sessionSnapshots);
+            setActiveSessionSnapshotId(parsed.activeSessionSnapshotId ?? parsed.sessionSnapshots[0]?.id ?? null);
+          } else {
+            const snap = buildSessionSnapshot(
+              parsed.result,
+              Array.isArray(parsed.stagedPhotos) ? parsed.stagedPhotos : [],
+            );
+            setSessionSnapshots([snap]);
+            setActiveSessionSnapshotId(snap.id);
+          }
         }
       } catch {
         // ignore corrupt data
@@ -1006,9 +1206,11 @@ export default function ScanScreen() {
         promptWrongScanDismissed,
         promptRedFlagDismissed,
         redFlagDismissed,
+        sessionSnapshots,
+        activeSessionSnapshotId,
       }));
     }
-  }, [result, stagedPhotos, placeholderImageUri, promptCustomDismissed, promptWrongScanDismissed, promptRedFlagDismissed, redFlagDismissed]);
+  }, [result, stagedPhotos, placeholderImageUri, promptCustomDismissed, promptWrongScanDismissed, promptRedFlagDismissed, redFlagDismissed, sessionSnapshots, activeSessionSnapshotId]);
 
   const cancelScan = useCallback(() => {
     abortControllerRef.current?.abort();
@@ -1035,6 +1237,9 @@ export default function ScanScreen() {
       const geminiResult = await scanWithGemini(stagedPhotos, controller.signal, setScanStatus);
       pendingRetryRef.current = false; // scan succeeded — don't retry on foreground
       setResult(geminiResult);
+      const snap = buildSessionSnapshot(geminiResult, stagedPhotos);
+      setSessionSnapshots(prev => [snap, ...prev].slice(0, SESSION_SNAPSHOT_CAP));
+      setActiveSessionSnapshotId(snap.id);
     } catch (error) {
       if ((error as Error)?.name === 'AbortError') return;
       // We backgrounded mid-scan — failure is almost always iOS suspending the
@@ -1204,6 +1409,8 @@ export default function ScanScreen() {
     setRedFlagDismissed(false);
     setRescanningHandmade(false);
     setRescanningWrong(false);
+    setSessionSnapshots([]);
+    setActiveSessionSnapshotId(null);
     AsyncStorage.removeItem(TV_PENDING_SCAN_KEY);
     setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: true }), 50);
   }, []);
@@ -1329,7 +1536,24 @@ export default function ScanScreen() {
       ? await persistPhotos(id, stagedPhotos)
       : [];
     const coverUri = persistedUris[0] || DEFAULT_ITEM_PLACEHOLDER_IMAGE;
-    const snapshot = createSnapshot(result, persistedUris.length > 0 ? persistedUris : undefined);
+    const stagedToPersisted = new Map<string, string>();
+    stagedPhotos.forEach((u, i) => {
+      const dest = persistedUris[i];
+      if (dest) stagedToPersisted.set(u, dest);
+    });
+    const remap = (uri?: string) => (uri ? stagedToPersisted.get(uri) ?? uri : uri);
+    const remapAll = (uris?: string[]) => uris?.map((u) => remap(u) ?? u);
+    const itemSnapshots: ItemScanSnapshot[] = sessionSnapshots.length > 0
+      // Drop the session-only `scenario` field; persisted snapshot mirrors ItemScanSnapshot exactly.
+      ? sessionSnapshots.map(({ scenario: _scenario, ...s }) => ({
+          ...s,
+          sourceImageUri: remap(s.sourceImageUri),
+          sourceImageUris: remapAll(s.sourceImageUris),
+        }))
+      : [createSnapshot(result, persistedUris.length > 0 ? persistedUris : undefined)];
+    const activeSnapId = activeSessionSnapshotId && itemSnapshots.some(s => s.id === activeSessionSnapshotId)
+      ? activeSessionSnapshotId
+      : itemSnapshots[0]?.id;
     const newItem: Item = {
       id,
       name: result.name,
@@ -1349,8 +1573,8 @@ export default function ScanScreen() {
       img: coverUri,
       photos: persistedUris.length > 0 ? persistedUris : undefined,
       intent,
-      scanSnapshots: [snapshot],
-      activeScanSnapshotId: snapshot.id,
+      scanSnapshots: itemSnapshots,
+      activeScanSnapshotId: activeSnapId,
     };
     addItem(newItem);
     if (promptCustomDismissed || promptWrongScanDismissed || promptRedFlagDismissed || redFlagDismissed) {
@@ -1363,7 +1587,7 @@ export default function ScanScreen() {
     }
     clearResultAndPhoto();
     router.push({ pathname: '/detail', params: { itemId: String(id), fromScan: '1' } });
-  }, [result, persistPhotos, stagedPhotos, createSnapshot, addItem, promptCustomDismissed, promptWrongScanDismissed, promptRedFlagDismissed, redFlagDismissed, clearResultAndPhoto, router]);
+  }, [result, persistPhotos, stagedPhotos, createSnapshot, addItem, sessionSnapshots, activeSessionSnapshotId, promptCustomDismissed, promptWrongScanDismissed, promptRedFlagDismissed, redFlagDismissed, clearResultAndPhoto, router]);
 
   const updateExistingFromScan = useCallback(async (target: Item) => {
     if (!result) return;
@@ -1413,15 +1637,43 @@ export default function ScanScreen() {
     const mergedPhotos = persistedNew.length > 0
       ? [...persistedNew, ...existingPhotos]
       : existingPhotos;
-    const snapshot = createSnapshot(result, snapshotUris.length > 0 ? snapshotUris : undefined);
-    const nextSnapshots = [snapshot, ...(target.scanSnapshots ?? [])].slice(0, SNAPSHOT_CAP);
+    // Map staged URIs the session referenced to their post-persist destinations.
+    // uniqueNewStaged → persistedNew by index; deduped staged URIs reuse existing photos.
+    const stagedToFinal = new Map<string, string>();
+    uniqueNewStaged.forEach((u, i) => {
+      const dest = persistedNew[i];
+      if (dest) stagedToFinal.set(u, dest);
+    });
+    for (const u of stagedPhotos) {
+      if (stagedToFinal.has(u)) continue;
+      let size: number | null = null;
+      try {
+        const info = await FileSystem.getInfoAsync(u);
+        if (info.exists && typeof (info as any).size === 'number') size = (info as any).size;
+      } catch { /* ignore */ }
+      const reused = size != null ? sizeToExistingUri.get(size) : undefined;
+      if (reused) stagedToFinal.set(u, reused);
+    }
+    const remap = (uri?: string) => (uri ? stagedToFinal.get(uri) ?? uri : uri);
+    const remapAll = (uris?: string[]) => uris?.map((u) => remap(u) ?? u);
+    const newSnapshots: ItemScanSnapshot[] = sessionSnapshots.length > 0
+      ? sessionSnapshots.map(({ scenario: _scenario, ...s }) => ({
+          ...s,
+          sourceImageUri: remap(s.sourceImageUri),
+          sourceImageUris: remapAll(s.sourceImageUris),
+        }))
+      : [createSnapshot(result, snapshotUris.length > 0 ? snapshotUris : undefined)];
+    const nextSnapshots = [...newSnapshots, ...(target.scanSnapshots ?? [])].slice(0, SNAPSHOT_CAP);
+    const activeId = activeSessionSnapshotId && nextSnapshots.some(s => s.id === activeSessionSnapshotId)
+      ? activeSessionSnapshotId
+      : newSnapshots[0]?.id;
     const newResale = result.suggestedResale ?? 0;
     const resaleUpdate = newResale > (target.resale ?? 0) ? { resale: newResale, name: result.name } : {};
     updateItem(target.id, {
       img: persistedNew[0] || target.img,
       photos: mergedPhotos.length > 0 ? mergedPhotos : target.photos,
       scanSnapshots: nextSnapshots,
-      activeScanSnapshotId: snapshot.id,
+      activeScanSnapshotId: activeId,
       updatedAt: Date.now(),
       ...resaleUpdate,
     });
@@ -1431,7 +1683,7 @@ export default function ScanScreen() {
     setDuplicateCandidates([]);
     clearResultAndPhoto();
     router.push({ pathname: '/detail', params: { itemId: String(target.id), fromScan: '1' } });
-  }, [result, persistPhotos, stagedPhotos, createSnapshot, updateItem, clearResultAndPhoto, router]);
+  }, [result, persistPhotos, stagedPhotos, createSnapshot, updateItem, sessionSnapshots, activeSessionSnapshotId, clearResultAndPhoto, router]);
 
   const isOldOrSold = useCallback((item: Item) => {
     if (item.status === 'sold') return true;
@@ -1533,14 +1785,17 @@ export default function ScanScreen() {
     setRescanningHandmade(true);
     try {
       const updated = await rescanAsHandmade(photoUri, controller.signal);
-      setResult((prev) => {
-        if (!prev) return null;
-        return {
-          ...updated,
-          isCustom: true,
-          beforeAfterDetected: updated.beforeAfterDetected === true || prev.beforeAfterDetected === true,
-        };
-      });
+      const prev = resultRef.current;
+      if (!prev) return;
+      const merged: ScanScenario = {
+        ...updated,
+        isCustom: true,
+        beforeAfterDetected: updated.beforeAfterDetected === true || prev.beforeAfterDetected === true,
+      };
+      setResult(merged);
+      const snap = buildSessionSnapshot(merged, [photoUri]);
+      setSessionSnapshots(s => [snap, ...s].slice(0, SESSION_SNAPSHOT_CAP));
+      setActiveSessionSnapshotId(snap.id);
     } catch (err) {
       if (__DEV__) console.log('[Handmade rescan] error:', err);
       showToast(isOverloadError(err) ? 'AI is busy — try again in a moment' : "Couldn't rescan — try again");
@@ -1563,7 +1818,12 @@ export default function ScanScreen() {
         ? await rescanAsHandmade(photoUri, controller.signal, prior)
         : await scanWithGemini(photoUri, controller.signal, undefined, prior);
       if (controller.signal.aborted) return;
-      setResult((prev) => prev === null ? null : { ...updated, isCustom: wasHandmade || updated.isCustom });
+      if (resultRef.current === null) return;
+      const merged: ScanScenario = { ...updated, isCustom: wasHandmade || updated.isCustom };
+      setResult(merged);
+      const snap = buildSessionSnapshot(merged, [photoUri]);
+      setSessionSnapshots(s => [snap, ...s].slice(0, SESSION_SNAPSHOT_CAP));
+      setActiveSessionSnapshotId(snap.id);
       if (updated.correction) showToast(toastForCorrection(updated.correction));
     } catch (err) {
       if (__DEV__) console.log('[Wrong rescan] error:', err);
@@ -1618,6 +1878,9 @@ export default function ScanScreen() {
     setPromptWrongScanDismissed(saved.promptWrongScanDismissed === true);
     setPromptRedFlagDismissed(saved.promptRedFlagDismissed === true);
     setRedFlagDismissed(saved.redFlagDismissed === true);
+    const snap = buildSessionSnapshot(saved, restoredPhotos);
+    setSessionSnapshots([snap]);
+    setActiveSessionSnapshotId(snap.id);
   }, [persistSavedForLater]);
 
   const recents = useMemo(
@@ -1921,6 +2184,8 @@ export default function ScanScreen() {
             redFlagDismissed={redFlagDismissed}
             onConfirmRedFlag={() => { Haptics.selectionAsync(); setPromptRedFlagDismissed(true); }}
             onMarkRedFlagFalseAlarm={() => { Haptics.selectionAsync(); setPromptRedFlagDismissed(true); setRedFlagDismissed(true); }}
+            historyCount={sessionSnapshots.length}
+            onShowHistory={() => { Haptics.selectionAsync(); setScanHistoryVisible(true); }}
             theme={theme}
             styles={scanStyles}
           />
@@ -1973,21 +2238,32 @@ export default function ScanScreen() {
               horizontal
               keyExtractor={(item) => String(item.id)}
               showsHorizontalScrollIndicator={false}
-              renderItem={({ item }) => (
-                <Pressable
-                  style={({ pressed }) => [styles.recentCard, pressed && styles.btnPressed]}
-                  onPress={() => router.push({ pathname: '/detail', params: { itemId: String(item.id) } })}
-                >
-                  {item.img ? (
-                    <Image source={{ uri: item.img }} style={styles.recentImg} resizeMode="cover" />
-                  ) : (
-                    <View style={styles.recentImgPlaceholder}>
-                      <AppIcon name="camera-outline" size={22} color={theme.colors.mauve} />
+              renderItem={({ item }) => {
+                const activeSnapshot = item.scanSnapshots?.find(s => s.id === item.activeScanSnapshotId) ?? item.scanSnapshots?.[0];
+                const hasRedFlags = (activeSnapshot?.redFlags?.length ?? 0) > 0 && !redFlagDismissedIds.has(item.id);
+                return (
+                  <Pressable
+                    style={({ pressed }) => [styles.recentCard, pressed && styles.btnPressed]}
+                    onPress={() => router.push({ pathname: '/detail', params: { itemId: String(item.id) } })}
+                  >
+                    <View style={styles.recentImgWrap}>
+                      {item.img ? (
+                        <Image source={{ uri: item.img }} style={styles.recentImg} resizeMode="cover" />
+                      ) : (
+                        <View style={styles.recentImgPlaceholder}>
+                          <AppIcon name="camera-outline" size={22} color={theme.colors.mauve} />
+                        </View>
+                      )}
+                      {hasRedFlags && (
+                        <View style={styles.recentRedFlag}>
+                          <AppIcon name="flag" size={11} color="#FFFFFF" />
+                        </View>
+                      )}
                     </View>
-                  )}
-                  <Text style={styles.recentName} numberOfLines={2}>{item.name}</Text>
-                </Pressable>
-              )}
+                    <Text style={styles.recentName} numberOfLines={2}>{item.name}</Text>
+                  </Pressable>
+                );
+              }}
             />
           </View>
         )}
@@ -2123,6 +2399,91 @@ export default function ScanScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+      <Modal
+        visible={scanHistoryVisible}
+        transparent
+        animationType="none"
+        onRequestClose={dismissHistorySheet}
+      >
+        <Pressable style={styles.historyOverlay} onPress={dismissHistorySheet}>
+          <Animated.View
+            style={[styles.historyCard, { transform: [{ translateY: historySheetTranslateY }] }]}
+          >
+            <Pressable onPress={(e) => e.stopPropagation()} style={styles.historySheetInner}>
+              <View style={styles.historyDragArea} {...historySheetPanResponder.panHandlers}>
+                <View style={styles.historyHandle} />
+              </View>
+              <View style={styles.historyHeaderRow}>
+                <Text style={styles.historyTitle}>Scan history</Text>
+                <View style={styles.historyHeaderBadge}>
+                  <Text style={styles.historyHeaderBadgeText}>
+                    {sessionSnapshots.length} scan{sessionSnapshots.length === 1 ? '' : 's'}
+                  </Text>
+                </View>
+              </View>
+              <ScrollView style={styles.historyList} showsVerticalScrollIndicator={false}>
+                {sessionSnapshots.map((snapshot) => {
+                  const isActive = snapshot.id === activeSessionSnapshotId;
+                  const confColor = snapshot.confidence
+                    ? getConfidenceColor(theme, snapshot.confidence)
+                    : theme.colors.mauve;
+                  return (
+                    <Pressable
+                      key={snapshot.id}
+                      style={[styles.historyRow, isActive && styles.historyRowActive]}
+                      onPress={() => switchActiveSessionSnapshot(snapshot.id)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Switch to scan from ${formatSnapshotTime(snapshot.createdAt)}`}
+                    >
+                      <View style={styles.historyRowThumb}>
+                        {snapshot.sourceImageUri ? (
+                          <Image source={{ uri: snapshot.sourceImageUri }} style={styles.historyRowThumbImg} resizeMode="cover" />
+                        ) : (
+                          <AppIcon name="camera-outline" size={20} color={theme.colors.mauve} />
+                        )}
+                      </View>
+                      <View style={styles.historyRowMain}>
+                        <View style={styles.historyRowTopLine}>
+                          <Text style={styles.historyRowName} numberOfLines={1}>
+                            {snapshot.scenario.name}
+                          </Text>
+                          {isActive && (
+                            <View style={styles.historyActivePill}>
+                              <Text style={styles.historyActivePillText}>Active</Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={styles.historyRowTime}>{formatSnapshotTime(snapshot.createdAt)}</Text>
+                        <View style={styles.historyRowMetaRow}>
+                          <Text style={styles.historyRowProfit}>{snapshot.profit || '—'}</Text>
+                          {snapshot.confidence ? (
+                            <>
+                              <Text style={styles.historyRowDot}> · </Text>
+                              <View style={[styles.historyConfDot, { backgroundColor: confColor }]} />
+                              <Text style={[styles.historyRowMeta, { color: confColor }]}>
+                                {snapshot.confidence.charAt(0).toUpperCase() + snapshot.confidence.slice(1)} confidence
+                              </Text>
+                            </>
+                          ) : null}
+                          {snapshot.isCustom ? (
+                            <View style={styles.historyIsCustomPill}>
+                              <Text style={styles.historyIsCustomPillText}>Handmade</Text>
+                            </View>
+                          ) : null}
+                        </View>
+                      </View>
+                      <AppIcon name="chevron-forward" size={16} color={theme.colors.mauve} />
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+              <Pressable style={styles.historyCloseBtn} onPress={dismissHistorySheet} accessibilityRole="button" accessibilityLabel="Close scan history">
+                <Text style={styles.historyCloseBtnText}>Close</Text>
+              </Pressable>
+            </Pressable>
+          </Animated.View>
+        </Pressable>
+      </Modal>
       <PaywallModal visible={paywallVisible} onClose={() => setPaywallVisible(false)} />
     </View>
   );
@@ -2172,7 +2533,7 @@ function createStyles(
     aspectRatio: 1 / 1,
     borderRadius: 22,
     overflow: 'hidden',
-    backgroundColor: theme.colors.charcoal,
+    backgroundColor: theme.colors.cream,
   },
   cameraBoxRedFlag: {
     borderColor: theme.colors.loss,
@@ -2277,11 +2638,8 @@ function createStyles(
     position: 'absolute',
     width: '100%',
     height: '100%',
-    borderRadius: 24,
   },
-  cameraBgImageMobile: {
-    borderRadius: 24,
-  },
+  cameraBgImageMobile: {},
   cameraOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: theme.colors.overlay,
@@ -2487,11 +2845,24 @@ function createStyles(
   btnPressed: {
     opacity: 0.9,
   },
+  recentImgWrap: {
+    width: 100,
+    height: 100,
+    position: 'relative' as const,
+  },
   recentImg: {
     width: 100,
     height: 100,
     borderRadius: theme.radius.sm,
     backgroundColor: theme.colors.surfaceVariant,
+  },
+  recentRedFlag: {
+    position: 'absolute' as const,
+    top: 6,
+    right: 6,
+    backgroundColor: theme.colors.loss,
+    padding: 4,
+    borderRadius: theme.radius.full,
   },
   recentImgPlaceholder: {
     width: 100,
@@ -2619,6 +2990,173 @@ function createStyles(
     top: 0,
     right: 16,
     padding: 8,
+  },
+  historyOverlay: {
+    flex: 1,
+    backgroundColor: theme.colors.overlay,
+  },
+  historyCard: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: theme.colors.surface,
+    borderTopLeftRadius: theme.radius.lg,
+    borderTopRightRadius: theme.radius.lg,
+    paddingTop: 12,
+    maxHeight: '72%',
+    ...(theme.shadows.md ?? {}),
+  },
+  historySheetInner: {
+    flex: 1,
+  },
+  historyDragArea: {
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  historyHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: theme.colors.surfaceVariant,
+  },
+  historyHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.surfaceVariant,
+  },
+  historyTitle: {
+    ...theme.typography.bodySmall,
+    color: theme.colors.charcoal,
+    fontWeight: '600',
+    flex: 1,
+  },
+  historyHeaderBadge: {
+    borderRadius: theme.radius.full,
+    borderWidth: 1,
+    borderColor: theme.colors.surfaceVariant,
+    backgroundColor: theme.colors.surfaceVariant,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 3,
+  },
+  historyHeaderBadgeText: {
+    ...theme.typography.caption,
+    color: theme.colors.charcoal,
+  },
+  historyList: {
+    paddingHorizontal: 12,
+    paddingTop: 8,
+  },
+  historyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: theme.radius.sm,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    marginBottom: 4,
+    gap: 10,
+  },
+  historyRowActive: {
+    backgroundColor: theme.colors.surfaceVariant,
+  },
+  historyRowThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: theme.radius.sm,
+    backgroundColor: theme.colors.blush,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  historyRowThumbImg: {
+    width: 44,
+    height: 44,
+  },
+  historyRowMain: {
+    flex: 1,
+    minWidth: 0,
+  },
+  historyRowTopLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  historyRowName: {
+    ...theme.typography.caption,
+    color: theme.colors.charcoal,
+    fontWeight: '600',
+    flex: 1,
+  },
+  historyRowTime: {
+    ...theme.typography.caption,
+    color: theme.colors.mauve,
+    marginTop: 2,
+  },
+  historyRowMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 3,
+    flexWrap: 'wrap',
+    gap: 4,
+  },
+  historyRowProfit: {
+    ...theme.typography.caption,
+    color: theme.colors.profit,
+    fontWeight: '600',
+  },
+  historyRowDot: {
+    ...theme.typography.caption,
+    color: theme.colors.mauve,
+  },
+  historyConfDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    flexShrink: 0,
+  },
+  historyRowMeta: {
+    ...theme.typography.caption,
+    color: theme.colors.mauve,
+  },
+  historyActivePill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.vintageBlueLight,
+  },
+  historyActivePillText: {
+    ...theme.typography.label,
+    color: theme.colors.vintageBlueDark,
+    fontWeight: '600',
+  },
+  historyIsCustomPill: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.terraLight,
+  },
+  historyIsCustomPillText: {
+    ...theme.typography.label,
+    color: theme.colors.terra,
+    fontWeight: '600',
+  },
+  historyCloseBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: theme.spacing.lg,
+    marginTop: theme.spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.surfaceVariant,
+    minHeight: theme.minTouchTargetSize,
+  },
+  historyCloseBtnText: {
+    ...theme.typography.body,
+    color: theme.colors.mauve,
   },
   });
 }

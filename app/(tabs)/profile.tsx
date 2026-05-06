@@ -223,27 +223,29 @@ if (id === 'subscription') {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Settings</Text>
-          <View style={styles.appearanceRow}>
-            <View style={styles.appearanceRowLeft}>
-              <AppIcon name="contrast-outline" size={22} color={theme.colors.mauve} />
-              <Text style={styles.rowLabel}>Appearance</Text>
-            </View>
-            <Pressable
-              style={styles.appearanceSwitch}
-              onPress={() => setColorScheme(colorScheme === 'light' ? 'dark' : 'light')}
-              accessibilityLabel={`Switch to ${colorScheme === 'light' ? 'dark' : 'light'} mode`}
-              accessibilityRole="button"
-            >
-              <AppIcon
-                name={colorScheme === 'light' ? 'moon' : 'bulb'}
-                size={16}
-                color={theme.colors.mauve}
-              />
-              <Text style={styles.appearanceSwitchText}>
-                {colorScheme === 'light' ? 'Dark' : 'Light'}
-              </Text>
-            </Pressable>
-          </View>
+          {/* Dark mode toggle hidden — current dark theme needs more polish before re-exposing.
+              <View style={styles.appearanceRow}>
+                <View style={styles.appearanceRowLeft}>
+                  <AppIcon name="contrast-outline" size={22} color={theme.colors.mauve} />
+                  <Text style={styles.rowLabel}>Appearance</Text>
+                </View>
+                <Pressable
+                  style={styles.appearanceSwitch}
+                  onPress={() => setColorScheme(colorScheme === 'light' ? 'dark' : 'light')}
+                  accessibilityLabel={`Switch to ${colorScheme === 'light' ? 'dark' : 'light'} mode`}
+                  accessibilityRole="button"
+                >
+                  <AppIcon
+                    name={colorScheme === 'light' ? 'moon' : 'bulb'}
+                    size={16}
+                    color={theme.colors.mauve}
+                  />
+                  <Text style={styles.appearanceSwitchText}>
+                    {colorScheme === 'light' ? 'Dark' : 'Light'}
+                  </Text>
+                </Pressable>
+              </View>
+          */}
           {SETTINGS_ROWS.map((row) => (
             <Pressable
               key={row.id}

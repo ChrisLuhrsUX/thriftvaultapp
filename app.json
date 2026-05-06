@@ -4,11 +4,11 @@
     "slug": "thriftvaultapp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/logo/thriftvault_logo_v2.png",
+    "icon": "./assets/logo/thriftvault_logo.jpg",
     "scheme": "thriftvaultapp",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/logo/thriftvault_logo_v2.png",
+      "image": "./assets/logo/thriftvault_logo.jpg",
       "resizeMode": "contain",
       "backgroundColor": "#F8F1E9"
     },
@@ -24,14 +24,14 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#7A9B94",
-        "foregroundImage": "./assets/logo/thriftvault_logo_v2.png"
+        "foregroundImage": "./assets/logo/thriftvault_logo.jpg"
       },
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/logo/thriftvault_logo_v2.png"
+      "favicon": "./assets/logo/thriftvault_logo.jpg"
     },
     "plugins": [
       "expo-router",

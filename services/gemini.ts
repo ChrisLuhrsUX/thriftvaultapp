@@ -26,6 +26,23 @@ const BOOST_BUCKETS: Array<{ key: string; rx: RegExp }> = [
 
 const LUXURY_EXEMPT_RX = /\b(louis\s+vuitton|lv\b|chanel|herm[eè]s|gucci|prada|dior|burberry|fendi|balenciaga|saint\s+laurent|ysl|celine|bottega|loewe|valentino|givenchy|alexander\s+mcqueen|acne\s+studios|balmain|r13|maison\s+margiela|margiela|off[\s-]?white|travis\s+scott|virgil|fragment|cact[uú]s\s+jack|union\s+la|sacai|big\s*e\b|501xx|redline|selvedge|lvc|tiffany|cartier|van\s+cleef|harry\s+winston|bulgari|david\s+yurman|john\s+hardy|nwt)\b/i;
 
+// Jewelry detection + hallmark gates — keyword-routed, mirrors skirts/shorts/swimwear pattern.
+const JEWELRY_RX = /\b(rings?|necklaces?|pendants?|chains?|earrings?|bracelets?|bangles?|cuffs?|brooches?|brooch|charms?|lockets?|chokers?|anklets?|watches?|watch|jewelry|jewellery)\b/i;
+// Hard hallmark stamps that justify a metal-specific tier. "GP" / "GF" / "PLAT" need word
+// boundaries to avoid bleeding into surrounding words. "Pin" intentionally NOT in JEWELRY_RX
+// (too noisy — matches "safety pin" decorations on clothing).
+const HALLMARK_RX = /\b(925|ster(ling)?|800|1\/20\s?gf|gf|gp|rgp|vermeil|10k|14k|18k|22k|24k|375|585|750|916|999|platinum|plat|950)\b/i;
+const DESIGNER_JEWELRY_RX = /\b(tiffany|cartier|van\s+cleef|vca|bulgari|bvlgari|harry\s+winston|mikimoto|buccellati|boucheron|chopard|david\s+yurman|john\s+hardy|james\s+avery|kendra\s+scott|pandora|mejuri|catbird|maria\s+tash|aurate|brilliant\s+earth)\b/i;
+// Stamp/signature evidence that the designer brand is actually present on the piece.
+const DESIGNER_STAMP_RX = /\b(t&co|©\s?tiffany|tiffany\s*&\s*co|cartier\s+signature|ale\s+925|\bale\b|\bdy\b|\bjh\b|vca\s+\w+|bvlgari\s+stamp|hallmark|maker'?s?\s+mark|stamp(ed)?|signed|signature|engraved|serial)\b/i;
+const WATCH_LUXURY_RX = /\b(rolex|omega|patek|audemars|piguet|\bap\b|cartier|vacheron|jaeger|jlc|breitling|iwc|panerai|hublot|richard\s+mille|tudor)\b/i;
+
+// Bag and sneaker authentication gates — same shape as the jewelry hallmark gate.
+const LUXURY_BAG_BRAND_RX = /\b(louis\s+vuitton|\blv\b|chanel|herm[eè]s|gucci|prada|dior|fendi|goyard|balenciaga|saint\s+laurent|ysl|celine|bottega|loewe|valentino|givenchy|burberry)\b/i;
+const BAG_AUTH_STAMP_RX = /\b(date\s+code|heat[\s-]?stamp|blind\s+stamp|serial(\s+(number|sticker))?|creed(\s+patch)?|authentication\s+card|stitch\s+count|interior\s+stamp|made\s+in\s+(italy|france|spain)|hallmark|maker'?s?\s+mark|stamp(ed)?|signed|signature|engraved|plaque|leather\s+tab)\b/i;
+const SNEAKER_COLLAB_RX = /\b(travis\s+scott|off[\s-]?white|fragment|sacai|union\s+la|cact[uú]s\s+jack|salehe\s+bembury|comme\s+des\s+gar[cç]ons|cdg|virgil|jordan\s+x|dunk\s+x)\b/i;
+const SNEAKER_AUTH_RX = /\b(sku|tongue\s+tag|box\s+label|inner\s+label|insole\s+(tag|branding)|stockx|goat|deadstock|legit\s+check|serial|cactus\s+jack\s+laces|reverse\s+swoosh\s+stitched)\b/i;
+
 function detectCustomFromText(...fields: unknown[]): boolean {
   return fields.some((f) => typeof f === 'string' && CUSTOM_KEYWORDS.test(f));
 }
@@ -94,6 +111,29 @@ Guidelines:
 - category: use "bottoms" for pants, leggings, joggers, athletic bottoms, shorts (non-denim); "denim" for jeans; "outerwear" for jackets and coats; "tops" for shirts, sweatshirts worn as tops, hoodies when not outerwear
 - category "furniture": use for any furniture, lighting, mirror, rug, or large home good — chairs, sofas/sectionals/loveseats, dining/coffee/side/console tables, desks, dressers/cabinets/bookshelves/nightstands/sideboards/credenzas/armoires, bed frames/headboards, lamps/sconces/chandeliers, mirrors, rugs, vases/sculptures/wall art, outdoor patio furniture. In the "name" field include the specific subtype (e.g. "Vintage Walnut Credenza", "MCM-Style Dining Chair", "Vintage Brass Floor Lamp", "Persian Wool Rug").
 - BRAND IN NAME — HARD RULE: Only include a brand word in "name" if you can see an actual LOGO, WORDMARK, PRINTED TAG, EMBROIDERED LABEL, WOVEN LABEL, or STAMPED HARDWARE bearing that brand's text or recognized logomark, and it is legible enough to read. You must be able to point to the specific region of the photo where the brand marking appears. DO NOT infer brand from silhouette, cut, aesthetic, era, embellishment pattern, stitching style, fabric weight, hardware style, or resemblance to brands known for a similar look. Inference from aesthetic is a guess, not identification.
+- JEWELRY HALLMARK — HARD RULE: Yellow-tone metal is NOT gold. Silver-tone metal is NOT sterling. Clear sparkly stones are NOT diamonds. To price a jewelry piece at a metal-specific tier (sterling, gold-filled, vermeil, solid gold, platinum), you MUST be able to see a readable hallmark stamp in the photo:
+  • Silver: 925 / STER / STERLING / 800
+  • Gold-filled or plated: 1/20 GF / GF / GP / RGP / vermeil / 925 with gold tone (vermeil = sterling base + gold layer)
+  • Solid gold by karat: 10k / 14k / 18k / 22k / 24k / 375 / 585 / 750 / 916 / 999
+  • Platinum: PLAT / 950 / 900
+  Hallmarks live INSIDE ring bands, on necklace clasps and chain end-links, on earring posts and butterfly backs, on brooch and pin backs, and inside watch case-backs. When the photo doesn't show these surfaces, you cannot confirm metal — default to "yellow-tone metal" or "silver-tone metal" in the "name" field and price at the costume tier ($5–$20). Patina pattern is a SUPPORTING signal, not identification: brass turns greenish at touch points, gold-plated/vermeil wears through to silver/copper underneath at high-touch areas, sterling darkens and oxidizes (warm grey/black tarnish), stainless stays bright. Stamp absence = costume tier even when the piece looks high-quality. The same logic applies to designer maker stamps (T&Co, Cartier signature, ALE, DY, VCA): silhouette is NOT identification — see COMMON HALLUCINATION TRAPS for the specific patterns to watch for.
+- BAG AUTHENTICATION — HARD RULE: To assert a luxury or designer bag brand in "name" or to price at the luxury tier ($500+), the photo MUST show specific authentication evidence:
+  • Louis Vuitton: a date code stamped inside (FL/SD/CT/MI/SP + 4 digits in pre-2021 bags) OR the heat-stamped logo plate inside; on genuine pieces the monogram pattern flows continuously and never has cut letters at panel joins (cheap fakes show cut Ls/Vs at seams).
+  • Chanel: serial sticker (8-digit, post-1984) inside flap pocket OR authentication card; quilting forms perfect interlocking diamonds with single-piece leather panels.
+  • Hermès: blind stamp on inside near strap base (year letter inside box/circle/square + craftsman code); Birkin/Kelly require white saddle stitching with even, hand-pulled stitch count.
+  • Goyard: hand-painted chevron pattern with subtle natural variation (dropship fakes are uniformly printed); "MAISON GOYARD" stamp on interior leather tab.
+  • Coach: creed patch inside with a clean serial number engraved (vintage) or "COACH" + creed serial (modern); leather hangtag with "COACH" embossed.
+  • Gucci: GG monogram alignment continuous at seams; "Made in Italy" interior stamp + serial dust-card; double-G logo plates have crisp engraving.
+  • Prada: triangle-shaped metal logo plate with "PRADA Milano DAL 1913"; nylon "Vela" bags have engraved-zipper signature.
+  • Dior: "Christian Dior PARIS Made in Italy" interior leather plaque, heat-stamped.
+  Without this evidence, do NOT use the brand word in "name". Describe by silhouette/material instead ("Brown Monogram Canvas Tote", "Black Quilted Leather Flap Bag", "Tan Painted Chevron Tote"). Price at the unbranded designer-style tier ($60–$200), NOT the luxury tier. Box, dust-bag, or authenticity card alone is NOT proof — those are sold separately on resale.
+- SNEAKER AUTHENTICATION — HARD RULE: For BASE hyped silhouettes (Jordan 1 / 4 / 11, Nike Dunk Low/High, Yeezy 350 / 700, NB 990 / 2002R / 550) the side-photo silhouette is sufficient to use the brand word in "name" — these are widely recognizable and the existing tier ranges absorb legitimate spread. For COLLAB claims (Travis Scott, Off-White, Fragment, Sacai, Union LA, Cactus Jack, Salehe Bembury, Comme des Garçons) you MUST see specific evidence:
+  • SKU code on inner tongue tag (e.g. "555088-XXX" for Jordan 1, "DD1391-XXX" for Dunk Panda)
+  • Box label with matching SKU + colorway name
+  • Insole branding ("AIR JORDAN", "Nike Air", "Yeezy", or co-brand signature)
+  • StockX / GOAT verification tag if pre-authenticated
+  Specific collab tells: Travis Scott Jordan 1 has reverse mini-swoosh with Cactus Jack-branded shoelace bag; Off-White has signature zip-tie + quotation marks ("AIR", "FOR NIKE"); Fragment has lightning-bolt insole; Sacai has dual-tongue, dual-swoosh stacking.
+  Without collab-specific evidence, do NOT use the collab name in "name" — describe as the base silhouette only ("Black/White Jordan 1 High", "Panda Dunk Low") and price at the base hyped tier, NOT the collab tier. Reverse-swoosh styling alone is the most replicated detail in sneaker fakes.
 - COMMON HALLUCINATION TRAPS — do NOT assume these brands without a visible label:
   • Y2K low-rise flare jeans with rhinestone swirls, butterflies, crosses, or decorative back-pocket embellishments → NOT Vigoss, Miss Me, Rock Revival, Affliction, True Religion, Buckle, Silver Jeans, Grace in LA, or any "fashion denim" brand
   • Chunky white or beige sneakers → NOT Nike, Adidas, New Balance, Asics, Hoka, On Cloud
@@ -103,6 +143,43 @@ Guidelines:
   • Flannel shirts → NOT Pendleton, LL Bean, Eddie Bauer
   • Gorpcore fleece or shell jackets → NOT Patagonia, Arc'teryx, North Face, Columbia
   • Square-toe knee-high boots → NOT Frye, Steve Madden, Jeffrey Campbell
+  • JEWELRY look-alikes — these are heavily counterfeited and frequently misidentified by silhouette alone:
+    – Heart pendants, "T" motifs, blue boxes, beaded chains → NOT Tiffany without "T&Co", "©Tiffany & Co.", or "Please Return to Tiffany & Co." stamp
+    – Thin gold cuff with screws or nail-shaped bangles → NOT Cartier Love or Juste un Clou without Cartier signature + serial number engraved
+    – Charm bracelets with snap clasps and threaded charms → NOT Pandora without "ALE 925" or "ALE" stamp on the inner ring
+    – Cable-twist rings, cuffs, and bracelets → NOT David Yurman without "DY" stamp
+    – Four-leaf clover motif (mother-of-pearl, malachite, onyx, carnelian) → NOT Van Cleef & Arpels without "VCA" stamp + serial
+    – Roman numeral, B.zero1, or Serpenti patterns → NOT Bulgari without "BVLGARI" stamp
+    – Cable-link necklace with toggle clasp or dragon-scale detail → NOT John Hardy without "JH" stamp
+    – Yellow metal of any tone → NOT gold without a karat stamp visible
+    – Silver-tone metal → NOT sterling without a 925 / STER / STERLING stamp visible
+    – Clear sparkly stones → NOT diamond without grading cert visible OR set in stamped 14k+ gold/platinum prongs
+    – Pearl-look beads → photo alone cannot confirm real pearls; default cultured-freshwater tier with confidence: low
+  • BAG look-alikes — luxury and designer bags are the most-counterfeited category on resale:
+    – Brown LV-monogram canvas pattern → NOT Louis Vuitton without date code OR heat-stamp interior plate visible
+    – Quilted leather chain bag (CC interlocking quilt diamond) → NOT Chanel without serial sticker visible
+    – Trapezoid top-handle with padlock (Birkin) or rectangular with sangles (Kelly) → NOT Hermès without blind stamp visible
+    – Brown C-monogram canvas → NOT Coach without creed patch + serial visible
+    – Hand-painted chevron Y/V pattern → NOT Goyard without "MAISON GOYARD" stamp visible
+    – Black nylon with triangle metal plate → NOT Prada without "PRADA Milano DAL 1913" + interior serial card
+    – GG / FF / DD repeating logo canvas → NOT Gucci / Fendi / Dior respectively without authenticated stamp + serial
+    – Cabas-style double-handle tote with red-painted edges → NOT Saint Laurent / Celine luggage without heat-stamp visible
+  • SNEAKER COLLAB look-alikes — collab tier prices 2-3x over base hyped, hallucination is expensive:
+    – Reverse mini-swoosh on Jordan 1 → NOT Travis Scott without Cactus Jack-branded laces / SKU label
+    – Zip-tie or quotation-mark detailing → NOT Off-White without "for Nike" insole branding
+    – Lightning-bolt accent → NOT Fragment without Hiroshi Fujiwara double-bolt insole
+    – Dual-tongue / stacked-swoosh sneaker → NOT Sacai without Sacai/Nike co-brand insole
+    – Reggae or rasta colorway 990 → NOT Salehe Bembury without "Salehe Bembury" tongue tag
+  • VINTAGE GRAPHIC TEE look-alikes — modern repros mimic vintage tells. Require at least 3 of 4 together: single-stitch hem, blank or USA-made tag, no side seams (tubular), soft cracked print:
+    – Modern band tee (Metallica, Nirvana, AC/DC, Pink Floyd) with side seams + double-stitched hems → NOT vintage tier; this is a modern repro at $15–$35
+    – Modern Disney character tee (side seams, current Hanes/Gildan tag) → NOT vintage Disney tier; this is a current-production tee $8–$20
+    – "Vintage-style" distressed graphic tee from Brandy Melville / Urban Outfitters / Forever 21 → NOT actual vintage; tag will read modern brand
+  • SUNGLASSES look-alikes — designer eyewear is heavily counterfeited:
+    – Black acetate Wayfarer-style frames → NOT Ray-Ban without "RB" lens etching + "Ray-Ban" temple text
+    – Aviator metal frames → NOT Ray-Ban without "RB" lens etching + Ray-Ban hinge stamp
+    – Sport wraparound frames → NOT Oakley without laser-etched "O" logo on lens + stamped Oakley on hinge
+    – Round metal frames with logo → NOT Cartier / Versace / Gucci without temple etching + serial inside earpiece
+    – Box, cleaning cloth, or branded case alone is NOT authentication — these are sold separately on resale
 - When no brand marking is visible, name the item by its distinctive features — silhouette, wash or color, material, era, embellishment, or notable construction. Examples: "Y2K Rhinestone Flare Jeans", "Dark Wash Low Rise Swirl-Embellished Flares", "Chunky Cream Dad Sneakers", "Tan Canvas Double-Knee Work Pants". Never use the word "generic" in the name.
 - For upcycled or handmade items: the base garment's brand does NOT transfer to the upcycled piece unless the base brand's label is still visibly intact on the garment. Describe the upcycle itself, not a guessed source brand.
 - confidence = "low" if brand is obscure/niche or resale comps are sparse
@@ -123,19 +200,24 @@ Guidelines:
       Fast fashion — Shein/H&M/Forever 21: $5–$25 (basic Shein tees commodity-priced $3–$8 used-good); Zara skews higher, especially dresses: $10–$50, NWT midi/maxi/satin slip $30–$85. Do NOT lump Zara dresses in with Shein.
       Mall brands — Gap/Old Navy: $8–$18; J.Crew/Banana Republic/Abercrombie: $14–$30; Madewell (premium within tier — wide-leg/flare jeans $30–$60 used-good, NWT to $80; skinny softening $6–$14)
       Athletic/streetwear (Nike, Adidas, Carhartt, Champion, Stussy, New Balance): standard tees/hoodies/joggers $8–$55; Nike Phoenix Fleece oversized hoodie premium sub-tier $60–$90; Adidas Samba XLG $31–$65. CARHARTT WOMEN'S WJ130/WJ141 JACKET CALLOUT — when the jacket is in a rare color (pink, purple, teal, cream, coral — NOT brown/black/khaki/tan) it commands $100–$350, far above the standard $25–$80 range. Identify by the chest pocket and quilted lining. Standard brown/black/khaki Carhartt stays in the regular range.
+      Lululemon (premium activewear, prices well above generic athletic — visible Lululemon logo, Reflective Triangle, or interior care tag required): Align leggings $30–$75 used-good, NWT $70–$100; Wunder Train / Fast & Free / Speed Up leggings $25–$60; Define jacket $50–$140 used, NWT $100–$185 (Lunar New Year and limited-edition colorways skew top of range); Scuba hoodie / Define hoodie $40–$95; Everywhere Belt Bag $25–$60 standard, $80–$150 limited/discontinued colors. Athleta and Alo Yoga track 30–40% below Lululemon comparables. Do NOT lump Lululemon in with generic athletic.
       Sneakers (factory, not custom-painted) — Generic athletic (standard Nike, Adidas, Vans, Converse): $20–$60; Premium athletic (Nike Air Max, Adidas Samba/Gazelle, NB 990/2002R/9060): $30–$80; Hyped silhouettes (Jordan 1 Low women's $40–$97, Jordan 1 High $120–$250, Dunk Low Panda $35–$70, Yeezy 350/700 $80–$200); Designer/collab (Travis Scott Jordan 1 Low $250–$400, NB 2002R Salehe Bembury $108–$253, Margiela/Balenciaga sneakers $250+). For custom-painted/altered sneakers see ALTERED FACTORY BASE EXCEPTION.
       Contemporary — Aritzia/Wilfred Free: $8–$40; Free People: $14–$85 used-good, NWT to $110 (boho/embroidered/linen/floral actively spiking spring 2026); Anthropologie: $20–$115; Patagonia (outerwear-focused — Nano Puff $87–$138, Down Sweater $100–$155, Synchilla fleece $45–$75; vintage Gore-Tex $70–$300); Reformation (commands retail premium): $80–$195. Arc'teryx and North Face price 2–4x over comparable contemporary outerwear: Arc'teryx fleece/soft-shell used-good $89–$200, NWT $300–$450; North Face shell/puffer $35–$150 standard. Mountain Hardwear and Marmot serve as the budget gorpcore floor: $25–$65 for fleece/jackets.
       Knit sets / matching lounge sets: mall-tier (Shein, Amazon-adjacent) $8–$25; contemporary-tier (Aritzia, Free People, etc.) $25–$85. For Juicy Couture velour sets, see the Y2K viral brands tier — they price separately and higher.
       Designer (Coach, Kate Spade, Marc Jacobs, Tory Burch, Vince, Polo Ralph Lauren): Coach pre-owned bags $17–$200, Coach NWT current-season Willow/Maggie $105–$385; Kate Spade $25–$120; Tory Burch $30–$150; vintage Coach signature pre-owned $25–$160; Polo Ralph Lauren tops/sweaters $15–$65
       Luxury (Burberry, Gucci, Louis Vuitton, Chanel, Prada, Saint Laurent, Balenciaga) — model-dependent, wide spread: LV monogram pre-owned $100–$1700+; LV Neverfull MM $300–$850; LV Speedy 25 bandoulière $500–$1200; LV crossbody/small (Pochette, Saumur) $100–$350; Gucci GG canvas bag $100–$400. Chanel/Hermès authenticated bags start $1000+. NWT/like-new commands top of range; verified-authentic listings (with cards/dust-bags) command 20–40% over otherwise-equivalent.
+      Designer small leather goods (wallets, cardholders, belts, scarves) — separate from the bag tier above; SLGs price differently. Authentication HARD RULE applies — date code / heat stamp / serial required for the brand word in "name"; without it, default to "monogram canvas wallet" / "calfskin reversible belt" descriptor at $40–$150 unbranded-style tier. Brand-confirmed: LV wallets (Zippy, Sarah, Brazza, Multiple) $80–$400 used; Chanel wallets (caviar, lambskin) $200–$700; Goyard St. Sulpice / St. Marc cardholder $200–$500; Coach wallet/wristlet $25–$120; Hermès H belt (calfskin reversible, "H" buckle) $300–$700 used, NWT $700–$1100 — discontinued colors appreciate above retail; Gucci Marmont belt $150–$400 (declining trend Q2 2026 — no longer auto-spike); LV monogram belt $200–$500; Gucci Web belt $80–$250; Hermès silk twill scarf 90cm $120–$600 (huge resale category — discontinued patterns command upper band); Burberry nova-check scarf $80–$300. Box, dust-bag, or authenticity card alone is NOT proof.
       Mass-market denim (Levi's 501/550/514/Wedgie, Wrangler, Lee, Old Navy, Gap denim): $15–$35
       Premium denim (7 For All Mankind, Citizens of Humanity, AG, Paige, Frame, Joe's, Mother) — CUT MATTERS A LOT: skinny is FALLING ($3–$25 used-good, $14 median, soft); wide-leg / flare / bootcut / Dojo are SPIKING ($30–$70 used-good, NWT to $100). Mother and Citizens skew +20–30% above 7FAM within tier. NWT premium denim wide-leg can reach $100. When you see flare/wide-leg cut, price at the upper band.
       Authenticated Y2K premium denim (True Religion big-stitch, Diesel, Rock Revival, Miss Me, Buckle, Affliction — check stitching and hardware): standard styles $9–$50; OG LOW-RISE FLARE WITH RHINESTONE / EMBELLISHMENT IS ACTIVELY SPIKING (Q2 2026): True Religion OG flare $35–$95; Diesel flare/wide-leg vintage $45–$120 (+45–58% in 30 days); Rock Revival / Miss Me embellished $20–$65 (+27%). When the item shows visible rhinestones, embellished back pockets, low-rise flare, or factory whiskering, price at the spike band, not the standard band.
       Y2K viral brands (Juicy Couture, Von Dutch, Ed Hardy, Baby Phat, Apple Bottoms — visible logos required, do NOT infer from silhouette): Juicy Couture velour tracksuit set NWT $55–$130, vintage Y2K USA-made set $100–$200 (+22% spike), Juicy terry tracksuit OG 2000s cotton $100–$165; Von Dutch trucker hat $20–$65; Ed Hardy graphic tee $25–$95; Baby Phat jacket/top $30–$120. These have real resale value now — Q2 2026 active spike reinforced by Euphoria S3 demand. Do NOT confuse with the COMMON HALLUCINATION TRAPS list — that warns against inferring these brands from look-alike silhouettes; this tier applies only when you can read an actual logo.
       Vintage Levi's tiered: Big E / 501XX / pre-1980s redline raw selvedge: $300–$590 (top of vintage market); LVC Big E selvedge reproduction (501/505/701): $42–$100; Premium Big E 90s–00s 501s: $25–$100; Standard post-Big-E vintage 501s/505s/550s button-fly: $19–$65; Vintage 70505 trucker jacket: $35–$120. Vintage Wrangler Blue Bell: $60–$250+.
       Vintage non-denim Americana (Pendleton, Filson, LL Bean, Eddie Bauer, Woolrich): Pendleton wool jacket/coat $35–$120, flannel shirt $20–$55; Filson jacket/shirt $45–$180 (premium of the tier); LL Bean fleece/flannel $15–$50; Eddie Bauer vintage down/puffer $25–$85; Woolrich wool coat/jacket $35–$120. These are common thrift finds with real Americana/workwear resale value.
-      Boots — Combat boot (Steve Madden, Free People): $20–$65; Vintage western/cowboy boot: $35–$180 (genuine vintage leather commands the upper band); Knee-high heeled boot (designer-adjacent): $25–$95.
+      Vintage graphic tees / band tees — single-stitch hems, blank or USA-made tag, no side seams, soft cracked print are vintage tells (modern repros use side seams + double-stitched hems): Generic vintage 80s/90s graphic tee unbranded $20–$60; Vintage Disney / cartoon (Mickey, Looney Tunes, Garfield, theme-park souvenir) $30–$120; Vintage 80s/90s rock band tee $50–$200; Vintage 90s hip-hop / rap tee $60–$220; Vintage Disneyland / Six Flags / souvenir park tee $25–$100; Vintage NASCAR / racing crew tee 90s $40–$150. Grail-tier collector pieces (Nirvana Sub-Pop, Metallica Metal Up Your Ass) exist in the $500–$2000+ market but are rare enough to flag for manual research rather than auto-price — set confidence low and stay at the upper band of the standard tier above.
+      Vintage sports jerseys & college: Mitchell & Ness Authentic NBA/NFL throwback jersey $80–$300; Vintage 90s Champion NBA jersey $60–$250; Vintage Starter NFL jersey $50–$200; Vintage Russell / Majestic MLB jersey $40–$150; Champion Reverse-Weave 80s/90s college sweatshirt (single-stitch, USA-made, blank tag) $40–$200, rare schools/colors to $300; Vintage college tee 80s/90s $25–$95. Modern Mitchell & Ness NWT current-season $120–$250.
+      Boots — Combat boot (Steve Madden, Free People, generic): $20–$65; Doc Martens 1460 8-eye standard color (black, cherry) $40–$95 used, NWT $100–$140; Doc Martens Jadon platform / 1461 3-eye / Mary Jane $50–$120 used, NWT $120–$180; Vintage Made-in-England Doc Martens (smooth leather, MIE stamp on heel) $120–$300; Vintage western/cowboy boot $35–$180 (genuine vintage leather commands upper band); Knee-high heeled boot (designer-adjacent) $25–$95.
       Hats — Vintage trucker (Von Dutch era, distressed snapbacks): $20–$65; Branded dad cap (Patagonia, Arc'teryx, North Face, designer logos): $18–$55; Beanie (Carhartt, Patagonia): $10–$28.
+      Sunglasses & eyewear (heavily counterfeited — verify hinges, brand etching on lens, "RB" lens etching for Ray-Ban, Oakley laser-etched logo + "O" hinge): Drugstore / mass market $5–$15; Ray-Ban Wayfarer / Aviator / Clubmaster modern $30–$90 used, vintage USA-made Bausch & Lomb-era $80–$250; Oakley sport (Holbrook, Frogskins, Radar) $25–$120, vintage premium frames (Romeo, Juliet, Mars, X-Metal) $100–$400+; Persol / Maui Jim / Costa Del Mar $40–$150; Designer (Tom Ford, Celine, Gucci, Prada, Versace, Dior, Saint Laurent, Miu Miu, Chanel) $50–$300; Vintage 80s/90s designer (Versace Medusa, vintage Cazal, vintage Dior monogram, vintage Chanel CC) $80–$500+. Branded case or cleaning cloth alone is NOT proof of authenticity — require maker etching on lens or temple.
       Luxury denim (Acne Studios, Balenciaga, Gucci, Balmain, Saint Laurent, R13): $80–$400+
       Unbranded or generic jeans: $12–$28
       Vintage (20+ years, good condition): add 30–60% over what comparable modern items sell for
@@ -203,7 +285,37 @@ Guidelines:
 
     Q2 2026 FURNITURE SPIKES (refresh quarterly): boucle and sherpa reupholstery; limewash and whitewash refinish; cane and rattan accent pieces (chairs, headboards, peacock chairs); postmodern Memphis revival; Italian designer (Cassina, B&B Italia, Poltrona Frau, Minotti) on resale; Japandi minimalism; vintage Persian/Moroccan/Turkish/Oushak rugs; antique wooden ladders; architectural salvage (corbels, mantles, doors); brass and lucite accents. Apply +20–40% over base tier when item clearly fits a spike.
 
-    FURNITURE isCustom: refinished, restained, repainted, limewashed, whitewashed, reupholstered, recaned, or repurposed (dresser → bathroom vanity, ladder → blanket rack, drawer → wall shelf, door → headboard) qualifies as isCustom. Pricing: brand/era tier as base + 20–50% labor premium for skilled work. Do NOT exceed the subcategory ceiling for the base piece — refinished IKEA stays under $120 regardless of effort. Refinishing only meaningfully boosts pieces with quality bones (solid wood, MCM lines, antique structure). Refinish on particleboard adds $0 — call out as red flag if the user invested labor in particleboard.
+    FURNITURE isCustom: refinished, restained, repainted, limewashed, whitewashed, reupholstered, recaned, or repurposed (dresser → bathroom vanity, ladder → blanket rack, drawer → wall shelf, door → headboard) qualifies as isCustom. Pricing: brand/era tier as base + 30–50% labor premium for skilled work. Do NOT exceed the subcategory ceiling for the base piece — refinished IKEA stays under $120 regardless of effort. Refinishing only meaningfully boosts pieces with quality bones (solid wood, MCM lines, antique structure). Refinish on particleboard adds $0 — call out as red flag if the user invested labor in particleboard.
+
+  ► IF category = "accessories" AND the item is jewelry or a watch → JEWELRY PRICING (use this path; IGNORE the jewelry lines in FACTORY ITEM PRICING above — the tiers below are refreshed Q2 2026 and supersede them. Jewelry has its own market dynamics: metal + stamp + maker, not era × embellishment × trend stacking):
+    Detection: name or sub contains ring, necklace, pendant, chain, earrings, bracelet, bangle, cuff, brooch, pin, charm, locket, choker, anklet, watch, jewelry, or jewellery.
+    suggestedPaid: thrift stores often underprice precious metals and stones — when gold karat stamp, designer maker mark, or visible gemstones are present, suggestedPaid can be $5–$100+; otherwise $3–$15.
+
+    METAL / MATERIAL TIERS — apply only with a readable hallmark stamp visible (see JEWELRY HALLMARK — HARD RULE above). Without a stamp, default to the costume tier even when the piece looks high-quality:
+      Costume / fashion (no hallmark, unbranded): $5–$20
+      Signed vintage costume (Trifari, Coro, Eisenberg, Weiss, Haskell, Hobé, Whiting & Davis, Sarah Coventry, Monet, Napier, Trifari Jelly Belly, Boucher, Hattie Carnegie, Kenneth Jay Lane): $20–$120 — only when the maker mark is visibly readable on the back/clasp. Statement brooches, Bakelite, and rhinestone parures skew the upper band. Strong Etsy/eBay resale category often misclassified as generic costume.
+      Sterling silver (925 / STER / STERLING / 800 stamp) — sub-tiered: plain ring no stones $8–$35; earrings (plain or stones) $8–$40; maker-signed necklace $15–$95; with semi-precious stones (amethyst, turquoise, garnet, opal, citrine, moonstone) $15–$70.
+      Gold-filled / gold-plated / vermeil (1/20 GF / GF / GP / RGP / vermeil / 925 stamp with gold tone): $20–$75 (gold spot ~$3000/oz Q2 2026 has lifted the floor on plated and filled categories).
+      Solid gold by karat (priced by visible karat stamp + chain weight + pendant size; heavier = higher): 10k $40–$160; 14k $80–$300; 18k $150–$500+; 22k–24k $200–$700+.
+      Diamond fine jewelry (solitaire, halo, pavé, tennis, eternity — evaluate visible size, cut, setting quality): $80–$600+. Visible grading cert (GIA / AGS / EGL) adds 30%; missing cert = drop confidence to "low" even if setting looks correct.
+      Colored gemstone fine jewelry (ruby, sapphire, emerald, tanzanite, alexandrite — evaluate color saturation, size, setting): $60–$450+.
+      Pearl: costume faux $5–$20; cultured freshwater $20–$80; Akoya $80–$300; Tahitian / South Sea / baroque / keshi $150–$800+. Photo alone cannot confirm pearl type — default cultured-freshwater tier with low confidence unless brand cert/box visible (Mikimoto).
+      Platinum (PLAT / 950 / 900 stamp): +30–50% over equivalent gold piece.
+
+    DESIGNER HOUSE TIERS — apply only with a visible maker stamp on the piece itself (T&Co, ©Tiffany & Co., "Please Return to Tiffany & Co.", Cartier signature + serial, ALE 925, DY, VCA + serial, BVLGARI, etc.). Box/dust-bag alone is NOT proof — boxes are sold separately. Without the stamp, route to the costume tier or the silhouette-knockoff red flag:
+      Designer house (Tiffany, Cartier, Van Cleef & Arpels, Bulgari, Harry Winston, Mikimoto, Buccellati, Boucheron, Chopard, David Yurman): $100–$2500+. Tiffany sterling sub-tier (Return-to-Tiffany, Elsa Peretti bone cuff, T1, Atlas): $80–$350 — runs much higher than non-Tiffany sterling because of brand premium.
+      Accessible designer (Pandora, Kendra Scott, Lagos, John Hardy, James Avery, Mejuri, Catbird, Maria Tash, Aurate, Awe Inspired, Brilliant Earth Heirlooms): $25–$200 depending on metal (sterling base lower band, 14k base upper band).
+
+    WATCHES (sub-tier — apply only with visible brand mark on dial AND matching case-back signal):
+      Fashion watches (Fossil, Michael Kors, Skagen, Anne Klein, Guess, DKNY): $20–$80
+      Mid-tier (Tag Heuer, Tissot, Hamilton, Seiko Presage / Prospex, vintage Bulova, vintage Omega quartz, Citizen Eco-Drive premium, Movado): $80–$400
+      Luxury (Rolex, Omega Seamaster / Speedmaster, Cartier Tank, Patek Philippe, Audemars Piguet, IWC, Breitling, Vacheron Constantin, Jaeger-LeCoultre): $400–$15,000+. REQUIRES visible maker mark on dial AND serial number / model reference visible. Without both, drop to mid-tier ceiling. Authenticated luxury watch with matching papers/box adds 20–40% over equivalent unboxed.
+
+    ESTATE / ANTIQUE: Art Deco, Victorian, Edwardian, Georgian, Retro, Mid-Century signed pieces — add 40–80% over base material value. Hand-engraving, mine-cut diamonds, foiled-back stones, and rose-cut stones are era authentication signals.
+
+    Q2 2026 JEWELRY SPIKES (refresh quarterly): chunky gold chains, charm necklaces and locket revival, signet rings, stacked rings, bow charms, Y2K choker, vintage cameo, mismatched pearl, mourning jewelry, dainty layered chains. Apply +20–40% over base when item clearly fits.
+
+    Trend premiums and embellishment boosts from the clothing factory branch DO NOT apply to jewelry — jewelry pricing is metal-and-maker driven, not aesthetic-trend driven. The BOOST STACKING rule still applies to prevent compounding era × trend × embellishment on the same piece.
 
   CONDITION ADJUSTMENT (applies to both handmade and factory): Reduce both suggestedResaleLow and suggestedResaleHigh by 30–50% for visible damage — prominent stains, non-decorative holes, heavy pilling, faded/washed-out color, stretched or warped necklines, broken zippers, missing buttons, loose stitching, scuffed/cracked/peeling leather, yellowed whites, broken or cloudy hardware, tarnish on jewelry. Reduce by 15–25% for moderate wear — minor pilling, slight fading, small spots, faint creases, light patina. NWT or like-new condition (crisp fabric, intact hardware, no visible wear, original tags) commands the top of the range. When condition is unclear from the photo, assume "used-good" and make no adjustment. Never apply condition bonuses above the tier ceiling.
 - ideas[].t = short, actionable tip (no price amounts)
@@ -228,6 +340,15 @@ Guidelines:
   "Check the underside of seat or inside the drawer for a Herman Miller / Knoll / Cassina / Vitra / maker label, sticker, or burn-in stamp — knockoffs of MCM designer pieces are mass-produced"
   "Verify Tiffany lamp signature on bronze base and feel the glass weight — leaded glass is significantly heavier than reproduction"
   "Look for a maker's mark, paper label, or stamp on the back or underside — authenticates antique era and origin"
+  "Look for 'T&Co' or '©Tiffany & Co.' stamp on clasp or back — heart pendants, beaded chains, and Return-to-Tiffany silhouettes are heavily counterfeited"
+  "Cartier Love and Juste un Clou pieces have a serial number engraved beside the Cartier signature — knockoffs lack the serial or use shallow / uneven engraving"
+  "Pandora charms and bracelets have 'ALE 925' stamped on the inner ring or charm core — counterfeits omit ALE or use blurry / off-center stamping"
+  "Look for the LV date code (FL/SD/CT/MI/SP + 4 digits) inside an interior pocket or under the flap — pre-2021 bags require this; counterfeits omit or print the wrong format"
+  "Coach creed patch should have a clean serial number engraved; superfakes use blurry shallow stamps and inconsistent font kerning"
+  "Hermès Birkin/Kelly: blind stamp on inside near strap base (year letter in box/circle/square + craftsman code) — counterfeits skip the blind stamp or use generic placement"
+  "Chanel: 8-digit serial sticker inside flap pocket should match authenticity card font; counterfeits use uneven adhesive and wrong font weight"
+  "Jordan / Dunk: cross-check the SKU on the inner tongue tag against the original colorway on Nike SNKRS or StockX — fakes often have valid-looking SKUs that don't match the photographed colorway"
+  "Travis Scott Jordan 1: verify Cactus Jack-branded shoelace bag is included AND that the reverse mini-swoosh is stitched (not glued/printed) — replica swooshes peel"
   Empty array [] for: unbranded items, fast fashion, mall brands, handmade items, basic athletic wear, generic IKEA-tier furniture, or anything where counterfeits are uncommon.
   Frame as verification tips, not accusations — the goal is to help the buyer verify before purchasing.
 - RED FLAG DETECTION — HARD RULE — populate redFlags (1–2 items) when ANY of the following are true. This is NOT optional — if ANY condition matches, you MUST include at least one redFlag. Empty array [] ONLY when zero conditions match.
@@ -235,7 +356,8 @@ Guidelines:
   UPCYCLE EXEMPTION — evaluate before any other red flag rule: If isCustom = true (per the isCustom criteria above), treat unusual visual qualities of the GARMENT as expected features of handmade work, NOT as red flags. Frankensteined/patchwork/reconstructed garments legitimately combine mismatched fabric panels, clashing prints, jarring color blocks, asymmetric construction, and logos spliced with unrelated textiles — that IS the craft, not a red flag. Do not return "All-over sublimation print" or the "stock-photo" sentinel for upcycled garments whose "weirdness" comes from the upcycle itself. This exemption does NOT waive the text-garbling, anatomical-impossibility, or diffusion-smearing tells — those remain red flags regardless of isCustom.
 
   ALL-OVER DIGITAL PRINT: The garment has an all-over sublimation or digital print covering most of its surface WITH PICTORIAL CONTENT — tattoo flash art, paintings, illustrations, photorealistic imagery, anime stills, meme/bootleg-style graphic collage, or AI-looking artwork printed on cheap polyester. These are almost always mass-produced dropship items.
-    Do NOT flag classic textile repeats — ditzy florals, cherry/fruit prints, gingham, houndstooth, polka dots, stripes, checks, paisleys, toile, geometric tile repeats, bandana patterns, animal prints, simple all-over logo monograms. These are traditional woven or printed fabrics that have existed for decades, not dropship sublimation.
+    Do NOT flag classic textile repeats — ditzy florals, watercolor / painterly / abstract / tropical / Hawaiian florals, cherry/fruit prints, gingham, houndstooth, polka dots, stripes, checks, paisleys, toile, geometric tile repeats, bandana patterns, animal prints, tie-dye, marbled / ink-wash / watercolor abstracts, simple all-over logo monograms. These are traditional woven or printed fabrics that have existed for decades, not dropship sublimation.
+    Do NOT flag garments visibly constructed from MULTIPLE DIFFERENT FABRIC PANELS — patchwork, pieced/spliced panels, mismatched front/back/side fabrics, fringe or beadwork trim added on top, lace-up or grommet inserts in contrasting fabric, visible reconstruction seams. Mass-produced dropship sublimation is printed on ONE continuous polyester panel; handmade upcycles combine different source fabrics. Multi-panel construction overrides this bullet regardless of whether each panel's print looks "pictorial."
     → Flag: "All-over sublimation print — commonly mass-produced. Check label for brand, artist credit, and material quality before buying."
   AI-GENERATED ARTWORK: The printed design on the garment shows ANY visual signs of AI generation:
     • Text in the design that is garbled, misspelled, fused, or nonsensical
@@ -271,9 +393,21 @@ Guidelines:
   FURNITURE RED FLAGS — apply ONLY when category = "furniture":
   PARTICLEBOARD MASQUERADE: the piece appears to be particleboard, MDF, or pressed wood with printed wood-grain paper veneer imitating solid wood. Tells: visible particle texture or peeling paper at edges, swelling around water exposure, weight far less than expected for size, mass-market dorm/IKEA brand context. → Flag: "Verify solid wood vs printed-veneer particleboard before paying solid-wood prices — particleboard rarely resells above $80 regardless of look."
   MCM KNOCKOFF: the silhouette resembles a famous MCM design (Eames Shell, Wegner Wishbone, Saarinen Tulip, Barcelona Chair, Eames Lounge) but no maker label, sticker, or stamp is visible in the photo. → Flag: "Verify maker stamp or label (typically underside of seat or inside drawer) before paying authenticated-MCM prices — knockoffs are mass-produced and common."
-  HIDDEN ODOR: upholstered furniture from estate sales, curbside, or unclear sources where smoke or pet odor may be present. Odor doesn't show in photos but kills resale value on FB Marketplace. → Flag: "Smell-verify in person — upholstery odor (smoke, pet, mildew) isn't photogenic but tanks resale."
+  HIDDEN ODOR: ONLY for visibly UPHOLSTERED furniture (fabric or leather sofas, fabric chairs, padded headboards, mattresses, ottomans with fabric tops, fabric sectionals). Do NOT flag hard-surface pieces — wood dressers, wicker, rattan, cane, metal, glass, lacquer, lucite, fully refinished surfaces. Hard surfaces don't trap odor the way fabric does. → Flag: "Smell-verify in person — upholstery odor (smoke, pet, mildew) isn't photogenic but tanks resale."
   BEDBUG INDICATORS: rust-colored or dark spots along mattress seams, upholstery seams, or frame joints. Especially flag for curbside finds, apartment sources, and any mattress. → Flag: "Inspect seams and joints closely for rust-colored stains — bedbug indicators kill resale and create infestation risk."
-  STRUCTURAL DAMAGE: visible broken legs, cracked frame, busted spring, wobble, water damage, mold, or major joint failure. → Flag: "Structural damage visible — verify the piece is sittable/usable; refinishing won't compensate if the bones are compromised."
+  STRUCTURAL DAMAGE: ONLY when damage is unambiguously visible in the photo — a snapped/missing leg, a clearly cracked or split frame, a torn-through seat with springs poking out, dark water staining/swelling/bubbling on a wood surface, visible mold, a drawer hanging off-track, or a clearly broken joint. Do NOT flag for normal patina, light surface wear, intact wicker/cane that simply looks vintage, or pieces that appear sound. When in doubt, do NOT flag — false damage warnings erode trust. → Flag: "Structural damage visible — verify the piece is sittable/usable; refinishing won't compensate if the bones are compromised."
+
+  JEWELRY RED FLAGS — apply ONLY when the item is jewelry or a watch (see JEWELRY PRICING detection):
+  GOLD MASQUERADE: yellow-tone metal but no karat stamp visible (10k / 14k / 18k / 24k / 375 / 585 / 750 / 916). Common when only the front/face of a piece is photographed and the inner band or clasp is hidden. → Flag: "No karat stamp visible — verify a 10k/14k/18k/750 stamp inside the band or on the clasp before paying solid-gold prices. Brass and gold-plated are commonly mistaken for solid gold."
+  STERLING MASQUERADE: silver-tone metal but no 925 / STER / STERLING stamp visible. → Flag: "No 925 or sterling stamp visible — could be silver-plated, stainless steel, or pewter. Verify stamp on clasp or inside the band before paying sterling prices."
+  DIAMOND MASQUERADE: clear sparkly stones with no grading cert and no hallmarked precious-metal setting visible. → Flag: "Without a grading cert (GIA / AGS / EGL) or a stamped 14k+ gold or platinum setting, clear stones may be CZ, moissanite, or glass — verify before paying diamond prices."
+  DESIGNER KNOCKOFF: silhouette resembles an iconic designer piece (Tiffany heart or "T" pendant, Cartier Love or Juste un Clou bracelet, Van Cleef Alhambra clover, Pandora charm bracelet, David Yurman cable cuff, Bulgari B.zero1 or Serpenti) but no maker stamp is visible in the photo. → Flag: "Iconic designer silhouette but no maker stamp visible — verify hallmark on clasp, inner band, or back before paying designer prices. Counterfeits of this exact silhouette are widespread."
+
+  BAG / SNEAKER RED FLAGS — apply ONLY when the item is a bag or sneaker:
+  LUXURY BAG KNOCKOFF: silhouette + canvas pattern resembles iconic luxury (LV monogram, Chanel CC quilt, Hermès Birkin/Kelly, Goyard chevron, Gucci GG, Prada triangle, Dior CD) but no date code, heat stamp, blind stamp, serial sticker, or interior brand plaque is visible. → Flag: "Iconic luxury bag silhouette but no date code / heat stamp / serial visible — verify on the interior pocket, leather tab, or under the flap before paying luxury prices. Counterfeit luxury bags dominate resale traffic."
+  DESIGNER BAG KNOCKOFF: signature canvas (Coach C-monogram, Tory T-emblem, Michael Kors MK-monogram) without creed patch / interior brand stamp visible. → Flag: "Designer-bag silhouette but no interior creed patch or serial visible — verify before paying designer prices. Lookalike contemporary bag knockoffs are common."
+  SUPERFAKE SEAM TELL: monogram canvas pattern (LV, Gucci, Goyard) shows visibly cut letters at the panel seams, off-color stitching, or laser-printed pattern with no fabric depth. Genuine luxury houses align canvas pattern across panels so letters never break at seams. → Flag: "Monogram pattern breaks at seams or shows printed (not woven) detail — superfake tell. Verify weave and seam alignment in person."
+  HYPED SNEAKER COLLAB KNOCKOFF: collab-claim silhouette (Travis Scott reverse swoosh, Off-White zip-tie, Fragment bolt, Sacai dual-tongue) but no SKU label, box label, or co-brand insole signature visible. → Flag: "Collab-specific styling but no SKU / box / co-brand insole visible — collab fakes are the most-replicated sneaker category. Verify with StockX or GOAT before paying collab prices."
 - upcycle[]: exactly 3 short, specific ideas for transforming this item to increase resale value. Before writing, identify: (1) exact material and texture, (2) specific construction details like hardware, seams, collar, lining, silhouette, (3) the era or subculture it references, (4) what niche aesthetic or current resale trend it could tap into if transformed. Use those observations to write ideas that could ONLY apply to this exact item — not any other. Each idea names a specific technique AND the niche aesthetic it creates. CLOTHING BANNED techniques (apply when category is NOT "furniture"): bleach dye, tie-dye, cropping, patches, pins, buttons, generic embroidery — if you catch yourself writing one, think harder about what makes this item unique. BANNED aesthetic defaults (apply to ALL categories): do not use any of these unless the item is literally from that era/style and you can point to a specific visible detail that justifies it: cottagecore, floral, bohemian, coquette, fairy-tale, whimsical, romantic. If you catch yourself writing one of these aesthetics, delete it and think of something more specific to this item.
   FURNITURE upcycle (category = "furniture" only): the clothing BANNED list above does NOT apply. Allowed techniques: refinish (sand to natural / dark walnut stain / whitewash / limewash / cerusing / fuming); reupholster (boucle, mohair, vintage kilim, vintage textile, leather); paint frame (chalk paint, eggshell lacquer, automotive lacquer, milk paint); swap hardware (vintage brass pulls, leather pulls, ceramic knobs, custom-cast); recane or rerush (replace damaged caning or rush seat with new natural fiber); repurpose (dresser → bathroom vanity, ladder → blanket rack, drawer → wall shelf, door → headboard, suitcase → side table). Match technique to current spike — boucle reupholstery, limewash refinish, brass-and-cane revival are all Q2 2026 actively trending. Each idea targets a different aesthetic.
   Each of the 3 ideas must target a DIFFERENT aesthetic or subculture — never repeat the same aesthetic across the 3 ideas. Keep each under 15 words. Do not mention platforms or where to sell. Do not say "not applicable"`;
@@ -536,26 +670,39 @@ For each ADDITIONAL photo (slots 2 through ${images.length}, in any order — a 
 
 (b) The BEFORE state — the original thrifted base before the user customized it.
 
-Classify a photo as (b) ONLY when ALL of these are true relative to photo 1:
-  • That photo and photo 1 clearly show the same garment shape/silhouette
-  • Photo 1 has visible hand-applied elements that this photo lacks (paint, patches, embroidery, dye work, studs, hand-distressing, hand-stitching, beadwork)
-  • This photo looks like a plain or factory state of that garment (uniform color, intact factory hems/labels, no surface decoration)
+Classify a photo as (b) when AT LEAST TWO of these are true relative to photo 1:
+  • Shared fabric identity — same print, color palette, fabric weight, weave, or material visible in both photos. This is the strongest single tell because fabric carries through even when the garment shape changes drastically.
+  • Photo 1 shows hand-applied or restructured elements (paint, patches, embroidery, dye work, studs, beadwork, hand-distressing, hand-stitching, ruching, gathering, cinching, halter conversion, corset boning, asymmetric cut, panel splicing, raw/unfinished cut edges, restitched seams, deconstruction; for furniture: fresh stain/paint/limewash, new upholstery, new hardware, recaning, refinished surface) that this photo clearly lacks.
+  • This photo shows the original factory garment intact — uniform color, original silhouette, factory hems and labels still attached, no surface decoration, no construction modification.
+  • Different silhouette but same fabric — one photo shows the source garment in its original shape, the other shows that fabric/material restructured into a new garment shape.
+
+IMPORTANT — silhouette CAN change dramatically in real upcycles. Do NOT require the two photos to share a silhouette; that requirement causes false negatives precisely on the high-labor pieces where detection matters most. Common shape-shifting transformations:
+  • T-shirt → ruched top, halter, tube top, corset, asymmetric crop, bandeau, tied-back top
+  • Sweater or sweatshirt → cardigan (cut open + finished edge), shrug, cropped top, vest
+  • Long dress → mini dress, top + skirt set, halter
+  • Jeans → skirt, shorts, tote bag, frankenpants from two pairs
+  • Curtains, bedsheets, quilts, blankets, tablecloths → dress, top, jacket, pants
+  • Two or more garments combined → franken-shirt, panel dress, patchwork piece
+  • Furniture repurpose: dresser → bathroom vanity, ladder → blanket rack, drawer → wall shelf, door → headboard
 
 Strong tells for (b):
+  • Same fabric / print / color / material in both photos but the construction differs — the strongest single signal, especially when one photo shows that fabric in its plain factory state and the other shows it gathered, ruched, cinched, halter-converted, corset-converted, or restructured into a new shape
   • Color/pattern shift on the same shape: plain white tee → tie-dyed tee, blue denim → bleached/painted denim, plain hoodie → embroidered hoodie
-  • That photo has factory tags or original branding visible; photo 1 has them obscured, removed, or built over with custom work
-  • Photo 1 styled for resale (good lighting, full garment); that photo casual (hanger, floor, harsh lighting)
+  • One photo has factory tags or original branding visible; the other has them obscured, removed, or built over with custom work
+  • One photo styled for resale (good lighting, full garment, modeled); the other casual (hanger, floor, flat lay, harsh lighting)
+  • Furniture refurb pair on the same piece: worn-finish dresser → refinished/painted/limewashed dresser; stained-fabric chair → reupholstered (boucle, mohair, kilim); damaged caning → recaned; old hardware → new brass/leather/ceramic pulls
 
 Tells AGAINST (b) — keep as (a) angle:
-  • Same surface treatment/decoration as photo 1
+  • Same surface treatment / decoration / construction as photo 1
   • Clearly a different side or detail of the finished piece (e.g., back of jacket + front of same painted jacket — both painted)
   • Consistent styling/lighting with photo 1 suggests one product shoot
+  • No shared fabric, print, color, or material identity at all between the two photos — likely two unrelated items rather than a before/after pair
 
 Outcomes:
   • All additional photos are (a) → SAME-ITEM scan. Use them together to identify the cover item. Set beforeAfterDetected = false. (Expected default.)
-  • AT LEAST ONE photo is (b) → BEFORE/AFTER scan. Set beforeAfterDetected = true AND isCustom = true. Use any (a) photos to identify the cover item; treat (b) photos as evidence of labor only — do NOT price them as separate items. Pick pricing tier from ALTERED FACTORY BASE EXCEPTION (or DENIM EXCEPTION if denim base).
+  • AT LEAST ONE photo is (b) → BEFORE/AFTER scan. Set beforeAfterDetected = true AND isCustom = true. Use any (a) photos to identify the cover item; treat (b) photos as evidence of labor only — do NOT price them as separate items. Pick pricing tier: if category = "furniture" → FURNITURE PRICING with FURNITURE isCustom logic (brand/era tier + 30–50% refurb premium; particleboard $80 ceiling and "refinished IKEA stays under $120" rule still apply); else if denim base → DENIM EXCEPTION; else → ALTERED FACTORY BASE EXCEPTION.
 
-When uncertain about any single photo, classify it as (a). False positives are worse than false negatives — the existing handmade detection still catches upcycles from photo 1 alone.`
+When uncertain about a single photo, default to (a). But if shared fabric identity is clear AND one photo shows hand-applied or restructured work the other lacks, classify as (b) even when the silhouettes differ — that combination is the signature of a real upcycle pair.`
     : '';
 
   const parsed = await callWithFallback(images, promptSuffix + multiPhotoSuffix, signal);
@@ -713,6 +860,77 @@ When uncertain about any single photo, classify it as (a). False positives are w
     }
   }
 
+  // Jewelry-specific clamps. Mirrors the particleboard pattern. Skipped on
+  // isCustomScan because handmade jewelry (wire-wrap, polymer clay, beaded)
+  // legitimately has no metal hallmark — the HANDMADE JEWELRY EXCEPTION tier
+  // governs those. Order matters: watch luxury → designer-without-stamp → no-hallmark
+  // (most specific first).
+  const isJewelry = parsed.category === 'accessories' && JEWELRY_RX.test(`${parsed.name ?? ''} ${parsed.sub ?? ''}`);
+  if (isJewelry && !isCustomScan) {
+    const jewelryText = `${parsed.name ?? ''} ${parsed.sub ?? ''}`;
+    const isWatch = /\bwatch(es)?\b/i.test(jewelryText);
+    const hasStamp = DESIGNER_STAMP_RX.test(jewelryText);
+    const hasHallmark = HALLMARK_RX.test(jewelryText);
+    const hasDesignerName = DESIGNER_JEWELRY_RX.test(jewelryText);
+
+    if (isWatch && WATCH_LUXURY_RX.test(jewelryText) && !hasStamp) {
+      // Rolex/Omega/Patek/etc. mentioned without serial/signature/stamp evidence:
+      // drop to mid-tier ceiling. Authenticated luxury watches require dial mark + serial.
+      if (resaleHigh > 400) {
+        const scale = 400 / resaleHigh;
+        resaleHigh = 400;
+        resaleLow = Math.max(80, Math.round(resaleLow * scale));
+      }
+    } else if (hasDesignerName && !hasStamp && !isWatch) {
+      // Tiffany/Cartier/VCA/Pandora/Yurman silhouette without maker stamp:
+      // cap at accessible-designer ceiling to prevent silhouette hallucinations
+      // from blowing out price.
+      if (resaleHigh > 150) {
+        const scale = 150 / resaleHigh;
+        resaleHigh = 150;
+        resaleLow = Math.max(25, Math.round(resaleLow * scale));
+      }
+    } else if (!hasHallmark && !hasDesignerName && !isWatch) {
+      // No metal stamp + no designer name on a non-watch jewelry piece:
+      // costume tier. Yellow-tone metal commonly mistaken for gold;
+      // silver-tone commonly mistaken for sterling.
+      if (resaleHigh > 30) {
+        const scale = 30 / resaleHigh;
+        resaleHigh = 30;
+        resaleLow = Math.max(5, Math.round(resaleLow * scale));
+      }
+    }
+  }
+
+  // Bag and sneaker authentication clamps. Mirror the jewelry designer-without-stamp
+  // pattern. Skipped on isCustomScan (custom bags/sneakers have their own ALTERED
+  // FACTORY BASE EXCEPTION caps in the prompt).
+  const bagSneakerText = `${parsed.name ?? ''} ${parsed.sub ?? ''}`;
+  const isLuxuryBag = parsed.category === 'bags' && LUXURY_BAG_BRAND_RX.test(bagSneakerText);
+  if (isLuxuryBag && !isCustomScan && !BAG_AUTH_STAMP_RX.test(bagSneakerText)) {
+    // LV/Chanel/Hermès/Gucci silhouette without auth evidence: cap at the
+    // unbranded designer-style ceiling. Genuine luxury claims require date code,
+    // heat stamp, blind stamp, serial sticker, or interior brand plaque.
+    if (resaleHigh > 300) {
+      const scale = 300 / resaleHigh;
+      resaleHigh = 300;
+      resaleLow = Math.max(50, Math.round(resaleLow * scale));
+    }
+  }
+
+  if (parsed.category === 'shoes' && !isCustomScan
+      && SNEAKER_COLLAB_RX.test(bagSneakerText)
+      && !SNEAKER_AUTH_RX.test(bagSneakerText)) {
+    // Travis Scott / Off-White / Fragment / Sacai claim without SKU, box label,
+    // or co-brand insole evidence: cap at base hyped ceiling. The reverse-swoosh
+    // styling is the most replicated detail in sneaker fakes.
+    if (resaleHigh > 250) {
+      const scale = 250 / resaleHigh;
+      resaleHigh = 250;
+      resaleLow = Math.max(40, Math.round(resaleLow * scale));
+    }
+  }
+
   let correction: 'lower' | 'higher' | undefined;
   if (priorResult) {
     const priorLow = priorResult.suggestedResaleLow ?? 0;
@@ -743,10 +961,13 @@ When uncertain about any single photo, classify it as (a). False positives are w
     category: VALID_CATEGORIES.includes(parsed.category as ItemCategory)
       ? (parsed.category as ItemCategory)
       : 'other',
-    // Furniture has legitimately wide tier ranges ($80–$2000 for unverified
-    // vintage walnut credenza is not low confidence — just sparse comps). Skip
-    // the range-width downgrade for furniture; pass AI confidence through.
-    confidence: parsed.category === 'furniture'
+    // Furniture, jewelry, and luxury bags have legitimately wide tier ranges
+    // (vintage walnut credenza $80–$2000; solid gold tier $40–$700+; LV monogram
+    // $100–$1700) that are not low confidence — just by-karat-by-weight,
+    // sparse-comps, or model-dependent reality. Skip the range-width downgrade
+    // for these. The hallmark / auth-stamp HARD RULES govern confidence on those
+    // categories (stamp absence = AI should set 'low' itself).
+    confidence: parsed.category === 'furniture' || isJewelry || isLuxuryBag
       ? (['high', 'medium', 'low'].includes(parsed.confidence as string)
           ? (parsed.confidence as 'high' | 'medium' | 'low')
           : 'low')
@@ -841,7 +1062,8 @@ CONDITION ADJUSTMENT: reduce both low and high by 30–50% for visible damage (s
 DENIM EXCEPTION — if category = "denim": IGNORE the labor-hour formula. Upcycled jeans is saturated on Depop/Etsy and prices by finished look, not labor hours. Simple mods (crops/distress/basic patches/dye) $25–$55; moderate rework (panel swap, contrasting patchwork, studded) $45–$85; elaborate custom (intricate beading, franken-construction, verifiable vintage Big E/501XX base) $70–$140. Hard ceiling $140 unless the base is documented vintage Levi's Big E/501XX or maker is a named established creator (then cap $220). EXCEPTIONAL CONSTRUCTION OVERRIDE — rare case only: denim rebuilt into a new garment shape via woven/lattice patchwork, sculpted halter/corset/bustier, deconstructed couture-style assembly, or denim quilted into a wholly new silhouette: $150–$300. To unlock you MUST include at least one of "lattice", "woven denim", "sculpted", "corset", "bustier", "halter", "deconstructed", "couture", or "quilted denim" in the sub field. Without exceptional construction stay under $140. Do NOT apply the trending-handmade +20–30% boost to denim.
 ALTERED FACTORY BASE EXCEPTION — if the item is a factory-made base (sneaker, top, jacket, bag, cap) with hand-added surface decoration (paint, patches, studs, hand embroidery, rhinestones) rather than from-scratch construction: IGNORE the labor-hour formula. Price = base brand tier + 30–60% customization premium. Caps: painted sneakers $120 unbranded / $180 branded (Nike, Adidas, Vans) / $260 hyped silhouettes (Jordan, Dunk, Yeezy) — exceed only for named established artists. Altered tops (hoodies, tees, halter tops, tank tops, crop tops, blouses, camis) and jackets: $60 unbranded / $90 branded / $130 premium streetwear. Altered pants/trousers/joggers (NON-DENIM — for denim see DENIM EXCEPTION above): pants are a secondary canvas vs jackets and the resale ceiling is lower. Light paint/few patches $40–$70; skilled hand-painted or dense applique/embroidery $80–$140 unbranded / $100–$160 branded base; hard ceiling $180 unless the maker is a named established creator. Do NOT price altered pants in jacket tiers ($200+). Custom bags/caps: $40 unbranded / $80 branded. Altered dresses (NON-DENIM — for denim see DENIM EXCEPTION above): $40 to $200 ceiling, unless named established maker. Altered skirts (NON-DENIM — mini, midi, maxi): $30 to $140 ceiling. Altered shorts (NON-DENIM): $25 to $120 ceiling. Custom swimwear (swimsuit, bikini, one-piece, swimwear, trunks): $25 to $120 ceiling. Altered non-sneaker shoes (boots, heels, sandals, loafers): $40 to $200 ceiling. To unlock these bands you MUST include the relevant term ("skirt", "shorts", "bikini", "swim", "boots", "heels", "sandals", "loafers") in the "name" or "sub" field. Do NOT apply the trending-handmade +20–30% boost to altered factory bases. This exception does NOT apply to from-scratch handmade (crochet, knit, sewn from raw fabric, fiber art).
 HANDMADE TOP CEILING — for from-scratch crochet/hand-knit/knitwear/cottagecore/embroidered/mending tops (category = "tops"): hard ceiling $180 unless the maker is a named established creator. Trending-handmade +20–30% boost may apply but final price must NOT exceed $180. NOTE: bare "knit" or "knitted" describing fabric (jersey, stretchy knit, ribbed knit, ponte) is NOT this tier — that's factory knit fabric, route through HANDMADE SEWN-FABRIC TOP EXCEPTION below. This tier requires explicit handmade-craft signal: "hand-knit", "crochet", "knitwear", "yarn", etc.
-HANDMADE SEWN-FABRIC TOP EXCEPTION — if the item is a from-scratch handmade top sewn or constructed from fabric (satin, silk, cotton, jersey, knit fabric, stretchy knit, ribbed knit, ponte, woven, polyester, rayon, viscose, chiffon, linen — NOT crochet, hand-knit, or knitwear): IGNORE the labor-hour formula. Sewn handmade tops on Depop/Etsy price by finished look, not labor hours, because the market is saturated with hobbyist tutorials. Tiers: simple (basic tank, tee, cami, plain shape) $25–$55; moderate (fitted with detail — V-neck, ruching, lace trim, gathered waist, darts, dolman/wrap silhouettes) $40–$85; complex (tailored blouse, structured top, intricate seaming, French seams, boning) $60–$120. Hard ceiling $120 unless the maker is a named established creator. Do NOT apply the trending-handmade +20–30% boost — that boost is reserved for crochet, hand-knit, cottagecore, and visible mending only. To unlock these bands you MUST include the relevant material term ("satin", "silk", "cotton", "knit fabric", "stretchy knit", "jersey", "sewn", "stitched", "fabric") in the "name" or "sub" field. Do NOT price handmade tops in jacket-altered or pants-altered tiers ($200+).`;
+HANDMADE SEWN-FABRIC TOP EXCEPTION — if the item is a from-scratch handmade top sewn or constructed from fabric (satin, silk, cotton, jersey, knit fabric, stretchy knit, ribbed knit, ponte, woven, polyester, rayon, viscose, chiffon, linen — NOT crochet, hand-knit, or knitwear): IGNORE the labor-hour formula. Sewn handmade tops on Depop/Etsy price by finished look, not labor hours, because the market is saturated with hobbyist tutorials. Tiers: simple (basic tank, tee, cami, plain shape) $25–$55; moderate (fitted with detail — V-neck, ruching, lace trim, gathered waist, darts, dolman/wrap silhouettes) $40–$85; complex (tailored blouse, structured top, intricate seaming, French seams, boning) $60–$120. Hard ceiling $120 unless the maker is a named established creator. Do NOT apply the trending-handmade +20–30% boost — that boost is reserved for crochet, hand-knit, cottagecore, and visible mending only. To unlock these bands you MUST include the relevant material term ("satin", "silk", "cotton", "knit fabric", "stretchy knit", "jersey", "sewn", "stitched", "fabric") in the "name" or "sub" field. Do NOT price handmade tops in jacket-altered or pants-altered tiers ($200+).
+HANDMADE JEWELRY EXCEPTION — if the item is handmade jewelry (wire-wrap pendants, polymer clay earrings, beaded necklaces, hemp/macrame chokers, resin pieces, hand-stamped metal, spoon/fork rings, friendship bracelets): IGNORE the metal-hallmark requirement and the labor-hour formula. Tiers by complexity: simple (single bead/charm, basic wire-wrap, plain hand-stamped tag, friendship bracelet) $15–$40; moderate (multi-bead/stone, intricate wire-wrap, resin with inclusions, hand-stamped detailed, polymer clay set) $30–$80; complex (gemstone wire-wrap, micro-macrame, electroformed, sterling/copper base + cabochon stones, hand-fabricated metalsmithing) $60–$180. Hard ceiling $180 unless the maker is a named established Etsy/Depop creator with documented sale history. Trending handmade jewelry boost (+20–30%) may apply for cottagecore, mushroom, evil-eye, celestial, or Y2K beaded aesthetics — but the final price must NOT exceed $180. To unlock these bands you MUST include the relevant term ("wire-wrap", "polymer clay", "beaded", "macrame", "resin", "hand-stamped", "handmade", or a jewelry-type word like "earrings", "pendant", "necklace", "bracelet", "ring") in the "name" or "sub" field.`;
 
 const RESCAN_CORRECTION_SUFFIX = (prior: ScanScenario) => `\n\nIMPORTANT: This is a RESCAN. The user tapped "this scan is wrong" on your previous output for this exact photo. Your previous output was:
 - name: "${prior.name}"

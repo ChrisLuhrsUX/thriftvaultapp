@@ -44,7 +44,8 @@ const sanitizeSnapshot = (raw: unknown): ItemScanSnapshot | null => {
     ? (source as { redFlags?: unknown[] }).redFlags?.filter((f): f is string => typeof f === 'string')
     : undefined;
   const isCustom = typeof source.isCustom === 'boolean' ? source.isCustom : undefined;
-  return { id, createdAt, sub, profit, confidence, isCustom, ideas, upcycle, authFlags, redFlags, sourceImageUri, sourceImageUris };
+  const beforeAfterDetected = source.beforeAfterDetected === true ? true : undefined;
+  return { id, createdAt, sub, profit, confidence, isCustom, beforeAfterDetected, ideas, upcycle, authFlags, redFlags, sourceImageUri, sourceImageUris };
 };
 
 
