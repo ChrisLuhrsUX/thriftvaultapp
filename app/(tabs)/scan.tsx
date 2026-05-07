@@ -22,6 +22,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   AppState,
   Easing,
@@ -179,6 +180,7 @@ function ScanResultCard({
   onMarkRedFlagFalseAlarm,
   historyCount,
   onShowHistory,
+  onClearScan,
   theme,
   styles,
 }: {
@@ -204,6 +206,7 @@ function ScanResultCard({
   onMarkRedFlagFalseAlarm: () => void;
   historyCount: number;
   onShowHistory: () => void;
+  onClearScan: () => void;
   theme: Theme;
   styles: ReturnType<typeof createScanStyles>;
 }) {
@@ -462,9 +465,6 @@ function ScanResultCard({
         >
           <AppIcon name="time-outline" size={14} color={theme.colors.vintageBlueDark} />
           <Text style={styles.historyBtnText}>Scan history</Text>
-          <View style={styles.historyBtnBadge}>
-            <Text style={styles.historyBtnBadgeText}>{historyCount}</Text>
-          </View>
           <AppIcon name="chevron-forward" size={14} color={theme.colors.vintageBlueDark} />
         </Pressable>
       )}
@@ -519,6 +519,16 @@ function ScanResultCard({
           )}
         </View>
       )}
+      <Pressable
+        style={({ pressed }) => [styles.deleteScanBtn, pressed && { opacity: 0.7 }]}
+        onPress={onClearScan}
+        hitSlop={8}
+        accessibilityLabel="Delete scan"
+        accessibilityRole="button"
+      >
+        <AppIcon name="trash-outline" size={14} color={theme.colors.terra} />
+        <Text style={styles.deleteScanBtnText}>Delete scan</Text>
+      </Pressable>
       <View style={styles.resultActions}>
         <Pressable
           style={({ pressed }) => [styles.btnPrimary, pressed && styles.btnPressed]}
@@ -619,7 +629,7 @@ function createScanStyles(theme: Theme, formMaxWidth?: number) {
       marginTop: 4,
       lineHeight: 20,
     },
-    ideaRows: { gap: 8, marginTop: 12, borderTopWidth: 1, borderTopColor: theme.colors.surfaceVariant, paddingTop: 12 },
+    ideaRows: { gap: 8, marginTop: 12, borderTopWidth: 1, borderTopColor: theme.colors.surfaceVariant, paddingTop: 12, paddingBottom: 12 },
     ideaRowsHeader: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
@@ -649,18 +659,15 @@ function createScanStyles(theme: Theme, formMaxWidth?: number) {
       color: theme.colors.profit,
       marginTop: 4,
     },
-    upcycleSection: {
-      marginTop: theme.spacing.md,
-      borderTopWidth: 1,
-      borderTopColor: theme.colors.surfaceVariant,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.surfaceVariant,
-      paddingVertical: theme.spacing.sm,
-    },
+    upcycleSection: {},
     upcycleHeader: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.surfaceVariant,
+      paddingVertical: theme.spacing.sm,
+      minHeight: theme.minTouchTargetSize,
     },
     upcycleHeaderText: {
       ...theme.typography.caption,
@@ -970,7 +977,6 @@ function createScanStyles(theme: Theme, formMaxWidth?: number) {
       borderTopWidth: 1,
       borderTopColor: theme.colors.surfaceVariant,
       paddingVertical: theme.spacing.sm,
-      marginTop: theme.spacing.md,
       minHeight: theme.minTouchTargetSize,
     },
     historyBtnText: {
@@ -979,18 +985,18 @@ function createScanStyles(theme: Theme, formMaxWidth?: number) {
       fontWeight: '600',
       flex: 1,
     },
-    historyBtnBadge: {
-      borderRadius: theme.radius.full,
-      borderWidth: 1,
-      borderColor: theme.colors.surfaceVariant,
-      backgroundColor: theme.colors.surfaceVariant,
-      paddingHorizontal: theme.spacing.sm,
-      paddingVertical: 2,
+    deleteScanBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.surfaceVariant,
+      paddingVertical: theme.spacing.sm,
+      minHeight: theme.minTouchTargetSize,
     },
-    historyBtnBadgeText: {
+    deleteScanBtnText: {
       ...theme.typography.caption,
-      color: theme.colors.charcoal,
-      fontWeight: '600',
+      color: theme.colors.terra,
     },
   });
 }
@@ -1116,6 +1122,11 @@ export default function ScanScreen() {
     setActiveSessionSnapshotId(snapshotId);
     dismissHistorySheet();
   }, [sessionSnapshots, dismissHistorySheet]);
+
+  const sessionSnapshotsRef = useRef(sessionSnapshots);
+  const activeSessionSnapshotIdRef = useRef(activeSessionSnapshotId);
+  useEffect(() => { sessionSnapshotsRef.current = sessionSnapshots; }, [sessionSnapshots]);
+  useEffect(() => { activeSessionSnapshotIdRef.current = activeSessionSnapshotId; }, [activeSessionSnapshotId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -1414,6 +1425,35 @@ export default function ScanScreen() {
     AsyncStorage.removeItem(TV_PENDING_SCAN_KEY);
     setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: true }), 50);
   }, []);
+
+  const deleteActiveSessionSnapshot = useCallback(() => {
+    Alert.alert('Delete Scan', 'Remove this scan?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => {
+          const activeId = activeSessionSnapshotIdRef.current;
+          const snapshots = sessionSnapshotsRef.current;
+          if (!activeId) {
+            clearResultAndPhoto();
+            return;
+          }
+          const remaining = snapshots.filter(s => s.id !== activeId);
+          if (remaining.length === 0) {
+            setSessionSnapshots([]);
+            setActiveSessionSnapshotId(null);
+            clearResultAndPhoto();
+            return;
+          }
+          const next = remaining[0];
+          setSessionSnapshots(remaining);
+          setActiveSessionSnapshotId(next.id);
+          setResult(next.scenario);
+        },
+      },
+    ]);
+  }, [clearResultAndPhoto]);
 
   /**
    * Tokenize free text to distinctive words: drop short fillers and generic garment nouns.
@@ -2186,6 +2226,7 @@ export default function ScanScreen() {
             onMarkRedFlagFalseAlarm={() => { Haptics.selectionAsync(); setPromptRedFlagDismissed(true); setRedFlagDismissed(true); }}
             historyCount={sessionSnapshots.length}
             onShowHistory={() => { Haptics.selectionAsync(); setScanHistoryVisible(true); }}
+            onClearScan={() => { Haptics.selectionAsync(); deleteActiveSessionSnapshot(); }}
             theme={theme}
             styles={scanStyles}
           />

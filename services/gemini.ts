@@ -318,6 +318,14 @@ Guidelines:
     Trend premiums and embellishment boosts from the clothing factory branch DO NOT apply to jewelry — jewelry pricing is metal-and-maker driven, not aesthetic-trend driven. The BOOST STACKING rule still applies to prevent compounding era × trend × embellishment on the same piece.
 
   CONDITION ADJUSTMENT (applies to both handmade and factory): Reduce both suggestedResaleLow and suggestedResaleHigh by 30–50% for visible damage — prominent stains, non-decorative holes, heavy pilling, faded/washed-out color, stretched or warped necklines, broken zippers, missing buttons, loose stitching, scuffed/cracked/peeling leather, yellowed whites, broken or cloudy hardware, tarnish on jewelry. Reduce by 15–25% for moderate wear — minor pilling, slight fading, small spots, faint creases, light patina. NWT or like-new condition (crisp fabric, intact hardware, no visible wear, original tags) commands the top of the range. When condition is unclear from the photo, assume "used-good" and make no adjustment. Never apply condition bonuses above the tier ceiling.
+
+  FINAL SANITY CHECK — DO THIS BEFORE RETURNING (applies to ALL pricing paths):
+  After computing suggestedResaleLow and suggestedResaleHigh, pause and ask yourself: "Would this specific item actually sell on Depop / Poshmark / eBay TODAY at these prices?" Mentally picture 3 recently-sold listings of the closest comparable item (same brand tier, same silhouette, same condition, same trend bucket).
+    • If your suggestedResaleHigh exceeds the most likely sold-comp by more than 30%, pull BOTH ends down toward the comp median. The model's labor-hour and trend-premium math is a starting estimate, not the final answer — actual sold comps are the ground truth.
+    • If your range straddles two clearly different tiers (e.g., $40–$200), narrow it. A range that wide signals you have NOT picked a tier — pick one and commit, then set confidence: "low" via the confidence rule.
+    • For handmade items: the labor-hour formula tends to overprice on first pass. A "complex 10–20 hr" estimate × $25/hr × 1.3 uniqueness premium produces $325–$650 ceilings that no Depop buyer pays for an unknown maker. Cap at what an unknown-maker handmade piece in this category actually sells for, not what the labor "should" be worth. Established named makers can exceed this; unknown makers cannot.
+    • For factory items with multiple boosts (era + embellishment + trend): re-check the BOOST STACKING rule. If you applied 3+ boosts, you're double-counting — strip back to one or two.
+  This check exists because first-pass pricing consistently anchors high; rescans land closer to true comps because they self-correct against a prior verdict. Do that self-correction here, on the first pass.
 - ideas[].t = short, actionable tip (no price amounts)
 - If multiple items are visible, identify only the most prominent one
 - If the photo appears to be AI-generated, a screenshot, or not a real physical item, set name to "Not a real item" and confidence to "low"
@@ -697,6 +705,9 @@ Tells AGAINST (b) — keep as (a) angle:
   • Clearly a different side or detail of the finished piece (e.g., back of jacket + front of same painted jacket — both painted)
   • Consistent styling/lighting with photo 1 suggests one product shoot
   • No shared fabric, print, color, or material identity at all between the two photos — likely two unrelated items rather than a before/after pair
+  • Same restructured garment shown from a different angle (front, back, side, off-shoulder, modeled in different poses). Asymmetric/draped/cinched/dolman/halter silhouettes won't be equally visible from every angle — the back of a dolman top looks "plainer" than the front because the drape and asymmetry are on the front. If the fabric, hem placement, overall garment length, and finished construction match, it's multi-angle of the AFTER, not a before/after pair.
+  • Same scene/background/setting/wardrobe/styling across all photos (same room, same mirror, same bottoms, same model in the same outfit) — that's a single try-on session of one finished piece, not a transformation reveal which would require two distinct moments
+  • Caption text, watermarks, or social media overlay describing the technique in general terms ("how I make dolman tops", "whenever I'm bored I take an old tee and...", "POV: you upcycle thrifted") is NOT evidence of a before photo. Only VISUAL evidence of an unmodified original counts. Caption claims about transformation must still be visually verified.
 
 Outcomes:
   • All additional photos are (a) → SAME-ITEM scan. Use them together to identify the cover item. Set beforeAfterDetected = false. (Expected default.)
