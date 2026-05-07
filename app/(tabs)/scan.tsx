@@ -1246,6 +1246,7 @@ export default function ScanScreen() {
     setCameraReady(false);
     try {
       const geminiResult = await scanWithGemini(stagedPhotos, controller.signal, setScanStatus);
+      if (controller.signal.aborted) return;
       pendingRetryRef.current = false; // scan succeeded — don't retry on foreground
       setResult(geminiResult);
       const snap = buildSessionSnapshot(geminiResult, stagedPhotos);
@@ -1825,6 +1826,7 @@ export default function ScanScreen() {
     setRescanningHandmade(true);
     try {
       const updated = await rescanAsHandmade(photoUri, controller.signal);
+      if (controller.signal.aborted) return;
       const prev = resultRef.current;
       if (!prev) return;
       const merged: ScanScenario = {
@@ -1905,6 +1907,16 @@ export default function ScanScreen() {
 
   const openSavedItem = useCallback((saved: SavedScanItem) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // Cancel any in-flight scan/rescan first — otherwise its setResult lands
+    // a moment later and clobbers the saved item we're loading.
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
+    pendingRetryRef.current = false;
+    scanningRef.current = false;
+    setScanning(false);
+    setScanStatus(null);
+    setRescanningHandmade(false);
+    setRescanningWrong(false);
     setSavedForLater((prev) => {
       const next = prev.filter((s) => s.savedAt !== saved.savedAt);
       persistSavedForLater(next);

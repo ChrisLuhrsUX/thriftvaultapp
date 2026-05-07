@@ -76,7 +76,7 @@ export default function HaulDetailScreen() {
 
   const date = params.date != null ? decodeURIComponent(params.date) : '';
   const items = useMemo(
-    () => (date ? inventory.filter((i) => i.date === date) : []),
+    () => (date ? inventory.filter((i) => i.date === date).sort((a, b) => b.id - a.id) : []),
     [inventory, date]
   );
 

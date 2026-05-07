@@ -481,6 +481,7 @@ export default function InventoryScreen() {
       const profit = items
         .filter((i) => i.intent === 'flip' && i.status === 'sold' && i.soldPrice != null)
         .reduce((s, i) => s + (Number(i.soldPrice) - (Number(i.paid) || 0)), 0);
+      items.sort((a, b) => b.id - a.id);
       result.push({ date, title: haulTitles[date], items, stores, totalSpent, profit });
     });
     result.sort((a, b) => {
