@@ -1526,11 +1526,15 @@ export default function ScanScreen() {
       score = Math.max(score, 0.6);
     }
 
-    // Distinct-match floor: a single weak token (color-only, material-only, or
-    // a stray generic word) shouldn't be enough to clear DUPLICATE_SCORE_THRESHOLD,
-    // even after the brand/color bonuses stack. Brand match is the lone single-token
-    // override since brand identity is uniquely distinctive within a category.
-    if (matchedTokens.size < 2 && !brandMatch) {
+    // Distinct-match floor: without a brand signal, fewer than 3 matched tokens
+    // shouldn't clear DUPLICATE_SCORE_THRESHOLD. Common false-positive shapes are
+    // 2-token overlaps like "black cotton" (sweater vs. hoodie), "vintage floral"
+    // (maxi vs. sundress), "blue denim" (jacket vs. vest) — same color/material
+    // family across unrelated items. Brand match is the lone exception since brand
+    // identity is uniquely distinctive within a category. Same-photo rescans still
+    // catch via the byte-exact image-size fallback, and snapshot mining accumulates
+    // vocabulary across rescans so multi-scan unbranded items still merge.
+    if (!brandMatch && matchedTokens.size < 3) {
       score = Math.min(score, DUPLICATE_BORDERLINE_MIN);
     }
 
@@ -1903,7 +1907,7 @@ export default function ScanScreen() {
     });
     showToast('Saved for later');
     clearResultAndPhoto();
-  }, [result, stagedPhotos, showToast, clearResultAndPhoto, persistSavedForLater]);
+  }, [result, stagedPhotos, showToast, clearResultAndPhoto, persistSavedForLater, promptCustomDismissed, promptWrongScanDismissed, promptRedFlagDismissed, redFlagDismissed]);
 
   const openSavedItem = useCallback((saved: SavedScanItem) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

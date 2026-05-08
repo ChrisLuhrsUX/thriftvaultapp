@@ -208,6 +208,7 @@ Guidelines:
     HANDMADE OUTERWEAR EXCEPTION — handmade cardigans, dusters, knit/crochet jackets, hand-loomed coats, fiber-art outerwear (category = "outerwear" AND from-scratch handmade, not altered factory base): simple (basic granny-square cardigan, plain knit duster) $35–$80; moderate (intricate stitch pattern, mid-size, mosaic crochet, fitted construction) $55–$120; complex (multi-color tapestry crochet, hand-spun yarn, structured tailoring, large-format) $90–$180. Hard ceiling $180 unless named established maker.
     HANDMADE DRESS EXCEPTION — non-denim, non-altered handmade dresses (category = "dresses" AND from-scratch, not altered factory base): simple (plain crochet/knit slip, basic sewn shift) $30–$70; moderate (cottagecore midi, fitted construction, lace trim, bias-cut sewn) $50–$120; complex (full-skirt crochet maxi, multi-panel sewn gown, smocked or boned construction) $90–$200. Hard ceiling $200 unless named established maker.
     HANDMADE SKIRT EXCEPTION — non-denim, non-altered handmade skirts: simple $20–$50; moderate (granny-square midi, fitted maxi) $35–$85; complex (full-skirt crochet, multi-panel sewn) $65–$140. Hard ceiling $140 unless named established maker.
+    HANDMADE PANTS EXCEPTION — non-denim, non-altered, from-scratch handmade pants (category = "bottoms"). Material tier matters — crochet/hand-knit pants are TikTok-spiking Q2 2026 and command meaningfully more than sewn-fabric handmade pants. Sewn-fabric (cotton/linen/silk wide-leg, palazzo, harem, drawstring trousers — NOT crochet/knit): simple (basic elastic-waist, plain) $30–$60; moderate (silk/custom print, fitted, drawstring detail) $50–$95; complex (multi-panel, structured waistband, statement construction) $80–$160. Hard ceiling $160 unknown maker. Crochet / hand-knit / macrame (granny-square flares, floral-medallion full-length, fishnet-style, doily-pattern wide-leg): simple (single-stitch joggers, basic shorts-length) $50–$90; moderate (granny-square flare or wide-leg, mid-complexity medallion pattern) $80–$150; complex (full-length intricate floral-medallion, multi-panel custom, oversized labor-intensive crochet) $130–$220. Hard ceiling $220 unknown maker. WORKED EXAMPLE: full-length white floral-medallion crochet flare pants = COMPLEX crochet tier; default to lower-middle anchor ~$140–$160 per FIRST-PASS ANCHORING (band low + 30% width), reserve $200+ for explicit upper-tier signals (named maker, NWT, exceptional density).
     HANDMADE BAG EXCEPTION — from-scratch handmade bags (crochet, macrame, woven, hand-loomed, hand-stitched leather): simple (crochet pouch, macrame mini bag, basic clutch) $20–$50; moderate (mid-size crochet tote, market bag, woven shoulder bag) $35–$85; complex (large hand-loomed leather, structured macrame, hand-stitched designer-grade) $60–$140. Hard ceiling $140 unless named established maker.
     HANDMADE ACCESSORY EXCEPTION (non-jewelry) — handmade scarves, hats, beanies, gloves, mittens, leg warmers, belts, hair accessories, headbands: simple (basic crochet beanie, plain scarf) $15–$40; moderate (intricate stitch, on-trend silhouette, fitted) $25–$70; complex (oversized hand-loomed, multi-color tapestry, named technique) $50–$120. Hard ceiling $120 unless named established maker.
     HANDMADE FIBER-ART STANDALONE EXCEPTION — tapestry, wall hanging, weaving, blanket, throw, quilt, wall art, embroidery hoop art, punch-needle art (not garment): small (under 18", embroidery hoop, small wall art) $25–$80; medium (24–36", lap blanket, mid-size tapestry) $60–$160; large (large tapestry, full quilt, oversized weaving, statement piece) $120–$300. Hard ceiling $300 unless named established fiber artist.
@@ -232,6 +233,7 @@ Guidelines:
       Premium denim (7 For All Mankind, Citizens of Humanity, AG, Paige, Frame, Joe's, Mother) — CUT MATTERS A LOT: skinny is FALLING ($3–$25 used-good, $14 median, soft); wide-leg / flare / bootcut / Dojo are SPIKING ($30–$70 used-good, NWT to $100). Mother and Citizens skew +20–30% above 7FAM within tier. NWT premium denim wide-leg can reach $100. When you see flare/wide-leg cut, price at the upper band.
       Authenticated Y2K premium denim (True Religion big-stitch, Diesel, Rock Revival, Miss Me, Buckle, Affliction — check stitching and hardware): standard styles $9–$50; OG LOW-RISE FLARE WITH RHINESTONE / EMBELLISHMENT IS ACTIVELY SPIKING (Q2 2026): True Religion OG flare $35–$95; Diesel flare/wide-leg vintage $45–$120 (+45–58% in 30 days); Rock Revival / Miss Me embellished $20–$65 (+27%). When the item shows visible rhinestones, embellished back pockets, low-rise flare, or factory whiskering, price at the spike band, not the standard band.
       Y2K viral brands (Juicy Couture, Von Dutch, Ed Hardy, Baby Phat, Apple Bottoms — visible logos required, do NOT infer from silhouette): Juicy Couture velour tracksuit set NWT $55–$130, vintage Y2K USA-made set $100–$200 (+22% spike), Juicy terry tracksuit OG 2000s cotton $100–$165; Von Dutch trucker hat $20–$65; Ed Hardy graphic tee $25–$95; Baby Phat jacket/top $30–$120. These have real resale value now — Q2 2026 active spike reinforced by Euphoria S3 demand. Do NOT confuse with the COMMON HALLUCINATION TRAPS list — that warns against inferring these brands from look-alike silhouettes; this tier applies only when you can read an actual logo.
+      Modern Levi's denim jacket / trucker (current red Levi's tab, Made-in-China/Mexico/Bangladesh, modern leather patch — NOT Big E, NOT USA-made vintage): standard wash $30–$60; light wash factory-distressed $30–$65; dark wash $30–$55; sherpa-lined $35–$75; NWT current-season $45–$75 (Depop secondhand NWT sold comps clear at 50–70% of retail, NOT retail). CRITICAL: factory distressing (consistent placement, clean fray edges) is part of the modern product line and is ALREADY factored into this tier — do NOT upgrade to vintage tier based on "distressed" / "looks worn" / "feels vintage" alone. Vintage upgrade requires explicit vintage tells: visible Big E tab on chest pocket, single-stitch hem, union-made tag, USA-made label, chain-stitched yoke, blanket lining on older 70505s.
       Vintage Levi's tiered: Big E / 501XX / pre-1980s redline raw selvedge: $300–$590 (top of vintage market); LVC Big E selvedge reproduction (501/505/701): $42–$100; Premium Big E 90s–00s 501s: $25–$100; Standard post-Big-E vintage 501s/505s/550s button-fly: $19–$65; Vintage 70505 trucker jacket: $35–$120. Vintage Wrangler Blue Bell: $60–$250+.
       Vintage non-denim Americana (Pendleton, Filson, LL Bean, Eddie Bauer, Woolrich): Pendleton wool jacket/coat $35–$120, flannel shirt $20–$55; Filson jacket/shirt $45–$180 (premium of the tier); LL Bean fleece/flannel $15–$50; Eddie Bauer vintage down/puffer $25–$85; Woolrich wool coat/jacket $35–$120. These are common thrift finds with real Americana/workwear resale value.
       Vintage graphic tees / band tees — single-stitch hems, blank or USA-made tag, no side seams, soft cracked print are vintage tells (modern repros use side seams + double-stitched hems): Generic vintage 80s/90s graphic tee unbranded $20–$60; Vintage Disney / cartoon (Mickey, Looney Tunes, Garfield, theme-park souvenir) $30–$120; Vintage 80s/90s rock band tee $50–$200; Vintage 90s hip-hop / rap tee $60–$220; Vintage Disneyland / Six Flags / souvenir park tee $25–$100; Vintage NASCAR / racing crew tee 90s $40–$150. Grail-tier collector pieces (Nirvana Sub-Pop, Metallica Metal Up Your Ass) exist in the $500–$2000+ market but are rare enough to flag for manual research rather than auto-price — set confidence low and stay at the upper band of the standard tier above.
@@ -729,6 +731,7 @@ Tells AGAINST (b) — keep as (a) angle:
   • No shared fabric, print, color, or material identity at all between the two photos — likely two unrelated items rather than a before/after pair
   • Same restructured garment shown from a different angle (front, back, side, off-shoulder, modeled in different poses). Asymmetric/draped/cinched/dolman/halter silhouettes won't be equally visible from every angle — the back of a dolman top looks "plainer" than the front because the drape and asymmetry are on the front. If the fabric, hem placement, overall garment length, and finished construction match, it's multi-angle of the AFTER, not a before/after pair.
   • Same scene/background/setting/wardrobe/styling across all photos (same room, same mirror, same bottoms, same model in the same outfit) — that's a single try-on session of one finished piece, not a transformation reveal which would require two distinct moments
+  • Same finished garment across DIFFERENT scenes, lighting, or cinematic effects. If construction details persist across photos (sleeve type and cuff treatment, neckline and trim placement, hem treatment and length, fabric drape and sheen, lace/ruffle/tier placement all match), it's one finished piece filmed in multiple moments — a styled TikTok/Reel shoot, not a transformation pair. Cinematic color grading, motion blur, dramatic lighting shifts (daylight vs. moody/night), VHS scanlines, retro/film-grain filters, and video-game UI text overlays ("LOADING WORLD DATA", "DO NOT REMOVE STORAGE DEVICE", health bars, save-icon glyphs) are styling effects, NOT evidence of a different garment state. A real before photo would show the SAME fabric in an unfinished/plain construction, not the same finished construction under a moody filter.
   • Caption text, watermarks, or social media overlay describing the technique in general terms ("how I make dolman tops", "whenever I'm bored I take an old tee and...", "POV: you upcycle thrifted") is NOT evidence of a before photo. Only VISUAL evidence of an unmodified original counts. Caption claims about transformation must still be visually verified.
 
 Outcomes:
@@ -770,19 +773,24 @@ When uncertain about a single photo, default to (a). But if shared fabric identi
       resaleLow = Math.max(25, Math.round(resaleLow * scale));
     }
   }
-  const isAlteredPants = parsed.category === 'bottoms' && isCustomScan && !isDenim;
-  if (isAlteredPants && resaleHigh > 180) {
-    const scale = 180 / resaleHigh;
-    resaleHigh = 180;
-    resaleLow = Math.max(40, Math.round(resaleLow * scale));
-  }
-  // Handmade tops split by material tier. Crochet/hand-knit/cottagecore/mending legitimately
-  // commands $80–$180 on Depop (visible labor + trending). Sewn-fabric does not — Depop
-  // prices by finished look because the market is saturated with hobbyist tutorials.
+  // Handmade pants/tops split by material tier. Crochet/hand-knit/cottagecore/mending legitimately
+  // commands higher tiers on Depop (visible labor + Q2 2026 TikTok-spiking — granny-square flares,
+  // floral-medallion full-length pants). Sewn-fabric does not — Depop prices by finished look
+  // because the market is saturated with hobbyist tutorials.
   // Bare "knit"/"knitted" excluded from the trending regex — they almost always describe
   // knit FABRIC (jersey, spandex, ponte, stretchy knit), not hand-knit yarn craft. Require
   // explicit handmade-craft signals: "hand-knit", "knitwear", "yarn", etc.
   const isCrochetKnitText = /\b(crochet(ed)?|hand[-\s]?knit(ted)?|knitwear|yarn|cottagecore|milkmaid|mending|patchwork|embroider(ed|y)|macrame|needlepoint)\b/i.test(exceptionalText);
+  const isHandmadePants = parsed.category === 'bottoms' && isCustomScan && !isDenim;
+  if (isHandmadePants) {
+    const cap = isCrochetKnitText ? 220 : 180;
+    const floor = isCrochetKnitText ? 50 : 40;
+    if (resaleHigh > cap) {
+      const scale = cap / resaleHigh;
+      resaleHigh = cap;
+      resaleLow = Math.max(floor, Math.round(resaleLow * scale));
+    }
+  }
   const isHandmadeTop = parsed.category === 'tops' && isCustomScan;
   if (isHandmadeTop) {
     let cap: number;
@@ -824,7 +832,7 @@ When uncertain about a single photo, default to (a). But if shared fabric identi
     }
   }
 
-  // Tightens isAlteredPants further — shorts have less canvas than full-length pants.
+  // Tightens isHandmadePants further — shorts have less canvas than full-length pants.
   const isAlteredShorts = isCustomScan && isShortsText && !isDenim;
   if (isAlteredShorts && resaleHigh > 120) {
     const scale = 120 / resaleHigh;
@@ -1018,7 +1026,13 @@ When uncertain about a single photo, default to (a). But if shared fabric identi
   }
 
   if (resaleLow > resaleHigh) [resaleLow, resaleHigh] = [resaleHigh, resaleLow];
-  const resale = resaleLow > 0 ? roundDisplayPrice((resaleLow + resaleHigh) / 2) : 0;
+  // Lean-low headline: band low + 30% of width, not midpoint. Resale comps
+  // cluster at the low end of any range; midpoint produced listings that didn't
+  // move. AI tier band already adjusts low/high for condition (PROMPT CONDITION
+  // ADJUSTMENT); this picks the right anchor within whatever band came back.
+  const resale = resaleLow > 0
+    ? roundDisplayPrice(resaleLow + (resaleHigh - resaleLow) * 0.3)
+    : 0;
 
   return {
     name: String(parsed.name || 'Unknown Item'),
@@ -1140,6 +1154,7 @@ ALTERED FACTORY BASE EXCEPTION — SURFACE DECORATION ONLY (paint, patches, stud
 HANDMADE OUTERWEAR EXCEPTION — handmade cardigans, dusters, knit/crochet jackets, hand-loomed coats, fiber-art outerwear (category = "outerwear" AND from-scratch handmade, not altered factory base): simple (basic granny-square cardigan, plain knit duster) $35–$80; moderate (intricate stitch pattern, mid-size, mosaic crochet, fitted construction) $55–$120; complex (multi-color tapestry crochet, hand-spun yarn, structured tailoring, large-format) $90–$180. Hard ceiling $180 unless named established maker.
 HANDMADE DRESS EXCEPTION — non-denim, non-altered handmade dresses (category = "dresses" AND from-scratch, not altered factory base): simple (plain crochet/knit slip, basic sewn shift) $30–$70; moderate (cottagecore midi, fitted construction, lace trim, bias-cut sewn) $50–$120; complex (full-skirt crochet maxi, multi-panel sewn gown, smocked or boned construction) $90–$200. Hard ceiling $200 unless named established maker.
 HANDMADE SKIRT EXCEPTION — non-denim, non-altered handmade skirts: simple $20–$50; moderate (granny-square midi, fitted maxi) $35–$85; complex (full-skirt crochet, multi-panel sewn) $65–$140. Hard ceiling $140 unless named established maker.
+HANDMADE PANTS EXCEPTION — non-denim, non-altered, from-scratch handmade pants (category = "bottoms"). Material tier matters — crochet/hand-knit pants are TikTok-spiking Q2 2026 and command meaningfully more than sewn-fabric handmade pants. Sewn-fabric (cotton/linen/silk wide-leg, palazzo, harem, drawstring trousers — NOT crochet/knit): simple (basic elastic-waist, plain) $30–$60; moderate (silk/custom print, fitted, drawstring detail) $50–$95; complex (multi-panel, structured waistband, statement construction) $80–$160. Hard ceiling $160 unknown maker. Crochet / hand-knit / macrame (granny-square flares, floral-medallion full-length, fishnet-style, doily-pattern wide-leg): simple (single-stitch joggers, basic shorts-length) $50–$90; moderate (granny-square flare or wide-leg, mid-complexity medallion pattern) $80–$150; complex (full-length intricate floral-medallion, multi-panel custom, oversized labor-intensive crochet) $130–$220. Hard ceiling $220 unknown maker. WORKED EXAMPLE: full-length white floral-medallion crochet flare pants = COMPLEX crochet tier; default to lower-middle anchor ~$140–$160 per FIRST-PASS ANCHORING (band low + 30% width), reserve $200+ for explicit upper-tier signals (named maker, NWT, exceptional density).
 HANDMADE BAG EXCEPTION — from-scratch handmade bags (crochet, macrame, woven, hand-loomed, hand-stitched leather): simple (crochet pouch, macrame mini bag, basic clutch) $20–$50; moderate (mid-size crochet tote, market bag, woven shoulder bag) $35–$85; complex (large hand-loomed leather, structured macrame, hand-stitched designer-grade) $60–$140. Hard ceiling $140 unless named established maker.
 HANDMADE ACCESSORY EXCEPTION (non-jewelry) — handmade scarves, hats, beanies, gloves, mittens, leg warmers, belts, hair accessories, headbands: simple (basic crochet beanie, plain scarf) $15–$40; moderate (intricate stitch, on-trend silhouette, fitted) $25–$70; complex (oversized hand-loomed, multi-color tapestry, named technique) $50–$120. Hard ceiling $120 unless named established maker.
 HANDMADE FIBER-ART STANDALONE EXCEPTION — tapestry, wall hanging, weaving, blanket, throw, quilt, wall art, embroidery hoop art, punch-needle art (not garment): small (under 18", embroidery hoop, small wall art) $25–$80; medium (24–36", lap blanket, mid-size tapestry) $60–$160; large (large tapestry, full quilt, oversized weaving, statement piece) $120–$300. Hard ceiling $300 unless named established fiber artist.
@@ -1171,7 +1186,9 @@ Then return your normal JSON output PLUS one extra top-level field:
 - "lower" — prior price was too HIGH; output new lower prices.
 - "higher" — prior price was too LOW; output new higher prices.
 
-The user explicitly flagged this scan as wrong. Commit to a direction. Do NOT echo the prior prices unchanged — re-examine brand, condition, era, material, and category, and let your verdict shift the price.`;
+The user explicitly flagged this scan as wrong. Commit to a direction. Do NOT echo the prior prices unchanged — re-examine brand, condition, era, material, and category, and let your verdict shift the price.
+
+DEFAULT BIAS — when uncertain about direction, choose "lower". User "wrong scan" flags are most often overprice protests, not underprice protests; sellers know when an item won't move at the suggested price. Reserve "higher" for cases where you can name a SPECIFIC upper-tier signal you missed on the first pass: visible vintage Big E tab, NWT/original tags hanging, named designer label legible, chain-stitched hem, union-made tag, single-stitch construction, premium material tag (cashmere/silk/leather verified), mint condition with original packaging or box. Generic descriptors like "distressed", "looks worn", "feels vintage", or "strong brand name" are NOT upper-tier signals — those are already factored into the modern factory tier. Modern Levi's, Madewell, AG, Gap, Old Navy with factory distressing belong in their modern tier, not vintage. When the prior price falls within the correct factory tier and rescrutiny does not surface an explicit upper-tier signal you missed, choose "lower" and pull both ends down 15–25%.`;
 
 export async function rescanAsHandmade(photoUri: string, signal?: AbortSignal, priorResult?: ScanScenario): Promise<ScanScenario> {
   const suffix = HANDMADE_SUFFIX + (priorResult ? RESCAN_CORRECTION_SUFFIX(priorResult) : '');

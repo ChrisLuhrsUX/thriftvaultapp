@@ -22,6 +22,10 @@
 
 Detailed version lives in `REVENUECAT_SETUP.md`.
 
+### Post-prebuild — paired work
+
+10. **Share-as-image card** (9:16 story format) — gated on the prebuild from step 8. After prebuild: `npx expo install react-native-view-shot expo-sharing`. Create `components/ShareCard.tsx`, `components/ShareCardPreviewSheet.tsx`, `utils/captureShareCard.ts`, `utils/shareItemImage.ts`. Wire `app/detail.tsx` (uncomment line 1590, replace `handleShare`, mount off-screen card + preview sheet). Full design + execution checklist: `SHARE_CARD_PLAN.md`.
+
 ## Post-Launch
 
 See [POST_LAUNCH.md](POST_LAUNCH.md) — scoped todos and unscoped ideas live there.
