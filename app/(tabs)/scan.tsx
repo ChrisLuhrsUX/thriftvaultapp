@@ -1623,7 +1623,9 @@ export default function ScanScreen() {
     };
     addItem(newItem);
     if (promptCustomDismissed || promptWrongScanDismissed || promptRedFlagDismissed || redFlagDismissed) {
-      AsyncStorage.setItem(`tv_prompt_dismissed_${id}`, JSON.stringify({
+      // Await before navigating: detail.tsx reads this key on mount, and a fire-and-forget
+      // setItem can lose the race against detail's getItem despite AsyncStorage's queue.
+      await AsyncStorage.setItem(`tv_prompt_dismissed_${id}`, JSON.stringify({
         handmade: promptCustomDismissed,
         wrongScan: promptWrongScanDismissed,
         redFlagPrompt: promptRedFlagDismissed,
@@ -1722,13 +1724,29 @@ export default function ScanScreen() {
       updatedAt: Date.now(),
       ...resaleUpdate,
     });
+    if (promptCustomDismissed || promptWrongScanDismissed || promptRedFlagDismissed || redFlagDismissed) {
+      // Merge scan-card dismissals into existing per-item flags so a No tap on scan
+      // doesn't get clobbered by stale flags on the existing item.
+      const key = `tv_prompt_dismissed_${target.id}`;
+      let existing: { handmade?: boolean; wrongScan?: boolean; redFlagPrompt?: boolean; redFlagBanner?: boolean } = {};
+      try {
+        const raw = await AsyncStorage.getItem(key);
+        if (raw) existing = JSON.parse(raw);
+      } catch { /* ignore */ }
+      await AsyncStorage.setItem(key, JSON.stringify({
+        handmade: existing.handmade || promptCustomDismissed,
+        wrongScan: existing.wrongScan || promptWrongScanDismissed,
+        redFlagPrompt: existing.redFlagPrompt || promptRedFlagDismissed,
+        redFlagBanner: existing.redFlagBanner || redFlagDismissed,
+      }));
+    }
     setDuplicateChoiceVisible(false);
     setDuplicatePickerVisible(false);
     setPendingIntent(null);
     setDuplicateCandidates([]);
     clearResultAndPhoto();
     router.push({ pathname: '/detail', params: { itemId: String(target.id), fromScan: '1' } });
-  }, [result, persistPhotos, stagedPhotos, createSnapshot, updateItem, sessionSnapshots, activeSessionSnapshotId, clearResultAndPhoto, router]);
+  }, [result, persistPhotos, stagedPhotos, createSnapshot, updateItem, sessionSnapshots, activeSessionSnapshotId, promptCustomDismissed, promptWrongScanDismissed, promptRedFlagDismissed, redFlagDismissed, clearResultAndPhoto, router]);
 
   const isOldOrSold = useCallback((item: Item) => {
     if (item.status === 'sold') return true;
