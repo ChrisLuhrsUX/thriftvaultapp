@@ -462,10 +462,13 @@
       .hero { padding: 24px 0 72px; }
       .hero-grid {
         grid-template-columns: 1fr;
-        gap: 40px;
+        gap: 32px;
       }
-      .hero-frame { max-width: 320px; }
-      .hero h1 { font-size: clamp(44px, 9vw, 72px); }
+      .hero-text { order: 1; text-align: center; }
+      .hero-frame { order: 2; max-width: 260px; margin: 0 auto; }
+      .hero-lead { margin-left: auto; margin-right: auto; }
+      .hero-meta { justify-content: center; }
+      .hero h1 { font-size: clamp(40px, 8.5vw, 64px); margin-bottom: 20px; }
       .feature {
         grid-template-columns: 56px 1fr;
         column-gap: 20px;
@@ -496,8 +499,10 @@
     @media (max-width: 480px) {
       .topbar { padding: 16px 20px; }
       .container { padding: 0 20px; }
-      .hero h1 { font-size: 44px; }
-      .hero-lead { font-size: 17px; }
+      .hero { padding: 16px 0 56px; }
+      .hero h1 { font-size: 40px; margin-bottom: 18px; }
+      .hero-lead { font-size: 16px; margin-bottom: 28px; }
+      .hero-frame { max-width: 220px; padding: 12px; }
       .feature-title { font-size: 18px; }
       .price-amount { font-size: 40px; }
       .topnav { gap: 18px; }
