@@ -197,6 +197,7 @@
       color: var(--mauve);
       font-weight: 600;
     }
+    .hero-meta:has(.status-badge)::before { display: none; }
     .hero-meta::before {
       content: '';
       display: inline-block;
@@ -493,9 +494,63 @@
       .price-amount { font-size: 40px; }
       .topnav { gap: 18px; }
     }
+
+    /* ─── Pre-launch announcement bar ────────────── */
+    .prelaunch-bar {
+      background: var(--charcoal);
+      color: var(--cream);
+      text-align: center;
+      padding: 10px 20px;
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      font-weight: 600;
+      border-bottom: 1px solid var(--brass);
+    }
+    .prelaunch-bar strong {
+      color: var(--brass);
+      font-weight: 700;
+      margin-right: 8px;
+    }
+    @media (max-width: 480px) {
+      .prelaunch-bar { font-size: 10px; letter-spacing: 0.14em; padding: 9px 16px; }
+    }
+
+    /* ─── Status badge (hero) ────────────────────── */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 16px;
+      background: var(--cream-warm);
+      border: 1px solid var(--brass);
+      border-radius: 999px;
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      font-weight: 600;
+      color: var(--charcoal);
+    }
+    .status-badge::before {
+      content: '';
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--terra-soft);
+      box-shadow: 0 0 0 3px rgba(201, 124, 93, 0.22);
+    }
+    .plans-note {
+      margin-top: 14px;
+      font-size: 14px;
+      color: var(--mauve);
+      font-style: italic;
+    }
   </style>
 </head>
 <body>
+  <div class="prelaunch-bar" role="status" aria-label="Pre-launch announcement">
+    <strong>Pre-launch</strong> ThriftVault is not yet available — App Store submission in progress
+  </div>
   <header class="topbar">
     <div class="wordmark">Thrift<em>Vault</em></div>
     <nav class="topnav" aria-label="Primary">
@@ -521,7 +576,7 @@
             Scan any thrift store find. Get instant AI flip predictions, trend insights, and buy/skip advice — pocketed in a vault that's yours alone.
           </p>
           <div class="hero-meta rise delay-3">
-            <span>iOS 15.1+ · Coming soon</span>
+            <span class="status-badge">Coming soon to iOS 15.1+</span>
           </div>
         </div>
       </div>
@@ -578,6 +633,7 @@
         <span class="eyebrow">No. 02 — Plans</span>
         <h2>Thirty days <em>free</em>.</h2>
         <p>Every Pro feature unlocked from your first scan. Pick a plan after.</p>
+        <p class="plans-note">Pricing shown is for when the app launches — no purchases available yet.</p>
       </div>
       <div class="pricing-grid">
         <div class="price-card">
