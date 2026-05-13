@@ -27,7 +27,7 @@ Sentry.init({
   tracesSampleRate: __DEV__ ? 0 : 0.2,
   sendDefaultPii: false,
   beforeBreadcrumb: (breadcrumb) => {
-    // Strip user-typed text from UI breadcrumbs — notes/store/name fields can contain PII.
+    // Strip user-typed text from UI breadcrumbs, notes/store/name fields can contain PII.
     if (breadcrumb.category === 'ui.input' || breadcrumb.category === 'ui.click') {
       if (breadcrumb.message) breadcrumb.message = '[redacted]';
       if (breadcrumb.data && 'value' in breadcrumb.data) breadcrumb.data.value = '[redacted]';

@@ -94,7 +94,7 @@ function formatSnapshotTime(createdAt: number): string {
  * Item TYPE is already disambiguated by the category filter, so these tokens are noise:
  * one scan calling a piece a "dress" and another calling it a "skirt" should not
  * tank the similarity score for the same physical item.
- * Colors, brands, eras, and style descriptors are intentionally NOT in this list —
+ * Colors, brands, eras, and style descriptors are intentionally NOT in this list ,
  * those are the distinguishing signal.
  */
 const DUPLICATE_STOP_WORDS = new Set([
@@ -444,7 +444,7 @@ function ScanResultCard({
             <View style={[styles.authRows, styles.authRowsExpanded]}>
               <Text style={styles.authResellerWarning}>
                 <Text style={styles.authResellerBold}>Reselling this? </Text>
-                Get it professionally authenticated first. These estimates are for personal reference only — not an authenticity guarantee.
+                Get it professionally authenticated first. These estimates are for personal reference only, not an authenticity guarantee.
               </Text>
               {scenario.authFlags.map((flag, i) => (
                 <View key={i} style={styles.authRow}>
@@ -1045,7 +1045,7 @@ export default function ScanScreen() {
   const appStateRef = useRef(AppState.currentState);
   const pendingRetryRef = useRef(false);
   // Latest result captured for async callbacks that don't list `result` in deps
-  // (handleConfirmHandmade) — avoids stale closure when computing rescan merges.
+  // (handleConfirmHandmade), avoids stale closure when computing rescan merges.
   const resultRef = useRef<ScanScenario | null>(null);
   const { isTablet, isDesktop, hPad, headerHPad, formMaxWidth } = useResponsive();
   const { width: screenWidth } = useWindowDimensions();
@@ -1247,29 +1247,29 @@ export default function ScanScreen() {
     try {
       const geminiResult = await scanWithGemini(stagedPhotos, controller.signal, setScanStatus);
       if (controller.signal.aborted) return;
-      pendingRetryRef.current = false; // scan succeeded — don't retry on foreground
+      pendingRetryRef.current = false; // scan succeeded, don't retry on foreground
       setResult(geminiResult);
       const snap = buildSessionSnapshot(geminiResult, stagedPhotos);
       setSessionSnapshots(prev => [snap, ...prev].slice(0, SESSION_SNAPSHOT_CAP));
       setActiveSessionSnapshotId(snap.id);
     } catch (error) {
       if ((error as Error)?.name === 'AbortError') return;
-      // We backgrounded mid-scan — failure is almost always iOS suspending the
+      // We backgrounded mid-scan, failure is almost always iOS suspending the
       // network. Suppress the toast; the finally block (or AppState 'active'
       // handler) will fire a seamless retry without resetting the spinner.
       if (pendingRetryRef.current) return;
       if (__DEV__) console.log('[Scan] error:', error);
       const message = error instanceof Error ? error.message : String(error ?? '');
       if (/API (429|503|529)/i.test(message) || /overloaded|high demand/i.test(message)) {
-        showToast('AI is busy right now — try again in a moment');
+        showToast('AI is busy right now, try again in a moment');
       } else {
-        showToast('Couldn\'t identify — try getting the label in frame');
+        showToast('Couldn\'t identify, try getting the label in frame');
       }
     } finally {
       scanningRef.current = false;
       abortControllerRef.current = null;
       if (pendingRetryRef.current && appStateRef.current === 'active') {
-        // Already foreground — AppState handler skipped retry while scanningRef
+        // Already foreground, AppState handler skipped retry while scanningRef
         // was true. Fire it from here without touching the scanning UI so the
         // spinner stays continuous.
         pendingRetryRef.current = false;
@@ -1289,13 +1289,13 @@ export default function ScanScreen() {
   handleScanStagedRef.current = handleScanStaged;
 
   // Auto-retry scan when app returns to foreground after being backgrounded mid-scan.
-  // Effect runs once on mount — refs keep everything up to date without re-subscribing.
+  // Effect runs once on mount, refs keep everything up to date without re-subscribing.
   useEffect(() => {
     const sub = AppState.addEventListener('change', (next) => {
       const prev = appStateRef.current;
       appStateRef.current = next;
       if (next === 'background' && scanningRef.current) {
-        // Mark for retry — if the scan doesn't complete before we foreground, retry then.
+        // Mark for retry, if the scan doesn't complete before we foreground, retry then.
         // Do NOT abort: iOS allows active fetches to finish in background, so aborting
         // would kill a scan that's about to succeed.
         pendingRetryRef.current = true;
@@ -1307,7 +1307,7 @@ export default function ScanScreen() {
         !scanningRef.current
       ) {
         // Only fire retry once the original promise has settled (scanningRef
-        // false). If it's still in flight, leave the flag set — handleScanStaged's
+        // false). If it's still in flight, leave the flag set, handleScanStaged's
         // finally block will fire the retry when the original rejects.
         pendingRetryRef.current = false;
         handleScanStagedRef.current();
@@ -1345,7 +1345,7 @@ export default function ScanScreen() {
         return [...prev, photo.uri];
       });
     } catch {
-      showToast("Couldn't capture photo — try again");
+      showToast("Couldn't capture photo, try again");
     }
   }, [cameraReady, scanning, isPro, showToast, stagedPhotos.length]);
 
@@ -1529,7 +1529,7 @@ export default function ScanScreen() {
     // Distinct-match floor: without a brand signal, fewer than 3 matched tokens
     // shouldn't clear DUPLICATE_SCORE_THRESHOLD. Common false-positive shapes are
     // 2-token overlaps like "black cotton" (sweater vs. hoodie), "vintage floral"
-    // (maxi vs. sundress), "blue denim" (jacket vs. vest) — same color/material
+    // (maxi vs. sundress), "blue denim" (jacket vs. vest), same color/material
     // family across unrelated items. Brand match is the lone exception since brand
     // identity is uniquely distinctive within a category. Same-photo rescans still
     // catch via the byte-exact image-size fallback, and snapshot mining accumulates
@@ -1862,7 +1862,7 @@ export default function ScanScreen() {
       setActiveSessionSnapshotId(snap.id);
     } catch (err) {
       if (__DEV__) console.log('[Handmade rescan] error:', err);
-      showToast(isOverloadError(err) ? 'AI is busy — try again in a moment' : "Couldn't rescan — try again");
+      showToast(isOverloadError(err) ? 'AI is busy, try again in a moment' : "Couldn't rescan, try again");
     } finally {
       setRescanningHandmade(false);
     }
@@ -1891,7 +1891,7 @@ export default function ScanScreen() {
       if (updated.correction) showToast(toastForCorrection(updated.correction));
     } catch (err) {
       if (__DEV__) console.log('[Wrong rescan] error:', err);
-      showToast(isOverloadError(err) ? 'AI is busy — try again in a moment' : "Couldn't rescan — try again");
+      showToast(isOverloadError(err) ? 'AI is busy, try again in a moment' : "Couldn't rescan, try again");
     } finally {
       setRescanningWrong(false);
     }
@@ -1908,7 +1908,7 @@ export default function ScanScreen() {
       );
       setResult((prev) => prev ? { ...prev, upcycle: newUpcycle } : null);
     } catch {
-      showToast("Couldn't refresh — try again");
+      showToast("Couldn't refresh, try again");
     } finally {
       setRefreshingUpcycle(false);
     }
@@ -1929,7 +1929,7 @@ export default function ScanScreen() {
 
   const openSavedItem = useCallback((saved: SavedScanItem) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    // Cancel any in-flight scan/rescan first — otherwise its setResult lands
+    // Cancel any in-flight scan/rescan first, otherwise its setResult lands
     // a moment later and clobbers the saved item we're loading.
     abortControllerRef.current?.abort();
     abortControllerRef.current = null;
@@ -2530,7 +2530,7 @@ export default function ScanScreen() {
                         </View>
                         <Text style={styles.historyRowTime}>{formatSnapshotTime(snapshot.createdAt)}</Text>
                         <View style={styles.historyRowMetaRow}>
-                          <Text style={styles.historyRowProfit}>{snapshot.profit || '—'}</Text>
+                          <Text style={styles.historyRowProfit}>{snapshot.profit || ','}</Text>
                           {snapshot.confidence ? (
                             <>
                               <Text style={styles.historyRowDot}> · </Text>

@@ -130,7 +130,7 @@ export default function HaulDetailScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert(
       'Remove from haul?',
-      `"${item.name}" stays in your vault — it just won't be part of this haul.`,
+      `"${item.name}" stays in your vault, it just won't be part of this haul.`,
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Remove', style: 'destructive', onPress: () => {

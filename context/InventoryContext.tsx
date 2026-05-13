@@ -152,7 +152,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
             setHaulTitlesState(clean);
           }
         }
-      } catch { /* ignore — titles are non-critical */ }
+      } catch { /* ignore, titles are non-critical */ }
       setHydrated(true);
     })();
   }, []);

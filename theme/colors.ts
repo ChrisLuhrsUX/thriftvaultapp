@@ -41,7 +41,7 @@ export const darkColors = {
   /** Vintage blue (logo fabric). Primary UI: buttons, tabs, active states. */
   vintageBlue: '#6ECEC8',
   vintageBlueLight: '#2A4F4D',
-  /** Same dark teal as light mode — stays dark so white onPrimary text passes AA (4.63:1). */
+  /** Same dark teal as light mode, stays dark so white onPrimary text passes AA (4.63:1). */
   vintageBlueDark: '#3F7B77',
   vintageBlueDeep: '#2E6A66',
   profit: '#6BBF62',

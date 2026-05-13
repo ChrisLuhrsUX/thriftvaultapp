@@ -188,20 +188,20 @@ if (id === 'subscription') {
           <View style={styles.row}>
             <AppIcon name="wallet-outline" size={22} color={theme.colors.mauve} />
             <Text style={styles.rowLabel}>Total Invested</Text>
-            <Text style={styles.rowValue}>{stats.invested > 0 ? formatMoney(stats.invested) : '—'}</Text>
+            <Text style={styles.rowValue}>{stats.invested > 0 ? formatMoney(stats.invested) : ','}</Text>
           </View>
           <View style={styles.row}>
             <AppIcon name="cash-outline" size={22} color={theme.colors.profit} />
             <Text style={styles.rowLabel}>Total Profit</Text>
             <Text style={[styles.rowValue, stats.soldCount > 0 && styles.profitGreen]}>
-              {stats.soldCount > 0 ? formatMoneyWithSign(stats.totalProfit) : '—'}
+              {stats.soldCount > 0 ? formatMoneyWithSign(stats.totalProfit) : ','}
             </Text>
           </View>
           <View style={styles.row}>
             <AppIcon name="trending-up-outline" size={22} color={theme.colors.profit} />
             <Text style={styles.rowLabel}>Best Single Flip</Text>
             <Text style={[styles.rowValue, stats.soldCount > 0 && styles.profitGreen]}>
-              {stats.soldCount > 0 ? formatMoneyWithSign(stats.bestFlip) : '—'}
+              {stats.soldCount > 0 ? formatMoneyWithSign(stats.bestFlip) : ','}
             </Text>
           </View>
           <View style={styles.row}>
@@ -223,7 +223,7 @@ if (id === 'subscription') {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Settings</Text>
-          {/* Dark mode toggle hidden — current dark theme needs more polish before re-exposing.
+          {/* Dark mode toggle hidden, current dark theme needs more polish before re-exposing.
               <View style={styles.appearanceRow}>
                 <View style={styles.appearanceRowLeft}>
                   <AppIcon name="contrast-outline" size={22} color={theme.colors.mauve} />

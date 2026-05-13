@@ -1,4 +1,4 @@
-# Security Audit — 2026-04-30
+# Security Audit, 2026-04-30
 
 Snapshot of safety and security findings against the ThriftVault codebase, plus the fixes applied in the same session. Pair this with [SAFETY.md](SAFETY.md) (agent guardrails + recovery playbooks). This doc is a point-in-time audit; rerun the methodology at the bottom before any major release or whenever the threat surface changes (new dependency, new key, new repo visibility).
 
@@ -8,11 +8,11 @@ Snapshot of safety and security findings against the ThriftVault codebase, plus 
 |----------|---------|--------|
 | Critical | Personal Apple ID email in committed `eas.json` on a public repo | Fixed (HEAD scrubbed; history retained) |
 | Critical | `CLAUDE.md` + `SAFETY.md` leak D-U-N-S, Apple support correspondence, LLC details | Fixed (HEAD scrubbed; history retained) |
-| High | `EXPO_PUBLIC_ANTHROPIC_API_KEY` ships in IPA; Anthropic does not support bundle-ID scoping | User action — set spend cap in `console.anthropic.com` |
-| High | `EXPO_PUBLIC_GEMINI_API_KEY` may not be bundle-ID-scoped | User action — verify in Google Cloud Console |
+| High | `EXPO_PUBLIC_ANTHROPIC_API_KEY` ships in IPA; Anthropic does not support bundle-ID scoping | User action, set spend cap in `console.anthropic.com` |
+| High | `EXPO_PUBLIC_GEMINI_API_KEY` may not be bundle-ID-scoped | User action, verify in Google Cloud Console |
 | Medium | `.claude/settings.json` denied `npx`/`bunx` only; `pnpm`/`yarn` variants walked the fence | Fixed |
 | Medium | `Sentry.init` did not explicitly set `sendDefaultPii: false`; no breadcrumb scrubber | Fixed |
-| Medium | `package.json` `backup` script uses `git add -A` (catches anything ungitignored) | Open — pre-commit secret scan recommended |
+| Medium | `package.json` `backup` script uses `git add -A` (catches anything ungitignored) | Open, pre-commit secret scan recommended |
 | Low | `EXPO_PUBLIC_SENTRY_DSN` not configured | Fixed (wired 2026-05-03) |
 
 ## Repo state at audit time
@@ -22,7 +22,7 @@ Snapshot of safety and security findings against the ThriftVault codebase, plus 
 - Default branch: `main`
 - Stars / forks / PRs: 0 / 0 / 0
 
-The public repo with zero audience is the deciding factor on most findings below — there is no community pressure to keep it public, so flipping to private resolves the historical-leak class of findings in one click. See [Recommendation: repo visibility](#recommendation-repo-visibility).
+The public repo with zero audience is the deciding factor on most findings below, there is no community pressure to keep it public, so flipping to private resolves the historical-leak class of findings in one click. See [Recommendation: repo visibility](#recommendation-repo-visibility).
 
 ## Critical findings
 
@@ -40,18 +40,18 @@ The repo is public. The email is the Apple Developer account login. Combined wit
 
 **Fix applied:** field removed from `eas.json`. EAS prompts at submit time, or set `EXPO_APPLE_ID` in shell / EAS Secret.
 
-**Residual risk:** the email is still on every commit's author line (`git log -1 --format="%ae"` returns it). Removing from HEAD reduces casual exposure; full removal requires either history rewrite (denied by guardrails — correctly) or repo-private.
+**Residual risk:** the email is still on every commit's author line (`git log -1 --format="%ae"` returns it). Removing from HEAD reduces casual exposure; full removal requires either history rewrite (denied by guardrails, correctly) or repo-private.
 
 ### 2. Business-state leaks in `CLAUDE.md` and `SAFETY.md`
 
-**Before — `CLAUDE.md` Business State section listed:**
+**Before, `CLAUDE.md` Business State section listed:**
 
 - D-U-N-S 145002422
 - Specific Apple Dev Support correspondence (dates, content, founder confirmation, individual-to-org conversion in flight)
 - LLC formation date, signing block, local Windows path `C:\Users\Chris\Downloads\ThriftVault\ThriftVault_LLC\`
 - Annual overhead numbers and tax structure
 
-**Before — `SAFETY.md` Backup discipline table listed:**
+**Before, `SAFETY.md` Backup discipline table listed:**
 
 - D-U-N-S 145002422 (same number)
 
@@ -104,7 +104,7 @@ Sentry.init({
 });
 ```
 
-`@sentry/react-native` v7 defaults `sendDefaultPii` to `false`, so the prior config was *currently* fine — but the default has flipped between major versions before. UI breadcrumbs (`ui.input`, `ui.click`) can also capture text from `<TextInput>` fields where users type notes, store names, item names — none of which should leave the device.
+`@sentry/react-native` v7 defaults `sendDefaultPii` to `false`, so the prior config was *currently* fine, but the default has flipped between major versions before. UI breadcrumbs (`ui.input`, `ui.click`) can also capture text from `<TextInput>` fields where users type notes, store names, item names, none of which should leave the device.
 
 **Fix applied:** explicit `sendDefaultPii: false` and a `beforeBreadcrumb` hook that redacts `ui.input` and `ui.click` breadcrumb message and value fields:
 
@@ -116,7 +116,7 @@ Sentry.init({
   tracesSampleRate: __DEV__ ? 0 : 0.2,
   sendDefaultPii: false,
   beforeBreadcrumb: (breadcrumb) => {
-    // Strip user-typed text from UI breadcrumbs — notes/store/name fields can contain PII.
+    // Strip user-typed text from UI breadcrumbs, notes/store/name fields can contain PII.
     if (breadcrumb.category === 'ui.input' || breadcrumb.category === 'ui.click') {
       if (breadcrumb.message) breadcrumb.message = '[redacted]';
       if (breadcrumb.data && 'value' in breadcrumb.data) breadcrumb.data.value = '[redacted]';
@@ -139,7 +139,7 @@ Sentry.init({
 ```bash
 # .git/hooks/pre-commit (chmod +x)
 if git diff --cached --no-color | grep -E 'AIza[0-9A-Za-z_-]{35}|sk-ant-[A-Za-z0-9_-]+|sk-proj-[A-Za-z0-9_-]+|appl_[A-Za-z0-9]+|goog_[A-Za-z0-9]+'; then
-  echo "Refusing to commit — likely API key in staged diff"
+  echo "Refusing to commit, likely API key in staged diff"
   exit 1
 fi
 ```
@@ -150,13 +150,13 @@ fi
 
 ### 8. `EXPO_PUBLIC_SENTRY_DSN` not in `.env`
 
-Crash reporting was inert without the DSN — visibility issue, not a security issue. **Resolved 2026-05-03:** DSN added to `.env`, Metro restarted, smoke-tested with a temporary `Sentry.captureException` row on Profile (added and removed in the same session). Native crash reporting activates after prebuild.
+Crash reporting was inert without the DSN, visibility issue, not a security issue. **Resolved 2026-05-03:** DSN added to `.env`, Metro restarted, smoke-tested with a temporary `Sentry.captureException` row on Profile (added and removed in the same session). Native crash reporting activates after prebuild.
 
-### 9. Confirmed clean — listed for the record
+### 9. Confirmed clean, listed for the record
 
 These are not findings; they are paths I verified are safe so a future audit doesn't redo the same work.
 
-- `.env` is gitignored (`.gitignore:47`) and was never committed. Verified `git log -S"AIza"` and `git log -S"sk-ant"` against full history — both empty.
+- `.env` is gitignored (`.gitignore:47`) and was never committed. Verified `git log -S"AIza"` and `git log -S"sk-ant"` against full history, both empty.
 - No `AsyncStorage.clear()` anywhere in the codebase. Only safe per-key `removeItem` calls for `tv_pending_scan` (transient) and `tv_prompt_dismissed_${id}` (per-item flag).
 - `setInventory([])` only called from the init-when-empty path in `InventoryContext.tsx`. No bulk-clear paths.
 - `dangerouslySetInnerHTML` in `app/+html.tsx:22` injects a static CSS string with no interpolation.
@@ -164,7 +164,7 @@ These are not findings; they are paths I verified are safe so a future audit doe
 - `Math.random()` for snapshot IDs in `app/(tabs)/scan.tsx:1293` is local-only and timestamp-prefixed; not a security path.
 - No `eval`, `new Function`, `setTimeout(string)`, or other dynamic-code paths.
 - `app.json` permission strings are accurate. `ITSAppUsesNonExemptEncryption: false` is correct for HTTPS-only with no custom crypto.
-- Privacy manifest declares only `CA92.1` (UserDefaults for AsyncStorage) — accurate, no over-disclosure.
+- Privacy manifest declares only `CA92.1` (UserDefaults for AsyncStorage), accurate, no over-disclosure.
 - No `EXPO_PUBLIC_*` key (other than DSN) is used in non-bundle code paths where a non-public alternative exists.
 
 ## Recommendation: repo visibility
@@ -175,7 +175,7 @@ The most leverage available right now: **make the repo private until launch.**
 |--------|----------|--------|
 | Repo private | Findings 1 + 2 historical leaks; finding 3/4 reduced exposure | One click, reversible |
 | Scrub HEAD only (done) | Findings 1 + 2 going forward | Done |
-| Force-push history rewrite | Findings 1 + 2 fully | Denied by guardrails — manual user op only |
+| Force-push history rewrite | Findings 1 + 2 fully | Denied by guardrails, manual user op only |
 
 Path: GitHub repo → Settings → General → Danger Zone → Change visibility → Make private. Re-public when launch announcement is ready and any historical leaks have been rotated/staled (Apple Dev correspondence is time-bounded; D-U-N-S doesn't change but is publicly searchable anyway).
 
@@ -186,7 +186,7 @@ cd thriftvaultapp
 git config user.email "46426899+ChrisLuhrsUX@users.noreply.github.com"
 ```
 
-(Existing commits stay as-is. Run inside the repo — local config only, does not touch global.)
+(Existing commits stay as-is. Run inside the repo, local config only, does not touch global.)
 
 ## Action checklist
 
@@ -199,7 +199,7 @@ Audit body unchanged from 2026-04-30; checklist refreshed 2026-05-05.
 - [x] Add `pnpm`, `pnpx`, `yarn`, `yarn dlx` deny matchers to `.claude/settings.json` for `expo prebuild` and all destructive migration tools
 - [x] Add explicit `sendDefaultPii: false` and `beforeBreadcrumb` PII scrubber to `Sentry.init`
 
-### Open — user action
+### Open, user action
 - [ ] Decide on repo visibility (private until launch is the recommended default)
 - [ ] Set Anthropic per-key spend cap at `console.anthropic.com`
 - [ ] Verify Gemini key has iOS bundle-ID restriction `com.thriftvault.app` in Google Cloud Console
@@ -207,7 +207,7 @@ Audit body unchanged from 2026-04-30; checklist refreshed 2026-05-05.
 - [x] Wire `EXPO_PUBLIC_SENTRY_DSN` (done 2026-05-03; native crash reporting activates after prebuild)
 - [ ] Optional: add `.git/hooks/pre-commit` secret-scan grep, or move to Husky post-launch
 
-## Methodology — rerun before each major release
+## Methodology, rerun before each major release
 
 What this audit checked. Save this list; rerun the same checks before TestFlight, before each App Store submission, and after any new dependency or new EAS Secret.
 
@@ -249,7 +249,7 @@ What this audit checked. Save this list; rerun the same checks before TestFlight
 
 ## See also
 
-- [SAFETY.md](SAFETY.md) — agent guardrails, recovery playbooks, code-level destructive patterns
-- [LAUNCH_OPS.md](LAUNCH_OPS.md) — pre-launch checklist (Sentry DSN wiring lives there)
-- [DEV_OPS.md](DEV_OPS.md) — secrets management, build-time vs runtime keys
-- [`.claude/settings.json`](.claude/settings.json) — hard-enforced deny/ask matchers
+- [SAFETY.md](SAFETY.md), agent guardrails, recovery playbooks, code-level destructive patterns
+- [LAUNCH_OPS.md](LAUNCH_OPS.md), pre-launch checklist (Sentry DSN wiring lives there)
+- [DEV_OPS.md](DEV_OPS.md), secrets management, build-time vs runtime keys
+- [`.claude/settings.json`](.claude/settings.json), hard-enforced deny/ask matchers

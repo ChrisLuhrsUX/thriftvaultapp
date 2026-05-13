@@ -1,4 +1,4 @@
-# App Store Screenshots — Step-by-Step
+# App Store Screenshots, Step-by-Step
 
 ## Required Sizes
 
@@ -28,7 +28,7 @@
 - Use real-looking thrift photos (your own inventory or styled flatlays)
 
 ### 2. Capture raw screenshots
-- Run on iPhone simulator (6.7" — iPhone 15 Pro Max in Xcode) or real device
+- Run on iPhone simulator (6.7", iPhone 15 Pro Max in Xcode) or real device
 - Navigate to each screen listed above and screenshot
 - For scan result: trigger a real Gemini scan or mock the result state
 - Capture in **light mode** (cream background photographs better for App Store)
@@ -42,7 +42,7 @@
 - **Top ~25%**: Headline text (Playfair Display Bold, 80-100px, charcoal `#3C2F2F`)
 - **Bottom ~75%**: Device screenshot, slightly scaled down with rounded corners
 - Optional: subtle drop shadow behind the screenshot for depth
-- No device mockup frame needed — raw screenshot with rounded corners is cleaner
+- No device mockup frame needed, raw screenshot with rounded corners is cleaner
 
 ### 5. Typography in Figma
 - Headlines: Playfair Display Bold
@@ -59,10 +59,10 @@
 - App Store Connect > App Information > Screenshots
 - Upload 6.7" set under "iPhone 6.7" Display"
 - Upload 6.5" set under "iPhone 6.5" Display"
-- Drag to reorder if needed — order matters, #1 is hero
+- Drag to reorder if needed, order matters, #1 is hero
 
 ## Tips
-- Screenshot #1 is what people see in search results — make it the most compelling
+- Screenshot #1 is what people see in search results, make it the most compelling
 - Keep all 8 frames visually consistent (same background, same text position, same scale)
-- Don't crowd the frame — whitespace sells
-- Apple rejects screenshots with misleading content — show real app UI only
+- Don't crowd the frame, whitespace sells
+- Apple rejects screenshots with misleading content, show real app UI only

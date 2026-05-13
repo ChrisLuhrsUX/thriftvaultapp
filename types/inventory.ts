@@ -44,7 +44,7 @@ export interface ItemScanSnapshot {
   upcycle?: string[];
   /** Authenticity checks for luxury/designer items the buyer should verify. */
   authFlags?: string[];
-  /** Red flags — prominent warnings (AI prints, etc). */
+  /** Red flags, prominent warnings (AI prints, etc). */
   redFlags?: string[];
   /** True when AI saw a transformation pair: cover photo shows custom work, another staged photo shows the plain base. */
   beforeAfterDetected?: boolean;
@@ -98,7 +98,7 @@ export interface ScanScenario {
   authFlags?: string[];
   /** Red flags for AI-generated prints, suspicious items. Always shown prominently. */
   redFlags?: string[];
-  /** Confidence in resale pricing — low means sparse comps. */
+  /** Confidence in resale pricing, low means sparse comps. */
   confidence?: 'high' | 'medium' | 'low';
   /** Detected item category. */
   category?: ItemCategory;

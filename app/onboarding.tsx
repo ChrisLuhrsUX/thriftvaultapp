@@ -50,7 +50,7 @@ export default function OnboardingScreen() {
     await AsyncStorage.setItem(ONBOARDING_KEY, '1');
     Alert.alert(
       'Your data stays on this device',
-      'Your vault is stored locally — no account required. AI scan needs internet, but everything else works offline. Uninstalling the app will permanently delete your vault.',
+      'Your vault is stored locally, no account required. AI scan needs internet, but everything else works offline. Uninstalling the app will permanently delete your vault.',
       [{ text: 'Got it', onPress: () => router.replace('/(tabs)') }]
     );
   }, [router]);

@@ -74,7 +74,7 @@ function buildShareMessage(item: Item): string {
     return `Sold this flip: ${name} for ${formatMoney(Number(item.soldPrice))}. Tracked with ThriftVault.`;
   }
   const resale = Number(item.resale) || 0;
-  return `Thrift find: ${name} — targeting ${formatMoney(resale)} resale. Track your flips with ThriftVault.`;
+  return `Thrift find: ${name}, targeting ${formatMoney(resale)} resale. Track your flips with ThriftVault.`;
 }
 
 function isUserCanceledShareError(e: unknown): boolean {
@@ -159,7 +159,7 @@ export default function DetailScreen() {
 
   const handleScrollDismissKeyboard = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const y = e.nativeEvent.contentOffset.y;
-    // Only dismiss when user scrolls back UP (y decreasing) — this is intentional
+    // Only dismiss when user scrolls back UP (y decreasing), this is intentional
     // navigation away from the field. Never dismiss on downward scroll, which is
     // what happens when the view auto-scrolls to bring a focused input into view.
     if (y < lastScrollYRef.current - 8) {
@@ -417,7 +417,7 @@ export default function DetailScreen() {
     const snapshot = getActiveSnapshot(item);
     const photoUri = snapshot?.sourceImageUri || snapshot?.sourceImageUris?.[0] || item.img;
     if (!photoUri) {
-      // No photo to rescan — just flag the snapshot
+      // No photo to rescan, just flag the snapshot
       if (snapshot) {
         const updated = item.scanSnapshots?.map((s) =>
           s.id === snapshot.id ? { ...s, isCustom: true } : s
@@ -455,7 +455,7 @@ export default function DetailScreen() {
       const changes = { scanSnapshots: nextSnapshots, activeScanSnapshotId: newSnapshot.id, ...resaleUpdate, ...nameUpdate };
       update(changes);
       updateItem(item.id, changes);
-      // Don't reset dismissed states — isCustom:true on the new snapshot shows the pill
+      // Don't reset dismissed states, isCustom:true on the new snapshot shows the pill
       // instead of the prompt. Preserve wrongScan dismissal so it doesn't reappear.
       if (wrongScanDismissed || redFlagPromptDismissed || redFlagDismissed) {
         AsyncStorage.setItem(`tv_prompt_dismissed_${item.id}`, JSON.stringify({
@@ -466,7 +466,7 @@ export default function DetailScreen() {
         }));
       }
     } catch {
-      showToast("Couldn't rescan — try again");
+      showToast("Couldn't rescan, try again");
     } finally {
       setRescanningHandmade(false);
     }
@@ -528,7 +528,7 @@ export default function DetailScreen() {
       AsyncStorage.removeItem(`tv_prompt_dismissed_${item.id}`);
       if (result.correction) showToast(toastForCorrection(result.correction));
     } catch {
-      showToast("Couldn't rescan — try again");
+      showToast("Couldn't rescan, try again");
     } finally {
       setRescanningWrong(false);
     }
@@ -551,7 +551,7 @@ export default function DetailScreen() {
       update({ scanSnapshots: updatedSnapshots });
       updateItem(item.id, { scanSnapshots: updatedSnapshots });
     } catch {
-      showToast("Couldn't refresh — try again");
+      showToast("Couldn't refresh, try again");
     } finally {
       setRefreshingUpcycle(false);
     }
@@ -587,7 +587,7 @@ export default function DetailScreen() {
     setItem((prev) => prev ? { ...prev, status: 'sold', soldPrice } : null);
     setSoldStr(String(soldPrice));
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    showToast(`Marked sold at ${formatMoney(soldPrice)} — tap to edit`);
+    showToast(`Marked sold at ${formatMoney(soldPrice)}, tap to edit`);
   }, [item, updateItem, showToast]);
 
   const executeAddPhoto = useCallback(
@@ -1232,7 +1232,7 @@ export default function DetailScreen() {
                         <View style={styles.insightsAuthRows}>
                           <Text style={styles.insightsAuthResellerWarning}>
                             <Text style={styles.insightsAuthResellerBold}>Reselling this? </Text>
-                            Get it professionally authenticated first. These estimates are for personal reference only — not an authenticity guarantee.
+                            Get it professionally authenticated first. These estimates are for personal reference only, not an authenticity guarantee.
                           </Text>
                           {activeSnapshot.authFlags.map((flag, i) => (
                             <View key={i} style={styles.insightsAuthRow}>
@@ -1587,7 +1587,7 @@ export default function DetailScreen() {
                 <Text style={styles.itemMenuItemText}>Move to Flips</Text>
               </Pressable>
             )}
-            {/* Share button — not yet wired up
+            {/* Share button, not yet wired up
             <Pressable
               style={styles.itemMenuItem}
               onPress={() => {
@@ -1627,7 +1627,7 @@ export default function DetailScreen() {
             style={[styles.historyCard, { transform: [{ translateY: historySheetTranslateY }] }]}
           >
             <Pressable onPress={(e) => e.stopPropagation()} style={styles.historySheetInner}>
-            {/* Drag handle — only this area triggers swipe-to-dismiss */}
+            {/* Drag handle, only this area triggers swipe-to-dismiss */}
             <View style={styles.historyDragArea} {...historySheetPanResponder.panHandlers}>
               <View style={styles.historyHandle} />
             </View>
@@ -1665,7 +1665,7 @@ export default function DetailScreen() {
                         )}
                       </View>
                       <View style={styles.historyRowMetaRow}>
-                        <Text style={[styles.historyRowProfit]}>{snapshot.profit || '—'}</Text>
+                        <Text style={[styles.historyRowProfit]}>{snapshot.profit || ','}</Text>
                         {snapshot.confidence ? (
                           <>
                             <Text style={styles.historyRowDot}> · </Text>

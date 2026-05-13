@@ -143,7 +143,7 @@ const HaulCard = React.memo(function HaulCard({
             <Text style={styles.haulCaptionLine} numberOfLines={1}>
               {haul.date}
               {storesLabel ? ` · ${storesLabel}` : ''}
-              {/* Profit hidden — uncomment to restore.
+              {/* Profit hidden, uncomment to restore.
               {haul.profit > 0 ? (
                 <Text style={styles.haulCaptionProfit}> · {formatMoneyWithSign(haul.profit)} profit</Text>
               ) : null}
@@ -153,11 +153,11 @@ const HaulCard = React.memo(function HaulCard({
         ) : (
           <>
             <Text style={styles.haulDate}>{haul.date}</Text>
-            {/* Profit hidden — outer condition narrowed from (!!storesLabel || haul.profit > 0) to just !!storesLabel; restore both when uncommenting profit. */}
+            {/* Profit hidden, outer condition narrowed from (!!storesLabel || haul.profit > 0) to just !!storesLabel; restore both when uncommenting profit. */}
             {!!storesLabel && (
               <Text style={styles.haulCaptionLine} numberOfLines={2}>
                 {storesLabel || ''}
-                {/* Profit hidden — uncomment to restore.
+                {/* Profit hidden, uncomment to restore.
                 {haul.profit > 0 ? (
                   <Text style={styles.haulCaptionProfit}>{storesLabel ? ' · ' : ''}{formatMoneyWithSign(haul.profit)} profit</Text>
                 ) : null}
@@ -242,7 +242,7 @@ const ItemCard = React.memo(function ItemCard({
         </View>
       )}
       <Text style={styles.cardName} numberOfLines={2}>{item.name}</Text>
-      {/* Profit subtext hidden — uncomment to restore.
+      {/* Profit subtext hidden, uncomment to restore.
       {!isCloset && (
         <Text style={[styles.cardProfit, item.status === 'sold' && styles.cardProfitSold]}>{profitLabel}</Text>
       )}

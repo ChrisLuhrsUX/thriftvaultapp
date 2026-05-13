@@ -1,14 +1,14 @@
-# Share-as-Image Card — Design Plan (9:16 story format)
+# Share-as-Image Card, Design Plan (9:16 story format)
 
 **Status:** Approved 2026-05-08. Gated on RevenueCat prebuild milestone (MVP.md step 8). Implementation pairs with MVP.md step 10.
 
 ## Context
 
-ThriftVault's existing share button (commented out at `app/detail.tsx:1590-1601`) shares text only via `buildShareMessage`. For a thrift app riding Depop / TikTok / Pinterest culture, text-alone is weak — these communities share visually. This upgrades to a composed 9:16 image card (Instagram Stories / TikTok / Reels native canvas) so users can share their flips, sales, and closet pieces as scroll-stopping images while keeping ThriftVault's branding intact.
+ThriftVault's existing share button (commented out at `app/detail.tsx:1590-1601`) shares text only via `buildShareMessage`. For a thrift app riding Depop / TikTok / Pinterest culture, text-alone is weak, these communities share visually. This upgrades to a composed 9:16 image card (Instagram Stories / TikTok / Reels native canvas) so users can share their flips, sales, and closet pieces as scroll-stopping images while keeping ThriftVault's branding intact.
 
 The composed card requires `react-native-view-shot` (native module, not in Expo Go SDK 54). Per CLAUDE.md and POST_LAUNCH.md, prebuild is deliberately deferred until paired with RevenueCat. This feature ships alongside RevenueCat once Expo Go is dropped and dev client is in use.
 
-**Outcome:** a Share menu item on item detail opens a preview sheet showing a designed 1080×1920 card (photo top 65%, info block bottom 35% on cream, ThriftVault watermark bottom-right). Three intent variants — active flip / sold flip / closet — each with appropriate copy and money handling. User confirms → native share sheet receives a JPG. Web stays on the existing text-share path.
+**Outcome:** a Share menu item on item detail opens a preview sheet showing a designed 1080×1920 card (photo top 65%, info block bottom 35% on cream, ThriftVault watermark bottom-right). Three intent variants, active flip / sold flip / closet, each with appropriate copy and money handling. User confirms → native share sheet receives a JPG. Web stays on the existing text-share path.
 
 ## Prerequisites
 
@@ -17,14 +17,14 @@ The composed card requires `react-native-view-shot` (native module, not in Expo 
 
 ## What's already wired (reuse, don't rewrite)
 
-- `app/detail.tsx:67-78` `buildShareMessage(item)` — 3 intent text variants. Keep as text fallback.
-- `app/detail.tsx:80-99` `isUserCanceledShareError(e)` — handles iOS/Android cancel substrings. Reuse for both image + text paths.
-- `app/detail.tsx:688-726` `handleShare()` — native + web wiring. Extend (don't rewrite) so web stays on text path and native opens the new preview sheet.
+- `app/detail.tsx:67-78` `buildShareMessage(item)`, 3 intent text variants. Keep as text fallback.
+- `app/detail.tsx:80-99` `isUserCanceledShareError(e)`, handles iOS/Android cancel substrings. Reuse for both image + text paths.
+- `app/detail.tsx:688-726` `handleShare()`, native + web wiring. Extend (don't rewrite) so web stays on text path and native opens the new preview sheet.
 - `app/detail.tsx:1590-1601` Share button UI (commented). Uncomment + add no-photo guard.
 - `components/PaywallModal.tsx:48-99` modal animation: `animationType="none"` + `Animated.spring(translateY, { tension: 55, friction: 11 })` enter; `Animated.timing(toValue: 700, duration: 240)` dismiss; pan dismiss at `g.dy > 80 || g.vy > 0.5`. Mirror exactly for the preview sheet.
-- `utils/currency.ts` `formatMoney`, `formatMoneyWithSign`, `roundDisplayPrice` — reuse for card numbers.
+- `utils/currency.ts` `formatMoney`, `formatMoneyWithSign`, `roundDisplayPrice`, reuse for card numbers.
 - Theme tokens: `cream`, `charcoal`, `vintageBlueDark`, `profit`, `mauve`, `surfaceVariant`. Fonts (`PlayfairDisplay_700Bold`, `DMSans_400Regular`, `DMSans_600SemiBold`) loaded globally in `app/_layout.tsx:46-51`.
-- `assets/logo/thriftvault_logo_v2.png` — watermark source.
+- `assets/logo/thriftvault_logo_v2.png`, watermark source.
 
 ## New files (4)
 
@@ -35,16 +35,16 @@ Forward-ref'd `View` rendering the 1080×1920 card. Mounted off-screen by parent
 **Props:** `{ item: Item; variant: 'activeFlip' | 'soldFlip' | 'closet' }`
 
 **Layout:**
-- Container `View` — `width: 1080, height: 1920, backgroundColor: theme.colors.cream`. (Off-screen positioning is parent's responsibility, not ShareCard's.)
+- Container `View`, `width: 1080, height: 1920, backgroundColor: theme.colors.cream`. (Off-screen positioning is parent's responsibility, not ShareCard's.)
 - **Photo region** (top): `width: 1080, height: 1248` (65%). `<Image source={{ uri: photoUri }} resizeMode="cover" />` full-bleed.
 - **Info block** (bottom 35%): `padding: 80` top/sides, `paddingBottom: 64`. Contents:
-  - **Name** — Playfair 700, `fontSize: 72`, `lineHeight: 80`, `color: charcoal`, `numberOfLines: 2`, `ellipsizeMode: 'tail'`.
-  - **Tag chips row** (`marginTop: 32`) — small DMSans 600 28px chips on `surfaceVariant` bg, `radius.full`. Active/sold flip = `[Category] [Store]`. Closet = `[Category]` only.
+  - **Name**, Playfair 700, `fontSize: 72`, `lineHeight: 80`, `color: charcoal`, `numberOfLines: 2`, `ellipsizeMode: 'tail'`.
+  - **Tag chips row** (`marginTop: 32`), small DMSans 600 28px chips on `surfaceVariant` bg, `radius.full`. Active/sold flip = `[Category] [Store]`. Closet = `[Category]` only.
   - **Variant block** (`marginTop: 24`):
     - `activeFlip`: hero price `formatMoney(roundDisplayPrice(item.resale))` in DMSans 600 88px `vintageBlueDark`; caption "target resale" DMSans 400 28px `mauve`.
     - `soldFlip`: hero price `formatMoney(item.soldPrice)` in DMSans 600 88px `profit`; caption `"sold on " + item.platform` DMSans 400 28px `mauve`. Profit pill `formatMoneyWithSign(soldPrice - paid)` only when profit > 0 (losses stay private).
     - `closet`: sub line "From my closet" DMSans 400 36px `charcoalSoft`. **No money rendered.** (Matches existing text composer at `detail.tsx:71`.)
-  - **Watermark** — `position: absolute, bottom: 64, right: 80, opacity: 0.85`. Logo `<Image source={require('@/assets/logo/thriftvault_logo_v2.png')} style={{ width: 56, height: 56 }} />` + "ThriftVault" Playfair 700 32px `mauve`.
+  - **Watermark**, `position: absolute, bottom: 64, right: 80, opacity: 0.85`. Logo `<Image source={require('@/assets/logo/thriftvault_logo_v2.png')} style={{ width: 56, height: 56 }} />` + "ThriftVault" Playfair 700 32px `mauve`.
 
 **Inline px sizes (not theme typography tokens):** theme tokens are sized for ~390px UI canvas; the 1080px capture canvas needs ~3× sizes. Adding `displayMega`/`heroPrice` tokens for one consumer = premature abstraction. Inline only inside `ShareCard.tsx` with a top-of-file comment explaining.
 
@@ -52,7 +52,7 @@ Forward-ref'd `View` rendering the 1080×1920 card. Mounted off-screen by parent
 
 ### `components/ShareCardPreviewSheet.tsx`
 
-Bottom sheet that previews the card before share. Recommended over direct-share because (1) capture is async (~100–400ms image preload + render commit) and the sheet animation hides that latency, (2) designer-led app — previewing the artifact builds trust, (3) graceful failure path (text fallback CTA).
+Bottom sheet that previews the card before share. Recommended over direct-share because (1) capture is async (~100–400ms image preload + render commit) and the sheet animation hides that latency, (2) designer-led app, previewing the artifact builds trust, (3) graceful failure path (text fallback CTA).
 
 **Props:**
 ```ts
@@ -70,9 +70,9 @@ Bottom sheet that previews the card before share. Recommended over direct-share 
 **Content:**
 - Drag handle (existing pattern)
 - Title `theme.typography.h2` "Share as image"
-- Card thumbnail — scaled-down `<ShareCard>` via `transform: [{ scale: 0.28 }]` wrapped to ~280×497 portrait, with `shadows.md`
-- Primary CTA "Share image" — `vintageBlueDark` bg, white text, height 56, radius 28. Disabled + `<ActivityIndicator>` while `sharing === true`.
-- Secondary text "Share as text instead" — calls `onShareText` (closes sheet, opens existing native text share).
+- Card thumbnail, scaled-down `<ShareCard>` via `transform: [{ scale: 0.28 }]` wrapped to ~280×497 portrait, with `shadows.md`
+- Primary CTA "Share image", `vintageBlueDark` bg, white text, height 56, radius 28. Disabled + `<ActivityIndicator>` while `sharing === true`.
+- Secondary text "Share as text instead", calls `onShareText` (closes sheet, opens existing native text share).
 
 ### `utils/captureShareCard.ts`
 
@@ -99,7 +99,7 @@ export async function captureShareCard(viewRef: RefObject<View>): Promise<string
 
 ### `utils/shareItemImage.ts`
 
-Orchestrator. No try/catch — callers own user-facing toasts and fallbacks.
+Orchestrator. No try/catch, callers own user-facing toasts and fallbacks.
 
 ```ts
 import * as Sharing from 'expo-sharing';
@@ -147,7 +147,7 @@ export async function shareItemImage(viewRef: RefObject<View>, item: Item): Prom
 
 ### `app/detail.tsx`
 
-**Imports** — add `ShareCard`, `ShareCardPreviewSheet`, the share-orchestrator helpers. Keep `Share` import (line 25) for the text fallback path inside the new flow.
+**Imports**, add `ShareCard`, `ShareCardPreviewSheet`, the share-orchestrator helpers. Keep `Share` import (line 25) for the text fallback path inside the new flow.
 
 **State** (alongside existing `useState`):
 ```ts
@@ -156,14 +156,14 @@ const [sharing, setSharing] = useState(false);
 const shareCardRef = useRef<View>(null);
 ```
 
-**Replace `handleShare` (`688-726`)** — keep `buildShareMessage` and `isUserCanceledShareError` unchanged. New flow:
+**Replace `handleShare` (`688-726`)**, keep `buildShareMessage` and `isUserCanceledShareError` unchanged. New flow:
 
 - Web: keep existing `navigator.share` / clipboard text path verbatim
 - Native: fire `prefetchSharePhoto(getPrimaryPhoto(item))` then `setShareSheetVisible(true)`
 
 **Add two new callbacks:**
-- `handleShareImage` — `await shareItemImage(shareCardRef, item)`. On `isUserCanceledShareError`, close cleanly. On any other error, fall back to existing `Share.share(text)` path. `finally` resets `sharing` + `shareSheetVisible`.
-- `handleShareText` — closes preview, opens native text share via existing `Share.share` pattern.
+- `handleShareImage`, `await shareItemImage(shareCardRef, item)`. On `isUserCanceledShareError`, close cleanly. On any other error, fall back to existing `Share.share(text)` path. `finally` resets `sharing` + `shareSheetVisible`.
+- `handleShareText`, closes preview, opens native text share via existing `Share.share` pattern.
 
 **Uncomment + guard share button (`1590-1601`):**
 ```tsx
@@ -203,11 +203,11 @@ const shareCardRef = useRef<View>(null);
 />
 ```
 
-**`collapsable={false}` is critical** — Android otherwise flattens the wrapper and `captureRef` fails to find a backing native view. Most common view-shot gotcha.
+**`collapsable={false}` is critical**, Android otherwise flattens the wrapper and `captureRef` fails to find a backing native view. Most common view-shot gotcha.
 
 ### `package.json`
 
-After prebuild, run: `npx expo install react-native-view-shot expo-sharing`. Don't pin guessed versions — let Expo resolve SDK 54 / RN 0.81 compatible releases. Both autolink (no `app.json` plugin entries needed).
+After prebuild, run: `npx expo install react-native-view-shot expo-sharing`. Don't pin guessed versions, let Expo resolve SDK 54 / RN 0.81 compatible releases. Both autolink (no `app.json` plugin entries needed).
 
 ## Layout decisions (rationale)
 
@@ -246,10 +246,10 @@ native share sheet → user picks app or cancels
 **Off-screen technique:** `position: 'absolute', top: -10000, left: -10000` (real laid-out painted view, just outside viewport). NOT `opacity: 0` (Android black frame mid-capture) and NOT `display: 'none'` (removes from layout, breaks captureRef).
 
 **Pitfalls handled:**
-- **Font race** — `useFonts` in `_layout.tsx:46-51` already gates all rendering. No extra guard needed.
-- **Image decode race** — `prefetchSharePhoto` fires on Share tap; by the time user taps "Share image" (~1–3s later), http(s) photos have decoded. file:// and content:// decode is instant. If capture fails anyway, text fallback fires.
-- **Layout commit race** — mounting the off-screen card on `shareSheetVisible` flip gives ~250ms of animation cover for layout commit before any tap can land on the CTA.
-- **Memory** — only mount when `shareSheetVisible || sharing`; unmount on close. No 1080×1920 view in memory during normal use.
+- **Font race**, `useFonts` in `_layout.tsx:46-51` already gates all rendering. No extra guard needed.
+- **Image decode race**, `prefetchSharePhoto` fires on Share tap; by the time user taps "Share image" (~1–3s later), http(s) photos have decoded. file:// and content:// decode is instant. If capture fails anyway, text fallback fires.
+- **Layout commit race**, mounting the off-screen card on `shareSheetVisible` flip gives ~250ms of animation cover for layout commit before any tap can land on the CTA.
+- **Memory**, only mount when `shareSheetVisible || sharing`; unmount on close. No 1080×1920 view in memory during normal use.
 
 ## Edge cases
 
@@ -264,7 +264,7 @@ native share sheet → user picks app or cancels
 | Capture failure | Catch in `handleShareImage` falls back to `Share.share(text)`. User still gets a share sheet. |
 | `Sharing.isAvailableAsync() === false` | Orchestrator throws; caller falls back to text. |
 | Long name (50+ chars) | Card name uses `numberOfLines={2}` + `ellipsizeMode: 'tail'`. |
-| Dark mode | Card uses theme tokens — captures dark when user is in dark mode. Acceptable (matches in-app). v2 could force light if needed. |
+| Dark mode | Card uses theme tokens, captures dark when user is in dark mode. Acceptable (matches in-app). v2 could force light if needed. |
 
 ## Critical files
 
@@ -298,7 +298,7 @@ native share sheet → user picks app or cancels
 **Platform matrix:**
 - [ ] iOS dev client: native share sheet opens with image; save-to-camera-roll works; IG handoff works
 - [ ] Android dev client: native share sheet opens with image; IG/TikTok handoff works; no black frame in capture
-- [ ] Web: Share triggers `navigator.share` / clipboard text only — no preview sheet, no regression
+- [ ] Web: Share triggers `navigator.share` / clipboard text only, no preview sheet, no regression
 
 **Cancellation:**
 - [ ] Swipe down preview sheet → no state leak; share button works on next tap
@@ -310,8 +310,8 @@ native share sheet → user picks app or cancels
 - [ ] "Share as text instead" CTA → closes preview, opens native text share
 
 **Visual:**
-- [ ] Card in IG Stories at full screen — typography legible, photo crisp, watermark visible but unobtrusive
-- [ ] Card in TikTok preview — same
+- [ ] Card in IG Stories at full screen, typography legible, photo crisp, watermark visible but unobtrusive
+- [ ] Card in TikTok preview, same
 - [ ] Camera roll save → opens at correct 1080×1920
 - [ ] Light + dark theme cards both render correctly (or decision made to force light)
 

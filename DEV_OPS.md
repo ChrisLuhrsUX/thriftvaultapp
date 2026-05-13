@@ -13,8 +13,8 @@ Semantic versioning: `MAJOR.MINOR.PATCH`. Bumped in `app.json`.
 | Breaking UX change, schema migration | MAJOR | 1.1.0 → 2.0.0 |
 
 Two version fields in `app.json`:
-- **`version`** — user-visible (App Store listing). Bump per the table above.
-- **`ios.buildNumber`** — Apple-internal, monotonic integer. Bump on **every** submission, even resubmits of the same `version`. Apple rejects duplicate build numbers within the same `version`.
+- **`version`**, user-visible (App Store listing). Bump per the table above.
+- **`ios.buildNumber`**, Apple-internal, monotonic integer. Bump on **every** submission, even resubmits of the same `version`. Apple rejects duplicate build numbers within the same `version`.
 
 Tag every public release: `git tag -a v1.0.0 -m "Initial App Store release"` then `git push --tags`.
 
@@ -22,7 +22,7 @@ Tag every public release: `git tag -a v1.0.0 -m "Initial App Store release"` the
 
 Solo dev → `main` is fine. Two rules:
 
-1. **Stop using "backup" commit messages.** Every commit message should answer "what does this enable / fix / change?" — `fix: rescan respects altered-pants $180 ceiling` not `backup`. Recent log will be readable to future-you.
+1. **Stop using "backup" commit messages.** Every commit message should answer "what does this enable / fix / change?", `fix: rescan respects altered-pants $180 ceiling` not `backup`. Recent log will be readable to future-you.
 2. **Tag every release** so you can `git checkout v1.0.0` if you need to reproduce a customer-reported bug from that version.
 
 If you ever bring on collaborators, switch to PR-based: feature branch → PR → squash-merge to `main`.
@@ -33,7 +33,7 @@ Defined in `eas.json`. Use the right profile for the moment:
 
 | Profile | Purpose | Distribution |
 |---------|---------|--------------|
-| `development` | Dev client for local iteration after prebuild | Internal — install on your physical iPhone |
+| `development` | Dev client for local iteration after prebuild | Internal, install on your physical iPhone |
 | `preview` | TestFlight internal testing | Internal testers + you |
 | `production` | App Store submission | Public |
 
@@ -55,7 +55,7 @@ eas submit --profile production --platform ios
 
 ## Secrets management
 
-**Never commit `.env`** (already gitignored — verify before each commit).
+**Never commit `.env`** (already gitignored, verify before each commit).
 
 Local dev → `.env` file at project root with:
 ```
@@ -94,12 +94,12 @@ After each build, verify in Sentry → Settings → Projects → Source Maps tha
 
 Run on a physical iPhone (NOT simulator) before every `eas submit`. Apple will reject anything that doesn't survive these.
 
-- [ ] Cold launch from springboard — no white flash, fonts load, status bar correct
-- [ ] Onboarding (clear `tv_onboarding_done` and re-run) — all 3 slides render, "Get Started" routes to `/(tabs)/`
+- [ ] Cold launch from springboard, no white flash, fonts load, status bar correct
+- [ ] Onboarding (clear `tv_onboarding_done` and re-run), all 3 slides render, "Get Started" routes to `/(tabs)/`
 - [ ] Camera scan: single-shot capture, single-photo result
 - [ ] Camera scan: 2–5 photo multi-shot, auto-scan at 5/5
 - [ ] Library scan: pick 1 photo and 3 photos
-- [ ] Backgrounding mid-scan: lock phone for 5s, unlock — result still arrives
+- [ ] Backgrounding mid-scan: lock phone for 5s, unlock, result still arrives
 - [ ] Cancel mid-scan: button works, no zombie result
 - [ ] Wrong-scan rescan: lower / higher correction toasts fire
 - [ ] Handmade rescan: yes/no prompts, persisted dismissal
@@ -108,7 +108,7 @@ Run on a physical iPhone (NOT simulator) before every `eas submit`. Apple will r
 - [ ] Edit item: rename, change category, mark sold
 - [ ] Delete item: confirm flow, removed from grid
 - [ ] Hauls: create, add to, view detail
-- [ ] Paywall: opens, plan selection works, RevenueCat sandbox purchase succeeds (use a sandbox Apple ID — `appleid.apple.com` → "Sandbox" tab)
+- [ ] Paywall: opens, plan selection works, RevenueCat sandbox purchase succeeds (use a sandbox Apple ID, `appleid.apple.com` → "Sandbox" tab)
 - [ ] Restore Purchases button works
 - [ ] Profile → Privacy + Terms links open `chrisluhrsux.github.io` URLs
 - [ ] Force-quit + relaunch: vault, hauls, scan history all rehydrate
@@ -120,10 +120,10 @@ Use TestFlight before every public submit. Costs nothing, catches what you misse
 1. `eas build --profile preview --platform ios` → wait ~15 min
 2. `eas submit --profile preview --platform ios` (uploads to TestFlight, NOT public)
 3. Wait for processing (~15 min). It appears in App Store Connect → TestFlight.
-4. **Internal testing** (you, friends, family — up to 100 users, no Apple review):
+4. **Internal testing** (you, friends, family, up to 100 users, no Apple review):
    - Add testers' Apple IDs in App Store Connect → Users and Access
    - They install the TestFlight iOS app and accept invite
-5. **External testing** (broader beta — up to 10,000 users, requires beta App Review ~24h):
+5. **External testing** (broader beta, up to 10,000 users, requires beta App Review ~24h):
    - Submit for beta review the first time only; subsequent builds in same version skip review
    - Run external for ≥1 week before public submit on a 1.0.0
    - For patch releases, internal-only is usually sufficient
@@ -174,7 +174,7 @@ npx expo start
 ```
 
 **Post-prebuild (after RevenueCat lands and `npx expo prebuild` runs):**
-- Expo Go **stops working permanently** for this app — it has native modules (`react-native-purchases`) that Expo Go doesn't bundle.
+- Expo Go **stops working permanently** for this app, it has native modules (`react-native-purchases`) that Expo Go doesn't bundle.
 - You'll need a dev client: `eas build --profile development --platform ios` once, install on phone.
 - Then: `npx expo start --dev-client` and the dev client connects.
 - The web preview still works (some features like camera/RevenueCat are stubbed on web).
@@ -192,7 +192,7 @@ eas update --branch production --message "fix: clamp altered-shorts to $120"
 
 **Native / config bug** (permissions, plugins, native dependencies, app.json):
 - Requires full `eas build` + `eas submit` cycle. 1–24h Apple review.
-- If critical: request "Expedited Review" in App Store Connect (use sparingly — they keep score).
+- If critical: request "Expedited Review" in App Store Connect (use sparingly, they keep score).
 
 **Rollback an OTA update:**
 ```bash
@@ -210,9 +210,9 @@ Common rejection reasons + fixes:
 
 | Reason | Fix |
 |--------|-----|
-| Missing privacy policy URL | Already have `chrisluhrsux.github.io/.../privacy-policy.html` — paste it in App Store Connect |
-| Missing Restore Purchases | Already implemented in `PaywallModal.tsx` — point reviewer to Profile → Manage Subscription |
-| Missing sample login | N/A — no auth in app |
+| Missing privacy policy URL | Already have `chrisluhrsux.github.io/.../privacy-policy.html`, paste it in App Store Connect |
+| Missing Restore Purchases | Already implemented in `PaywallModal.tsx`, point reviewer to Profile → Manage Subscription |
+| Missing sample login | N/A, no auth in app |
 | Crash on launch in their environment | Look at the crash log they attach; fix; resubmit |
 | Subscription terms not visible | Already shown in PaywallModal; reference in reply |
 | Misleading metadata | Edit screenshots / description; resubmit |

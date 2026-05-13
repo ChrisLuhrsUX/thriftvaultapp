@@ -21,7 +21,7 @@ const RC_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY ?? '';
 export interface PurchasesState {
   /** User has an active Pro entitlement (paid or trial via RevenueCat). */
   isPro: boolean;
-  /** Still loading entitlement status — show nothing gated yet. */
+  /** Still loading entitlement status, show nothing gated yet. */
   loading: boolean;
   /** Subscribe to a plan by RevenueCat package identifier. */
   subscribe: (packageId: string) => Promise<{ success: boolean; error?: string }>;
@@ -38,7 +38,7 @@ async function getRC() {
     Purchases = mod.default;
     return Purchases;
   } catch {
-    // react-native-purchases not installed yet — return null (stub mode)
+    // react-native-purchases not installed yet, return null (stub mode)
     return null;
   }
 }
@@ -58,7 +58,7 @@ export function usePurchases(): PurchasesState {
 
       const rc = await getRC();
       if (!rc) {
-        // SDK not installed yet — treat everyone as Pro during dev
+        // SDK not installed yet, treat everyone as Pro during dev
         if (!cancelled) {
           setIsPro(true);
           setLoading(false);

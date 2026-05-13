@@ -1,4 +1,4 @@
-# ThriftVault — Android / Play Store Readiness
+# ThriftVault, Android / Play Store Readiness
 
 iOS-first launch is the plan. This doc tracks everything needed to ship on Android after.
 
@@ -84,7 +84,7 @@ No `eas.json` exists yet. Needed before any Android build:
 
 ---
 
-## RevenueCat — Google Play Billing
+## RevenueCat, Google Play Billing
 
 The iOS RevenueCat setup (see `MVP.md`) does not cover Android. Separate steps required:
 
@@ -102,13 +102,13 @@ Play Store has a different structure than App Store. Needs to be written separat
 
 | Field | Limit | Notes |
 |-------|-------|-------|
-| App name | 30 chars | "ThriftVault — Thrift Tracker" = 29 ✓ |
+| App name | 30 chars | "ThriftVault, Thrift Tracker" = 29 ✓ |
 | Short description | 80 chars | Replaces App Store subtitle |
-| Full description | 4,000 chars | No keyword field — keywords go in the description naturally |
-| Category | — | Finance or Shopping (decide at submission) |
+| Full description | 4,000 chars | No keyword field, keywords go in the description naturally |
+| Category |, | Finance or Shopping (decide at submission) |
 
 **Draft short description:**
-> Track thrift flips, scan items, and estimate resale profit — all offline.
+> Track thrift flips, scan items, and estimate resale profit, all offline.
 
 ---
 
@@ -119,7 +119,7 @@ Play Store requires at least 2 screenshots. Recommended sizes:
 - **Phone:** 1080×1920 px (portrait) or 1920×1080 px (landscape)
 - **Tablet:** optional but boosts visibility
 
-Use the same screens as App Store (Vault, Scan, Detail, Profile) — just export at Android dimensions.
+Use the same screens as App Store (Vault, Scan, Detail, Profile), just export at Android dimensions.
 
 ---
 

@@ -1,43 +1,43 @@
-# ThriftVault — MVP Launch Checklist
+# ThriftVault, MVP Launch Checklist
 
-## Blocking (must ship — in order)
+## Blocking (must ship, in order)
 
-- [x] **Apple Developer Program** — enrollment complete
+- [x] **Apple Developer Program**, enrollment complete
 - [x] **App Store Connect app created**
-- [ ] **RevenueCat subscriptions** — code side 100% ready (`hooks/usePurchases.ts`, `PaywallModal`, `monetization.ts`). Remaining = dashboard clicks + prebuild. See full sequence below.
-- [ ] **Screenshots** — 6.7" and 6.5" iPhone (simulator or TestFlight build)
-- [ ] **App icon re-export** — current `assets/logo/thriftvault_logo_v2.png` is 834×836 with alpha + transparent corners. Apple App Store icon requires **exactly 1024×1024 PNG, no alpha, full-bleed square** (cream `#F8F1E9` extending to all four corners — iOS applies its own rounded mask, so the circle frame must NOT be baked in). Splash + Android `foregroundImage` can stay alpha-OK but still need 1024×1024. Web favicon can be smaller. Until re-exported, `app.json` icon paths point to a non-compliant asset.
+- [ ] **RevenueCat subscriptions**, code side 100% ready (`hooks/usePurchases.ts`, `PaywallModal`, `monetization.ts`). Remaining = dashboard clicks + prebuild. See full sequence below.
+- [ ] **Screenshots**, 6.7" and 6.5" iPhone (simulator or TestFlight build)
+- [ ] **App icon re-export**, current `assets/logo/thriftvault_logo_v2.png` is 834×836 with alpha + transparent corners. Apple App Store icon requires **exactly 1024×1024 PNG, no alpha, full-bleed square** (cream `#F8F1E9` extending to all four corners, iOS applies its own rounded mask, so the circle frame must NOT be baked in). Splash + Android `foregroundImage` can stay alpha-OK but still need 1024×1024. Web favicon can be smaller. Until re-exported, `app.json` icon paths point to a non-compliant asset.
 
-### RevenueCat — remaining sequence
+### RevenueCat, remaining sequence
 
-1. ~~**Paid Apps agreement**~~ ✓ — App Store Connect → Business → bank + tax info. Real bottleneck (1–2 days to process). Do this first; nothing else works without it.
-2. **Create 3 subscription products** in App Store Connect under a new Subscription Group ("ThriftVault Pro"). Use IDs `monthly` / `season` / `annual` to match `constants/monetization.ts` (or rename `monetization.ts` to match `tv_*` — just pick one and stay consistent).
-3. **RevenueCat dashboard** — new project, add Apple App Store app, paste App-Specific Shared Secret (App Store Connect → App Info → Generate). Grab the public API key.
-4. **RevenueCat entitlement + offering** — entitlement named `pro`, offering named `default`, add all 3 products as packages.
+1. ~~**Paid Apps agreement**~~ ✓, App Store Connect → Business → bank + tax info. Real bottleneck (1–2 days to process). Do this first; nothing else works without it.
+2. **Create 3 subscription products** in App Store Connect under a new Subscription Group ("ThriftVault Pro"). Use IDs `monthly` / `season` / `annual` to match `constants/monetization.ts` (or rename `monetization.ts` to match `tv_*`, just pick one and stay consistent).
+3. **RevenueCat dashboard**, new project, add Apple App Store app, paste App-Specific Shared Secret (App Store Connect → App Info → Generate). Grab the public API key.
+4. **RevenueCat entitlement + offering**, entitlement named `pro`, offering named `default`, add all 3 products as packages.
 5. `npm install react-native-purchases`
 6. Add `"react-native-purchases"` to `app.json` plugins array.
 7. Set `EXPO_PUBLIC_REVENUECAT_API_KEY=appl_...` in `.env`.
-8. `npx expo prebuild` — ⚠️ **after this, Expo Go no longer works on iPhone 13.** Must use `npx expo run:ios` with a dev client or a TestFlight build. Permanent dev-workflow change.
-9. **Sandbox tester** — App Store Connect → Users and Access → Sandbox → create a sandbox Apple ID. Sign into it on device under Settings → App Store → Sandbox Account. Test full purchase + restore flow.
+8. `npx expo prebuild`, ⚠️ **after this, Expo Go no longer works on iPhone 13.** Must use `npx expo run:ios` with a dev client or a TestFlight build. Permanent dev-workflow change.
+9. **Sandbox tester**, App Store Connect → Users and Access → Sandbox → create a sandbox Apple ID. Sign into it on device under Settings → App Store → Sandbox Account. Test full purchase + restore flow.
 
 Detailed version lives in `REVENUECAT_SETUP.md`.
 
-### Post-prebuild — paired work
+### Post-prebuild, paired work
 
-10. **Share-as-image card** (9:16 story format) — gated on the prebuild from step 8. After prebuild: `npx expo install react-native-view-shot expo-sharing`. Create `components/ShareCard.tsx`, `components/ShareCardPreviewSheet.tsx`, `utils/captureShareCard.ts`, `utils/shareItemImage.ts`. Wire `app/detail.tsx` (uncomment line 1590, replace `handleShare`, mount off-screen card + preview sheet). Full design + execution checklist: `SHARE_CARD_PLAN.md`.
+10. **Share-as-image card** (9:16 story format), gated on the prebuild from step 8. After prebuild: `npx expo install react-native-view-shot expo-sharing`. Create `components/ShareCard.tsx`, `components/ShareCardPreviewSheet.tsx`, `utils/captureShareCard.ts`, `utils/shareItemImage.ts`. Wire `app/detail.tsx` (uncomment line 1590, replace `handleShare`, mount off-screen card + preview sheet). Full design + execution checklist: `SHARE_CARD_PLAN.md`.
 
 ## Post-Launch
 
-See [POST_LAUNCH.md](POST_LAUNCH.md) — scoped todos and unscoped ideas live there.
+See [POST_LAUNCH.md](POST_LAUNCH.md), scoped todos and unscoped ideas live there.
 
 ## Done
 
-- [x] **Manual item add** — "+" button in vault header creates blank item and opens detail screen for manual entry. Free users can track items without AI scan.
-- [x] **Real AI scan** — Gemini 2.5 Flash vision API via `services/gemini.ts`
-- [x] **Store listing** — `STORE_LISTING.md`
-- [x] **Paywall modal UI** — 3-plan picker (Monthly / Season Pass / Annual), trial copy, plan-aware fine print
-- [x] ~~**App icon**~~ — original `.jpg` swapped for `thriftvault_logo_v2.png` (2026-05-01); v2 is 834×836 with alpha → moved back to Blocking pending re-export
-- [x] **Privacy policy** — live at `https://chrisluhrsux.github.io/thriftvaultapp/assets/privacy-policy.html`
+- [x] **Manual item add**, "+" button in vault header creates blank item and opens detail screen for manual entry. Free users can track items without AI scan.
+- [x] **Real AI scan**, Gemini 2.5 Flash vision API via `services/gemini.ts`
+- [x] **Store listing**, `STORE_LISTING.md`
+- [x] **Paywall modal UI**, 3-plan picker (Monthly / Season Pass / Annual), trial copy, plan-aware fine print
+- [x] ~~**App icon**~~, original `.jpg` swapped for `thriftvault_logo_v2.png` (2026-05-01); v2 is 834×836 with alpha → moved back to Blocking pending re-export
+- [x] **Privacy policy**, live at `https://chrisluhrsux.github.io/thriftvaultapp/assets/privacy-policy.html`
 - [x] Onboarding carousel with skip
 - [x] Inventory CRUD with AsyncStorage persistence
 - [x] Flips / Closet / Hauls three-view vault
@@ -51,10 +51,10 @@ See [POST_LAUNCH.md](POST_LAUNCH.md) — scoped todos and unscoped ideas live th
 - [x] Custom tab bar + scan button
 - [x] Camera UI on mobile (capture + library upload)
 - [x] Save for Later on scan screen
-- [x] Error states — camera permission denied UI, capture failure toast, storage write logging
-- [x] Responsive design — iPhone + iPad (2/3/4-col grid, adaptive padding, max-width centering)
+- [x] Error states, camera permission denied UI, capture failure toast, storage write logging
+- [x] Responsive design, iPhone + iPad (2/3/4-col grid, adaptive padding, max-width centering)
 - [x] Username / avatar
 - [x] Onboarding copy updated
 - [x] Real item photos via ImagePicker
 - [x] iCloud backup warning on onboarding completion
-- [x] Simplified item status — Unlisted / Listed / Sold
+- [x] Simplified item status, Unlisted / Listed / Sold
