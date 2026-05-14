@@ -94,6 +94,14 @@ Set calendar reminders for April 1, TN charges late fees and the LLC can be admi
 - **Local-only data** = a corrupted `tv_inv` AsyncStorage write loses a user's vault. The `sanitizeSnapshot` rehydration path is load-bearing, be careful editing `InventoryContext.tsx`.
 - **iOS minimum 15.1**: don't bump higher unless a dependency forces it; cuts off iPhone 6s/7/8/X users who paid you.
 
+## Social content backlog (pre-launch)
+
+Facebook business page seeding, in order of priority:
+
+- [x] **Pinned intro post**: one-line pitch, scan-result screenshot, thriftvaultapp.com link, "iOS coming soon, drop your email" waitlist CTA
+- [ ] **Cross-post the Thrift Flips TikTok series as native FB video**: upload the video file directly. Do NOT paste a TikTok link, FB throttles outbound social links
+- [ ] **Scan-result screenshots**: caption format "thrifted $X, scanned $Y, real Depop comps in comments". Proof-of-concept content that shows the app actually returns realistic numbers
+
 ## Routine reading
 
 - [POST_LAUNCH.md](POST_LAUNCH.md), feature backlog
