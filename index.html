@@ -907,7 +907,7 @@
           .then(function (res) { return res.ok ? res.json().catch(function () { return {}; }) : Promise.reject(res); })
           .then(function () {
             form.reset();
-            statusEl.textContent = "You're on the list. Check your inbox to confirm.";
+            statusEl.textContent = "You're on the list. Check your inbox (and spam folder) to confirm.";
             statusEl.className = 'waitlist-status is-success';
           })
           .catch(function () {
