@@ -611,6 +611,12 @@ async function callGemini(url: string, images: Array<{ base64: string; mimeType:
   }
 
   const text = extractModelText(data);
+  if (__DEV__) {
+    const modelTag = url.includes('flash-lite') ? 'gemini-flash-lite' : 'gemini-flash';
+    const redFlagsSlice = text.match(/"redFlags"\s*:\s*\[[^\]]*\]/)?.[0];
+    console.log(`[scan ${modelTag}] len=${text.length} redFlags=${redFlagsSlice ?? '(none)'}`);
+    console.log(`[scan ${modelTag} raw]`, text.slice(0, 600));
+  }
   return parseJsonFromModelText(text);
 }
 
@@ -653,6 +659,11 @@ async function callAnthropic(images: Array<{ base64: string; mimeType: string }>
   const data = (await res.json()) as { content?: { type?: string; text?: string }[] };
   const text = data.content?.find((c) => c.type === 'text')?.text ?? '';
   if (!text) throw new Error('Empty Anthropic response');
+  if (__DEV__) {
+    const redFlagsSlice = text.match(/"redFlags"\s*:\s*\[[^\]]*\]/)?.[0];
+    console.log(`[scan claude] len=${text.length} redFlags=${redFlagsSlice ?? '(none)'}`);
+    console.log('[scan claude raw]', text.slice(0, 600));
+  }
   return parseJsonFromModelText(text);
 }
 
@@ -677,6 +688,11 @@ async function callWithFallback(
   temperature = 0.1,
 ): Promise<Record<string, unknown>> {
   if (!GEMINI_KEY && !ANTHROPIC_KEY) throw new Error('API key not configured');
+
+  // Dev-only bypass for diagnosing model-specific misses. Set EXPO_PUBLIC_FORCE_CLAUDE_SCAN=1 in .env to route every scan to Claude.
+  if (process.env.EXPO_PUBLIC_FORCE_CLAUDE_SCAN === '1' && ANTHROPIC_KEY) {
+    return await callAnthropic(images, promptSuffix, signal, promptOverride, temperature);
+  }
 
   let geminiError: unknown = null;
   let geminiFallbackError: unknown = null;
@@ -784,6 +800,9 @@ When uncertain about a single photo, default to (a). But if shared fabric identi
     : '';
 
   const parsed = await callWithFallback(images, promptSuffix + multiPhotoSuffix, signal);
+  if (__DEV__) {
+    console.log('[scan parsed] category=', parsed.category, 'redFlags=', parsed.redFlags);
+  }
 
   const paid = Number(parsed.suggestedPaid) || 10;
   let resaleLow = Number(parsed.suggestedResaleLow) || 0;
