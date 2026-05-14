@@ -552,6 +552,81 @@
       background: var(--terra-soft);
       box-shadow: 0 0 0 3px rgba(201, 124, 93, 0.22);
     }
+
+    /* ─── Waitlist form ──────────────────────────── */
+    .waitlist {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 24px;
+      max-width: 480px;
+    }
+    .waitlist-input {
+      flex: 1 1 220px;
+      min-width: 0;
+      padding: 12px 18px;
+      font-family: inherit;
+      font-size: 15px;
+      color: var(--charcoal);
+      background: var(--cream-warm);
+      border: 1px solid var(--brass-soft);
+      border-radius: 999px;
+      transition: border-color 160ms ease, background 160ms ease;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .waitlist-input::placeholder { color: var(--mauve); }
+    .waitlist-input:focus {
+      outline: none;
+      border-color: var(--brass);
+      background: var(--cream);
+    }
+    .waitlist-submit {
+      flex: 0 0 auto;
+      padding: 12px 22px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--cream);
+      background: var(--teal);
+      border: 1px solid var(--teal-deep);
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 160ms ease, transform 160ms ease;
+    }
+    .waitlist-submit:hover { background: var(--teal-deep); }
+    .waitlist-submit:active { transform: translateY(1px); }
+    .waitlist-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+    .waitlist-status {
+      flex: 1 1 100%;
+      margin: 4px 0 0;
+      font-size: 13px;
+      color: var(--mauve);
+      min-height: 18px;
+    }
+    .waitlist-status.is-success { color: var(--teal-deep); }
+    .waitlist-status.is-error { color: var(--terra); }
+    .waitlist-note {
+      flex: 1 1 100%;
+      margin: 0;
+      font-size: 12px;
+      color: var(--mauve);
+      font-style: italic;
+    }
+    .visually-hidden {
+      position: absolute !important;
+      width: 1px; height: 1px;
+      padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0 0 0 0);
+      white-space: nowrap; border: 0;
+    }
+    @media (max-width: 920px) {
+      .waitlist { margin-left: auto; margin-right: auto; justify-content: center; }
+      .waitlist-status, .waitlist-note { text-align: center; }
+    }
+
     .plans-note {
       margin-top: 14px;
       font-size: 14px;
@@ -587,7 +662,14 @@
           <p class="hero-lead rise delay-2">
             Scan any thrift store find. Get instant AI flip predictions, trend insights, and buy/skip advice, pocketed in a vault that's yours alone.
           </p>
-          <div class="hero-meta rise delay-3">
+          <form id="waitlist-form" class="waitlist rise delay-3" method="POST" action="https://app.kit.com/forms/9443345/subscriptions" novalidate>
+            <label for="waitlist-email" class="visually-hidden">Email address</label>
+            <input id="waitlist-email" class="waitlist-input" type="email" name="email_address" placeholder="you@example.com" required autocomplete="email" />
+            <button type="submit" class="waitlist-submit">Notify me</button>
+            <p class="waitlist-status" role="status" aria-live="polite"></p>
+            <p class="waitlist-note">Be first in line. One email at launch, no spam.</p>
+          </form>
+          <div class="hero-meta rise delay-4">
             <span class="status-badge">Coming soon to iOS 15.1+</span>
           </div>
         </div>
@@ -722,5 +804,47 @@
       </div>
     </div>
   </footer>
+  <script>
+    (function () {
+      var form = document.getElementById('waitlist-form');
+      if (!form) return;
+      var statusEl = form.querySelector('.waitlist-status');
+      var submitBtn = form.querySelector('.waitlist-submit');
+      var defaultLabel = submitBtn.textContent;
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!form.checkValidity()) {
+          statusEl.textContent = 'Please enter a valid email address.';
+          statusEl.className = 'waitlist-status is-error';
+          return;
+        }
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Adding...';
+        statusEl.textContent = '';
+        statusEl.className = 'waitlist-status';
+
+        fetch(form.action, {
+          method: 'POST',
+          body: new FormData(form),
+          headers: { 'Accept': 'application/json' }
+        })
+          .then(function (res) { return res.ok ? res.json().catch(function () { return {}; }) : Promise.reject(res); })
+          .then(function () {
+            form.reset();
+            statusEl.textContent = "You're on the list. Check your inbox to confirm.";
+            statusEl.className = 'waitlist-status is-success';
+          })
+          .catch(function () {
+            statusEl.textContent = 'Something went wrong. Please try again.';
+            statusEl.className = 'waitlist-status is-error';
+          })
+          .then(function () {
+            submitBtn.disabled = false;
+            submitBtn.textContent = defaultLabel;
+          });
+      });
+    })();
+  </script>
 </body>
 </html>
