@@ -37,7 +37,7 @@ See [POST_LAUNCH.md](POST_LAUNCH.md), scoped todos and unscoped ideas live there
 - [x] **Store listing**, `STORE_LISTING.md`
 - [x] **Paywall modal UI**, 3-plan picker (Monthly / Season Pass / Annual), trial copy, plan-aware fine print
 - [x] ~~**App icon**~~, original `.jpg` swapped for `thriftvault_logo_v2.png` (2026-05-01); v2 is 834×836 with alpha → moved back to Blocking pending re-export
-- [x] **Privacy policy**, live at `https://chrisluhrsux.github.io/thriftvaultapp/assets/privacy-policy.html`
+- [x] **Privacy policy**, live at `https://thriftvaultapp.com/privacy-policy/`
 - [x] Onboarding carousel with skip
 - [x] Inventory CRUD with AsyncStorage persistence
 - [x] Flips / Closet / Hauls three-view vault

@@ -206,11 +206,11 @@ export function PaywallModal({ visible, onClose }: PaywallModalProps) {
             in your Account Settings after purchase.
           </Text>
           <View style={styles.legalLinks}>
-            <Pressable onPress={() => Linking.openURL('https://chrisluhrsux.github.io/thriftvaultapp/assets/privacy-policy.html')} accessibilityLabel="Privacy Policy" accessibilityRole="link">
+            <Pressable onPress={() => Linking.openURL('https://thriftvaultapp.com/privacy-policy/')} accessibilityLabel="Privacy Policy" accessibilityRole="link">
               <Text style={styles.legalLink}>Privacy Policy</Text>
             </Pressable>
             <Text style={styles.legalDot}> · </Text>
-            <Pressable onPress={() => Linking.openURL('https://chrisluhrsux.github.io/thriftvaultapp/assets/terms.html')} accessibilityLabel="Terms of Use" accessibilityRole="link">
+            <Pressable onPress={() => Linking.openURL('https://thriftvaultapp.com/terms/')} accessibilityLabel="Terms of Use" accessibilityRole="link">
               <Text style={styles.legalLink}>Terms of Use</Text>
             </Pressable>
             <Text style={styles.legalDot}> · </Text>

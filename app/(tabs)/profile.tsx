@@ -117,11 +117,11 @@ if (id === 'subscription') {
       return;
     }
     if (id === 'privacy') {
-      Linking.openURL('https://chrisluhrsux.github.io/thriftvaultapp/assets/privacy-policy.html').catch(() => {});
+      Linking.openURL('https://thriftvaultapp.com/privacy-policy/').catch(() => {});
       return;
     }
     if (id === 'terms') {
-      Linking.openURL('https://chrisluhrsux.github.io/thriftvaultapp/assets/terms.html').catch(() => {});
+      Linking.openURL('https://thriftvaultapp.com/terms/').catch(() => {});
       return;
     }
   };

@@ -26,6 +26,6 @@ See total profit, ROI, best flips, and profit by store on your profile dashboard
 
 Start with a **30-day free trial**, every Pro feature unlocked: AI scan, vault, hauls, profit tracking, and more. After your trial, choose a plan that fits: Monthly ($4.99/mo), Season Pass ($9.99/3 mo), or Annual ($29.99/yr).
 
-By downloading ThriftVault, you agree to our Privacy Policy: https://chrisluhrsux.github.io/thriftvaultapp/assets/privacy-policy.html
+By downloading ThriftVault, you agree to our Privacy Policy: https://thriftvaultapp.com/privacy-policy/
 
 **Keywords:** thrift, resell, reseller, flip, poshmark, depop, ebay, inventory, tracker, profit
