@@ -18,11 +18,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const ONBOARDING_KEY = 'tv_onboarding_done';
 
-const SLIDES = [
+type Slide = {
+  title: string;
+  titleEm: string;
+  sub: string;
+  note?: string;
+};
+
+const SLIDES: Slide[] = [
   {
     title: 'Flip thrift finds.\nReal profit.',
     titleEm: 'Real profit.',
-    sub: 'Scan any thrift store find. Get instant AI flip predictions, trend insights, and buy/skip advice.',
+    sub: 'Snap any thrift find. Get a quick AI read on price, trend, and buy or skip.',
+    note: "Estimates aren't promises. Double-check sold comps before buying or selling, especially for high-value items.",
   },
   {
     title: 'Track every flip\neffortlessly',
@@ -95,6 +103,7 @@ export default function OnboardingScreen() {
               <Text style={styles.titleEm}>{slide.titleEm}</Text>
             </Text>
             <Text style={styles.sub}>{slide.sub}</Text>
+            {slide.note && <Text style={styles.note}>{slide.note}</Text>}
           </View>
         ))}
       </ScrollView>
@@ -170,6 +179,15 @@ function createStyles(theme: Theme, isTablet: boolean) {
     color: theme.colors.mauve,
     textAlign: 'center',
     maxWidth: isTablet ? 480 : 340,
+  },
+  note: {
+    ...theme.typography.caption,
+    fontStyle: 'italic',
+    color: theme.colors.mauve,
+    textAlign: 'center',
+    maxWidth: isTablet ? 440 : 320,
+    marginTop: 14,
+    opacity: 0.85,
   },
   dots: {
     flexDirection: 'row',

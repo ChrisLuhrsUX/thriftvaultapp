@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
+  Alert,
   Linking,
   Pressable,
   ScrollView,
@@ -23,6 +24,7 @@ const SETTINGS_ROWS = [
   { id: 'subscription', label: 'Subscription', icon: 'card-outline' as const },
   { id: 'manage', label: 'Manage Subscription', icon: 'settings-outline' as const },
   { id: 'restore', label: 'Restore Purchases', icon: 'refresh-outline' as const },
+  { id: 'about-ai', label: 'About AI estimates', icon: 'sparkles-outline' as const },
   { id: 'feedback', label: 'Send Feedback', icon: 'mail-outline' as const },
   { id: 'privacy', label: 'Privacy Policy', icon: 'lock-closed-outline' as const },
   { id: 'terms', label: 'Terms of Service', icon: 'document-text-outline' as const },
@@ -114,6 +116,14 @@ if (id === 'subscription') {
       } else {
         showToast(result.error ?? 'Nothing to restore');
       }
+      return;
+    }
+    if (id === 'about-ai') {
+      Alert.alert(
+        'About AI estimates',
+        "ThriftVault's prices are AI estimates based on recent Depop, eBay, and Poshmark sold listings. They're a starting point, not a guarantee. The price range shows our confidence, wider range means more uncertainty. For high-value items, possible counterfeits, or low-data categories, verify against current sold listings before buying or selling.",
+        [{ text: 'Got it' }]
+      );
       return;
     }
     if (id === 'privacy') {
