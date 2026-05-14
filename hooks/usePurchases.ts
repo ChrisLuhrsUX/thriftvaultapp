@@ -29,11 +29,15 @@ export interface PurchasesState {
   restorePurchases: () => Promise<{ success: boolean; error?: string }>;
 }
 
+// react-native-purchases is installed at prebuild time (see file header).
+// Until then, both the type reference and the dynamic import resolve to a missing module.
+// @ts-expect-error - module not installed until prebuild
 let Purchases: typeof import('react-native-purchases').default | null = null;
 
 async function getRC() {
   if (Purchases) return Purchases;
   try {
+    // @ts-expect-error - module not installed until prebuild
     const mod = await import('react-native-purchases');
     Purchases = mod.default;
     return Purchases;
