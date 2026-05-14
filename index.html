@@ -561,6 +561,15 @@
       margin: 0 0 18px;
       max-width: 480px;
     }
+    .waitlist-heading {
+      flex: 1 1 100%;
+      margin: 0 0 4px;
+      font-family: 'Playfair Display', Georgia, serif;
+      font-style: italic;
+      font-weight: 400;
+      font-size: 18px;
+      color: var(--charcoal);
+    }
     .waitlist-input {
       flex: 1 1 220px;
       min-width: 0;
@@ -663,11 +672,12 @@
             Scan any thrift store find. Get instant AI flip predictions, trend insights, and buy/skip advice, pocketed in a vault that's yours alone.
           </p>
           <form id="waitlist-form" class="waitlist rise delay-3" method="POST" action="https://app.kit.com/forms/9443345/subscriptions" novalidate>
+            <p class="waitlist-heading">Get notified at launch.</p>
             <label for="waitlist-email" class="visually-hidden">Email address</label>
             <input id="waitlist-email" class="waitlist-input" type="email" name="email_address" placeholder="you@example.com" required autocomplete="email" />
             <button type="submit" class="waitlist-submit">Notify me</button>
             <p class="waitlist-status" role="status" aria-live="polite"></p>
-            <p class="waitlist-note">Be first in line. One email at launch, no spam.</p>
+            <p class="waitlist-note">One email. No spam.</p>
           </form>
           <div class="hero-meta rise delay-4">
             <span class="status-badge">Coming soon to iOS 15.1+</span>
