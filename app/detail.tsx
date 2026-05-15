@@ -36,7 +36,7 @@ import { useInventory } from '@/context/InventoryContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useToast } from '@/context/ToastContext';
 import { useResponsive } from '@/hooks/useResponsive';
-import { rescanAsHandmade, refreshUpcycleIdeas, scanWithGemini } from '@/services/gemini';
+import { classifyRedFlags, rescanAsHandmade, refreshUpcycleIdeas, scanWithGemini } from '@/services/gemini';
 import { getConfidenceColor } from '@/utils/confidencePresentation';
 import { formatMoney } from '@/utils/currency';
 import { ITEM_CATEGORIES, type Item, type ItemScanSnapshot, type ItemStatus, type Platform as PlatformType, type ScanScenario } from '@/types/inventory';
@@ -761,6 +761,13 @@ export default function DetailScreen() {
   const photos = getItemPhotos(item);
   const snapshots = item.scanSnapshots ?? [];
   const activeSnapshot = getActiveSnapshot(item);
+  const redFlagsKind = classifyRedFlags(activeSnapshot?.redFlags);
+  const isVerificationFlags = redFlagsKind === 'verification';
+  const redFlagAccent = isVerificationFlags ? theme.colors.vintageBlueDark : theme.colors.loss;
+  const redFlagHeaderLabel = isVerificationFlags ? 'Worth verifying' : 'Red Flags';
+  const redFlagSubtitleLabel = isVerificationFlags
+    ? 'Inspect in person before paying high prices.'
+    : 'This item or photo may be fake or AI-generated.';
 
   const isCloset = item.intent === 'closet';
   const paidNum = Number(item.paid) || 0;
@@ -1143,46 +1150,68 @@ export default function DetailScreen() {
                 {activeSnapshot.redFlags && activeSnapshot.redFlags.length > 0 && !redFlagDismissed && (
                   <View style={styles.insightsRedFlagSection}>
                     <View style={styles.insightsRedFlagHeader}>
-                      <AppIcon name="flag" size={15} color={theme.colors.loss} />
-                      <Text style={styles.insightsRedFlagHeaderText}>Red Flags</Text>
+                      <AppIcon name="flag" size={15} color={redFlagAccent} />
+                      <Text style={[styles.insightsRedFlagHeaderText, { color: redFlagAccent }]}>{redFlagHeaderLabel}</Text>
                     </View>
-                    <Text style={styles.insightsRedFlagSubtitle}>This item or photo may be fake or AI-generated.</Text>
+                    <Text style={[styles.insightsRedFlagSubtitle, { color: redFlagAccent }]}>{redFlagSubtitleLabel}</Text>
                     {activeSnapshot.redFlags.filter(f => f !== 'stock-photo').map((flag, i) => (
                       <View key={i} style={styles.insightsRedFlagRow}>
-                        <View style={styles.insightsRedFlagDot} />
+                        <View style={[styles.insightsRedFlagDot, { backgroundColor: redFlagAccent }]} />
                         <Text style={styles.insightsRedFlagText}>{flag}</Text>
                       </View>
                     ))}
                     {!redFlagPromptDismissed && (
                       <View style={styles.insightsRedFlagPromptRow}>
-                        <Text style={styles.insightsRedFlagPromptText}>Look fake to you?</Text>
-                        <Pressable
-                          style={({ pressed }) => [styles.insightsRedFlagYes, pressed && { opacity: 0.7 }]}
-                          onPress={() => {
-                            Haptics.selectionAsync();
-                            setRedFlagPromptDismissed(true);
-                            AsyncStorage.setItem(`tv_prompt_dismissed_${id}`, JSON.stringify({ handmade: customDismissed, wrongScan: wrongScanDismissed, redFlagPrompt: true, redFlagBanner: redFlagDismissed }));
-                          }}
-                          hitSlop={8}
-                          accessibilityLabel="Yes, this looks fake"
-                          accessibilityRole="button"
-                        >
-                          <Text style={styles.insightsRedFlagYesText}>Yes</Text>
-                        </Pressable>
-                        <Pressable
-                          style={({ pressed }) => [styles.insightsRedFlagNo, pressed && { opacity: 0.7 }]}
-                          onPress={() => {
-                            Haptics.selectionAsync();
-                            setRedFlagPromptDismissed(true);
-                            setRedFlagDismissed(true);
-                            AsyncStorage.setItem(`tv_prompt_dismissed_${id}`, JSON.stringify({ handmade: customDismissed, wrongScan: wrongScanDismissed, redFlagPrompt: true, redFlagBanner: true }));
-                          }}
-                          hitSlop={8}
-                          accessibilityLabel="No, false alarm"
-                          accessibilityRole="button"
-                        >
-                          <Text style={styles.insightsRedFlagNoText}>No</Text>
-                        </Pressable>
+                        {isVerificationFlags ? (
+                          <>
+                            <View style={{ flex: 1 }} />
+                            <Pressable
+                              style={({ pressed }) => [styles.insightsRedFlagNo, pressed && { opacity: 0.7 }]}
+                              onPress={() => {
+                                Haptics.selectionAsync();
+                                setRedFlagPromptDismissed(true);
+                                setRedFlagDismissed(true);
+                                AsyncStorage.setItem(`tv_prompt_dismissed_${id}`, JSON.stringify({ handmade: customDismissed, wrongScan: wrongScanDismissed, redFlagPrompt: true, redFlagBanner: true }));
+                              }}
+                              hitSlop={8}
+                              accessibilityLabel="Got it"
+                              accessibilityRole="button"
+                            >
+                              <Text style={[styles.insightsRedFlagNoText, { color: redFlagAccent }]}>Got it</Text>
+                            </Pressable>
+                          </>
+                        ) : (
+                          <>
+                            <Text style={styles.insightsRedFlagPromptText}>Look fake to you?</Text>
+                            <Pressable
+                              style={({ pressed }) => [styles.insightsRedFlagYes, pressed && { opacity: 0.7 }]}
+                              onPress={() => {
+                                Haptics.selectionAsync();
+                                setRedFlagPromptDismissed(true);
+                                AsyncStorage.setItem(`tv_prompt_dismissed_${id}`, JSON.stringify({ handmade: customDismissed, wrongScan: wrongScanDismissed, redFlagPrompt: true, redFlagBanner: redFlagDismissed }));
+                              }}
+                              hitSlop={8}
+                              accessibilityLabel="Yes, this looks fake"
+                              accessibilityRole="button"
+                            >
+                              <Text style={styles.insightsRedFlagYesText}>Yes</Text>
+                            </Pressable>
+                            <Pressable
+                              style={({ pressed }) => [styles.insightsRedFlagNo, pressed && { opacity: 0.7 }]}
+                              onPress={() => {
+                                Haptics.selectionAsync();
+                                setRedFlagPromptDismissed(true);
+                                setRedFlagDismissed(true);
+                                AsyncStorage.setItem(`tv_prompt_dismissed_${id}`, JSON.stringify({ handmade: customDismissed, wrongScan: wrongScanDismissed, redFlagPrompt: true, redFlagBanner: true }));
+                              }}
+                              hitSlop={8}
+                              accessibilityLabel="No, false alarm"
+                              accessibilityRole="button"
+                            >
+                              <Text style={styles.insightsRedFlagNoText}>No</Text>
+                            </Pressable>
+                          </>
+                        )}
                       </View>
                     )}
                   </View>

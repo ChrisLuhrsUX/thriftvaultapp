@@ -6,7 +6,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useToast } from '@/context/ToastContext';
 import { usePurchases } from '@/hooks/usePurchases';
 import { useResponsive } from '@/hooks/useResponsive';
-import { isOverloadError, refreshUpcycleIdeas, rescanAsHandmade, scanWithGemini } from '@/services/gemini';
+import { classifyRedFlags, isOverloadError, refreshUpcycleIdeas, rescanAsHandmade, scanWithGemini } from '@/services/gemini';
 import type { Theme } from '@/theme';
 import type { Item, ItemScanSnapshot, ScanScenario } from '@/types/inventory';
 import { getConfidenceColor, getConfidencePresentation } from '@/utils/confidencePresentation';
@@ -105,6 +105,9 @@ const DUPLICATE_STOP_WORDS = new Set([
   'shoes', 'shoe', 'boots', 'boot', 'sneakers', 'sneaker', 'heels', 'sandals', 'flats',
   'bag', 'bags', 'purse', 'wallet', 'belt', 'hat', 'cap', 'scarf', 'gloves',
   'and', 'with', 'the', 'of', 'in', 'on', 'at', 'for', 'to',
+  'vintage', 'retro', 'deadstock', 'og', 'y2k', '2k',
+  '90s', '80s', '70s', '60s', '2000s', 'nineties', 'eighties', 'seventies', 'sixties',
+  'condition', 'used', 'nwt',
 ]);
 
 const COLOR_TOKENS = new Set([
@@ -140,7 +143,7 @@ type TokenClass = 'brand' | 'color' | 'multicolor' | 'material' | 'generic';
 const TOKEN_WEIGHTS: Record<TokenClass, number> = {
   brand: 3.0, color: 2.0, material: 1.5, multicolor: 1.0, generic: 1.0,
 };
-const DUPLICATE_SCORE_THRESHOLD = 0.55;
+const DUPLICATE_SCORE_THRESHOLD = 0.60;
 const DUPLICATE_BORDERLINE_MIN = 0.40;
 const SNAPSHOT_LOOKBACK = 5;
 
@@ -216,6 +219,13 @@ function ScanResultCard({
 
   const hasRedFlags = !!(scenario.redFlags && scenario.redFlags.length > 0);
   const redFlagBannerActive = hasRedFlags && !redFlagDismissed;
+  const redFlagsKind = useMemo(() => classifyRedFlags(scenario.redFlags), [scenario.redFlags]);
+  const isVerificationFlags = redFlagsKind === 'verification';
+  const redFlagAccent = isVerificationFlags ? theme.colors.vintageBlueDark : theme.colors.loss;
+  const redFlagHeaderLabel = isVerificationFlags ? 'Worth verifying' : 'Red Flags';
+  const redFlagSubtitleLabel = isVerificationFlags
+    ? 'Inspect in person before paying high prices.'
+    : 'This item or photo may be fake or AI-generated.';
   const [editingName, setEditingName] = useState(false);
   const [editedName, setEditedName] = useState(scenario.name);
   const [upcycleExpanded, setUpcycleExpanded] = useState(false);
@@ -281,37 +291,54 @@ function ScanResultCard({
       {hasRedFlags && !redFlagDismissed && (
         <View style={styles.redFlagSection}>
           <View style={styles.redFlagHeader}>
-            <AppIcon name="flag" size={15} color={theme.colors.loss} />
-            <Text style={styles.redFlagHeaderText}>Red Flags</Text>
+            <AppIcon name="flag" size={15} color={redFlagAccent} />
+            <Text style={[styles.redFlagHeaderText, { color: redFlagAccent }]}>{redFlagHeaderLabel}</Text>
           </View>
-          <Text style={styles.redFlagSubtitle}>This item or photo may be fake or AI-generated.</Text>
+          <Text style={[styles.redFlagSubtitle, { color: redFlagAccent }]}>{redFlagSubtitleLabel}</Text>
           {scenario.redFlags!.filter(f => f !== 'stock-photo').map((flag, i) => (
             <View key={i} style={styles.redFlagRow}>
-              <View style={styles.redFlagDot} />
+              <View style={[styles.redFlagDot, { backgroundColor: redFlagAccent }]} />
               <Text style={styles.redFlagText}>{flag}</Text>
             </View>
           ))}
           {!redFlagPromptDismissed && (
             <View style={styles.redFlagPromptRow}>
-              <Text style={styles.redFlagPromptText}>Look fake to you?</Text>
-              <Pressable
-                style={({ pressed }) => [styles.redFlagYes, pressed && { opacity: 0.7 }]}
-                onPress={onConfirmRedFlag}
-                hitSlop={12}
-                accessibilityLabel="Yes, this looks fake"
-                accessibilityRole="button"
-              >
-                <Text style={styles.redFlagYesText}>Yes</Text>
-              </Pressable>
-              <Pressable
-                style={({ pressed }) => [styles.redFlagNo, pressed && { opacity: 0.7 }]}
-                onPress={onMarkRedFlagFalseAlarm}
-                hitSlop={12}
-                accessibilityLabel="No, false alarm"
-                accessibilityRole="button"
-              >
-                <Text style={styles.redFlagNoText}>No</Text>
-              </Pressable>
+              {isVerificationFlags ? (
+                <>
+                  <View style={{ flex: 1 }} />
+                  <Pressable
+                    style={({ pressed }) => [styles.redFlagNo, pressed && { opacity: 0.7 }]}
+                    onPress={onMarkRedFlagFalseAlarm}
+                    hitSlop={12}
+                    accessibilityLabel="Got it"
+                    accessibilityRole="button"
+                  >
+                    <Text style={[styles.redFlagNoText, { color: redFlagAccent }]}>Got it</Text>
+                  </Pressable>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.redFlagPromptText}>Look fake to you?</Text>
+                  <Pressable
+                    style={({ pressed }) => [styles.redFlagYes, pressed && { opacity: 0.7 }]}
+                    onPress={onConfirmRedFlag}
+                    hitSlop={12}
+                    accessibilityLabel="Yes, this looks fake"
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.redFlagYesText}>Yes</Text>
+                  </Pressable>
+                  <Pressable
+                    style={({ pressed }) => [styles.redFlagNo, pressed && { opacity: 0.7 }]}
+                    onPress={onMarkRedFlagFalseAlarm}
+                    hitSlop={12}
+                    accessibilityLabel="No, false alarm"
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.redFlagNoText}>No</Text>
+                  </Pressable>
+                </>
+              )}
             </View>
           )}
         </View>

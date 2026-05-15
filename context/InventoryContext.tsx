@@ -1,4 +1,3 @@
-import { LEGACY_DEMO_ITEM_NAMES } from '@/constants/seedItems';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { ITEM_CATEGORIES, type Item, type ItemCategory, type ItemIntent, type ItemScanSnapshot } from '@/types/inventory';
@@ -127,9 +126,8 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
               activeScanSnapshotId,
             };
           });
-          const withoutLegacyDemos = migrated.filter((i) => !LEGACY_DEMO_ITEM_NAMES.has(i.name));
-          setInventoryState(withoutLegacyDemos);
-          persist(withoutLegacyDemos);
+          setInventoryState(migrated);
+          persist(migrated);
         } else {
           setInventoryState([]);
           persist([]);
