@@ -23,9 +23,9 @@ The doubling-and-slicing trick (`(pool + pool)[start:start+count]`) handles wrap
 
 | Pool | Size | Stride | Cycle |
 | --- | --- | --- | --- |
-| HOT  | 12 | 6 | every 2 weeks |
+| HOT  | 13 | 6 | every 2 weeks |
 | WARM | 24 | 3 | every 8 weeks |
-| COOL | 49 | 1 | every 49 weeks |
+| COOL | 50 | 1 | every 50 weeks |
 
 Pool sizes are flexible. The algorithm degrades gracefully when counts shift. Promote / demote freely in future PRs.
 
@@ -130,3 +130,5 @@ Pool sizes are flexible. The algorithm degrades gracefully when counts shift. Pr
 | 083 | Watches Luxury (Rolex / Omega / Patek / AP / IWC / Breitling) | jewelry | $400-$15,000+, with papers/box +20-40% | "rolex omega vintage watch" | "rolex omega cartier tank vintage" | "rolex omega patek philippe authenticated" | COOL | Thin market, authentication-gated |
 | 084 | code_clamp DIY Distressed Denim (subtractive-only cap) | code_clamp | Cap $45, floor $20 | n/a | n/a | n/a | COOL | Routing logic, sanity-check annually |
 | 085 | code_clamp Crochet/Hand-Knit text-detection (handmade routing) | code_clamp | Routes to craft tier when hand-knit/crochet/knitwear/yarn/cottagecore/milkmaid/macrame/needlepoint detected | n/a | n/a | n/a | COOL | Routing logic, sanity-check annually |
+| 086 | Knit Bodycon / Off-Shoulder Mini Dresses (trendy unbranded silhouette) | factory_apparel | Unbranded $18-$35 Depop / $15-$28 Poshmark / $12-$22 eBay (anchor $20-$32); branded mid-tier (Princess Polly, PLT, Lulus, Boohoo, ASOS, F21 dress range) $22-$45 / $18-$32 / $15-$32 (anchor $25-$40) | "ribbed knit bodycon mini dress" | "ribbed knit off shoulder mini dress" | "ribbed knit bodycon mini dress sold" | HOT | New tier 2026-05-17, fixes underpricing of trendy mall-to-dropship silhouette previously falling into $10-$30 unbranded floor. Q2 spring-knits spike baked in (no additional compound) |
+| 087 | Modern Multi-Function Record-Player Cabinets (Crosley / Victrola / Innovative Technology / Wockoder / ION Audio repro) | furniture | $30-$75 used (vs $80-$200 retail new); authentic 60s-70s console stereos (Magnavox / Zenith / RCA Victor / Marantz) separate tier $150-$800+ | (FB Marketplace) "crosley victrola wood cabinet stereo cd" | (FB Marketplace) "crosley victrola innovative technology stereo cabinet" | "crosley victrola wood cabinet record player cd cassette sold" | COOL | New tier 2026-05-17, fixes overpricing when modern repro multi-function units (CD slot, cassette, plastic platter, MDF veneer) routed through Generic vintage solid-wood $40-$300 tier |

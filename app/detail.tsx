@@ -32,6 +32,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '@/components/AppIcon';
+import { Button } from '@/components/Button';
 import { useInventory } from '@/context/InventoryContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useToast } from '@/context/ToastContext';
@@ -748,9 +749,7 @@ export default function DetailScreen() {
         </View>
         <View style={styles.errorWrap}>
           <Text style={styles.errorText}>Item not found</Text>
-          <Pressable onPress={() => router.back()} style={styles.errorBtn}>
-            <Text style={styles.errorBtnText}>Go back</Text>
-          </Pressable>
+          <Button label="Go back" onPress={() => router.back()} />
         </View>
       </View>
     );
@@ -918,6 +917,7 @@ export default function DetailScreen() {
         <Pressable
           style={({ pressed }) => [styles.addPhotoLink, pressed && { opacity: 0.6 }]}
           onPress={handleAddPhoto}
+          hitSlop={{ top: 5, bottom: 5, left: 10, right: 10 }}
           accessibilityLabel="Add photos"
           accessibilityRole="button"
         >
@@ -1481,14 +1481,12 @@ export default function DetailScreen() {
         </View>
 
         {!isCloset && item.status !== 'sold' && (
-          <Pressable
-            style={({ pressed }) => [styles.markSoldBtn, pressed && styles.btnPressed]}
+          <Button
+            label="Mark as Sold"
             onPress={handleMarkSold}
             accessibilityLabel="Mark as sold"
-            accessibilityRole="button"
-          >
-            <Text style={styles.markSoldBtnText}>Mark as Sold</Text>
-          </Pressable>
+            style={{ marginTop: 8 }}
+          />
         )}
 
       </ScrollView>
@@ -2939,62 +2937,19 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     textAlignVertical: 'top',
     ...(theme.shadows.sm ?? {}),
   },
-  markSoldBtn: {
-    marginTop: 8,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: theme.colors.vintageBlueDark,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   btnPressed: {
     opacity: 0.9,
-  },
-  markSoldBtnText: {
-    ...theme.typography.body,
-    fontWeight: '600',
-    color: theme.colors.onPrimary,
-  },
-  photoBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    marginTop: 24,
-    marginBottom: 24,
-    minHeight: theme.minTouchTargetSize,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.radius.sm,
-    borderWidth: 1,
-    borderColor: theme.colors.vintageBlueDark,
-    backgroundColor: 'transparent',
-  },
-  photoBtnText: {
-    ...theme.typography.body,
-    fontWeight: '600',
-    color: theme.colors.vintageBlueDark,
   },
   errorWrap: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
+    gap: 16,
   },
   errorText: {
     ...theme.typography.h2,
     color: theme.colors.charcoal,
-    marginBottom: 16,
-  },
-  errorBtn: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    backgroundColor: theme.colors.vintageBlueDark,
-    borderRadius: theme.radius.md,
-  },
-  errorBtnText: {
-    ...theme.typography.body,
-    fontWeight: '600',
-    color: theme.colors.onPrimary,
   },
   });
 }

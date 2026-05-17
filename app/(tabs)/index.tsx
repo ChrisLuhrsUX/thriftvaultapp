@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '@/components/AppIcon';
+import { Button } from '@/components/Button';
 import { useInventory } from '@/context/InventoryContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useToast } from '@/context/ToastContext';
@@ -200,48 +201,54 @@ const ItemCard = React.memo(function ItemCard({
     <Pressable
       style={({ pressed }) => [
         styles.card,
-        isCloset && styles.cardCloset,
         pressed && styles.cardPressed,
       ]}
       onPress={() => onPress(item.id)}
     >
-      {item.img ? (
-        <Image source={{ uri: item.img }} style={styles.cardImg} resizeMode="cover" />
-      ) : (
-        <View style={styles.cardImgPlaceholder}>
-          <AppIcon name="camera-outline" size={28} color={theme.colors.mauve} />
-        </View>
-      )}
-      {!isCloset && (
-        <View style={[
-          styles.cardBadge,
-          item.status === 'sold' && styles.cardBadgeSold,
-          item.status === 'unlisted' && styles.cardBadgeUnlisted,
-          item.status === 'listed' && styles.cardBadgeListed,
-        ]}>
-          <Text style={[
-            styles.badgeText,
-            item.status === 'sold' && styles.badgeTextSold,
-            item.status === 'unlisted' && styles.badgeTextUnlisted,
-            item.status === 'listed' && styles.badgeTextListed,
+      <View style={styles.cardImageBlock}>
+        {item.img ? (
+          <Image source={{ uri: item.img }} style={styles.cardImg} resizeMode="cover" />
+        ) : (
+          <View style={styles.cardImgPlaceholder}>
+            <AppIcon name="camera-outline" size={28} color={theme.colors.mauve} />
+          </View>
+        )}
+        {!isCloset && (
+          <View style={[
+            styles.cardBadge,
+            item.status === 'sold' && styles.cardBadgeSold,
+            item.status === 'unlisted' && styles.cardBadgeUnlisted,
+            item.status === 'listed' && styles.cardBadgeListed,
           ]}>
-            {item.status === 'sold' ? 'Sold' : item.status === 'unlisted' ? 'Unlisted' : 'Listed'}
-          </Text>
-        </View>
-      )}
-      {hasRedFlags && (
-        <View style={styles.cardRedFlag}>
-          <AppIcon name="flag" size={12} color="#FFFFFF" />
-        </View>
-      )}
-      {isCloset && !!item.cat && (
-        <View style={[styles.cardBadge, styles.cardBadgeCloset]}>
-          <Text style={[styles.badgeText, styles.badgeTextCloset]}>
-            {item.cat.charAt(0).toUpperCase() + item.cat.slice(1)}
-          </Text>
-        </View>
-      )}
-      <Text style={styles.cardName} numberOfLines={2}>{item.name}</Text>
+            <Text style={[
+              styles.badgeText,
+              item.status === 'sold' && styles.badgeTextSold,
+              item.status === 'unlisted' && styles.badgeTextUnlisted,
+              item.status === 'listed' && styles.badgeTextListed,
+            ]}>
+              {item.status === 'sold' ? 'Sold' : item.status === 'unlisted' ? 'Unlisted' : 'Listed'}
+            </Text>
+          </View>
+        )}
+        {hasRedFlags && (
+          <View style={styles.cardRedFlag}>
+            <AppIcon name="flag" size={12} color="#FFFFFF" />
+          </View>
+        )}
+        {isCloset && !!item.cat && (
+          <View style={[styles.cardBadge, styles.cardBadgeCloset]}>
+            <Text style={[styles.badgeText, styles.badgeTextCloset]}>
+              {item.cat.charAt(0).toUpperCase() + item.cat.slice(1)}
+            </Text>
+          </View>
+        )}
+      </View>
+      <View style={styles.cardFooter}>
+        <Text style={styles.cardName} numberOfLines={2}>{item.name}</Text>
+        {!isCloset && resale > 0 && (
+          <Text style={styles.cardResale} numberOfLines={1}>{formatMoney(resale)}</Text>
+        )}
+      </View>
       {/* Profit subtext hidden, uncomment to restore.
       {!isCloset && (
         <Text style={[styles.cardProfit, item.status === 'sold' && styles.cardProfitSold]}>{profitLabel}</Text>
@@ -565,6 +572,7 @@ export default function InventoryScreen() {
               filter === item.key && styles.chipActive,
             ]}
             onPress={() => { Haptics.selectionAsync(); setFilter(item.key); }}
+            hitSlop={{ top: 5, bottom: 5, left: 0, right: 0 }}
             accessibilityLabel={`Filter by ${item.label}`}
             accessibilityRole="button"
             accessibilityState={{ selected: filter === item.key }}
@@ -581,15 +589,13 @@ export default function InventoryScreen() {
         )}
       />
       {view === 'closet' && (
-        <Pressable
-          style={({ pressed }) => [styles.addToClosetBtn, pressed && { opacity: 0.8 }]}
+        <Button
+          label="Add to Closet"
+          icon="images-outline"
           onPress={handleAddToCloset}
           accessibilityLabel="Add to closet"
-          accessibilityRole="button"
-        >
-          <AppIcon name="images-outline" size={18} color={theme.colors.onPrimary} />
-          <Text style={styles.addToClosetBtnText}>Add to Closet</Text>
-        </Pressable>
+          style={{ marginHorizontal: hPad, marginBottom: theme.spacing.md }}
+        />
       )}
     </View>
   );
@@ -688,15 +694,13 @@ export default function InventoryScreen() {
                   </Pressable>
                 )}
               </View>
-              <Pressable
-                style={({ pressed }) => [styles.newHaulBtn, pressed && { opacity: 0.8 }]}
+              <Button
+                label="New Haul"
+                icon="images-outline"
                 onPress={handleNewHaul}
                 accessibilityLabel="Create new haul"
-                accessibilityRole="button"
-              >
-                <AppIcon name="images-outline" size={18} color={theme.colors.onPrimary} />
-                <Text style={styles.newHaulBtnText}>New Haul</Text>
-              </Pressable>
+                style={{ marginHorizontal: hPad, marginBottom: theme.spacing.md }}
+              />
             </View>
           }
           ListEmptyComponent={
@@ -717,15 +721,13 @@ export default function InventoryScreen() {
                   : 'Try clearing the search.'}
               </Text>
               {hauls.length === 0 && (
-                <Pressable
-                  style={({ pressed }) => [styles.emptyBtn, pressed && { opacity: 0.8 }]}
+                <Button
+                  label="New Haul"
+                  icon="images-outline"
                   onPress={handleNewHaul}
                   accessibilityLabel="Create new haul"
-                  accessibilityRole="button"
-                >
-                  <AppIcon name="images-outline" size={16} color={theme.colors.onPrimary} />
-                  <Text style={styles.emptyBtnText}>New Haul</Text>
-                </Pressable>
+                  style={{ marginTop: 20 }}
+                />
               )}
             </View>
           }
@@ -785,19 +787,19 @@ export default function InventoryScreen() {
               </Text>
               {!isFiltering && (
                 <>
-                  <Pressable
-                    style={({ pressed }) => [styles.emptyBtn, pressed && { opacity: 0.8 }]}
+                  <Button
+                    label="Scan with AI"
+                    icon="arrow-forward"
+                    iconPosition="right"
                     onPress={() => router.replace('/(tabs)/scan')}
-                  >
-                    <Text style={styles.emptyBtnText}>Scan with AI</Text>
-                    <AppIcon name="arrow-forward" size={16} color={theme.colors.onPrimary} />
-                  </Pressable>
-                  <Pressable
-                    style={({ pressed }) => [styles.emptyBtnSecondary, pressed && { opacity: 0.8 }]}
+                    style={{ marginTop: 20 }}
+                  />
+                  <Button
+                    label="Add manually"
+                    variant="ghost"
                     onPress={handleManualAdd}
-                  >
-                    <Text style={styles.emptyBtnSecondaryText}>Add manually</Text>
-                  </Pressable>
+                    style={{ marginTop: 12 }}
+                  />
                 </>
               )}
             </View>
@@ -1016,38 +1018,6 @@ function createStyles(theme: Theme, hPad: number, headerHPad: number, numColumns
   haulsOnlySection: {
     flex: 1,
   },
-  newHaulBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: theme.spacing.sm,
-    marginHorizontal: hPad,
-    marginBottom: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.radius.sm,
-    backgroundColor: theme.colors.vintageBlueDark,
-  },
-  newHaulBtnText: {
-    ...theme.typography.body,
-    fontWeight: '600',
-    color: theme.colors.onPrimary,
-  },
-  addToClosetBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: theme.spacing.sm,
-    marginHorizontal: hPad,
-    marginBottom: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.radius.sm,
-    backgroundColor: theme.colors.vintageBlueDark,
-  },
-  addToClosetBtnText: {
-    ...theme.typography.body,
-    fontWeight: '600',
-    color: theme.colors.onPrimary,
-  },
   storePickerOverlay: {
     flex: 1,
     justifyContent: 'center',
@@ -1082,6 +1052,8 @@ function createStyles(theme: Theme, hPad: number, headerHPad: number, numColumns
   storePickerChip: {
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.sm,
+    minHeight: theme.minTouchTargetSize,
+    justifyContent: 'center',
     borderRadius: theme.radius.full,
     backgroundColor: theme.colors.surfaceVariant,
   },
@@ -1254,12 +1226,25 @@ function createStyles(theme: Theme, hPad: number, headerHPad: number, numColumns
     maxWidth: cardMaxWidth,
     backgroundColor: theme.colors.surface,
     borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.surfaceVariant,
     overflow: 'hidden',
     ...(theme.shadows.sm ?? {}),
   },
-  cardCloset: {
-    borderWidth: 1,
-    borderColor: theme.colors.surfaceVariant,
+  cardImageBlock: {
+    position: 'relative',
+    backgroundColor: theme.colors.surfaceVariant,
+  },
+  cardFooter: {
+    paddingHorizontal: theme.spacing.sm,
+    paddingTop: theme.spacing.xs,
+    paddingBottom: theme.spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.lavender,
+    backgroundColor: theme.colors.surface,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: theme.spacing.sm,
   },
   cardPressed: {
     opacity: 0.9,
@@ -1326,8 +1311,9 @@ function createStyles(theme: Theme, hPad: number, headerHPad: number, numColumns
   },
   cardName: {
     ...theme.typography.caption,
+    fontWeight: '600',
     color: theme.colors.charcoal,
-    padding: 8,
+    flex: 1,
   },
   cardPaid: {
     ...theme.typography.caption,
@@ -1344,6 +1330,11 @@ function createStyles(theme: Theme, hPad: number, headerHPad: number, numColumns
   },
   cardProfitSold: {
     color: theme.colors.charcoal,
+  },
+  cardResale: {
+    ...theme.typography.caption,
+    fontWeight: '600',
+    color: theme.colors.profit,
   },
   empty: {
     flex: 1,
@@ -1398,32 +1389,6 @@ function createStyles(theme: Theme, hPad: number, headerHPad: number, numColumns
     color: theme.colors.mauve,
     marginTop: 8,
     textAlign: 'center',
-  },
-  emptyBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 20,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: theme.radius.full,
-    backgroundColor: theme.colors.vintageBlueDark,
-  },
-  emptyBtnText: {
-    ...theme.typography.bodySmall,
-    fontWeight: '600',
-    color: theme.colors.onPrimary,
-  },
-  emptyBtnSecondary: {
-    marginTop: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: theme.radius.full,
-  },
-  emptyBtnSecondaryText: {
-    ...theme.typography.bodySmall,
-    fontWeight: '600',
-    color: theme.colors.vintageBlueDark,
   },
   });
 }

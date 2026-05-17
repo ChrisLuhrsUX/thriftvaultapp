@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Animated,
   Linking,
   Modal,
@@ -12,6 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '@/components/AppIcon';
+import { Button } from '@/components/Button';
 import { useTheme } from '@/context/ThemeContext';
 import { useToast } from '@/context/ToastContext';
 import { TRIAL_DURATION_DAYS, PLANS, DEFAULT_PLAN_ID, type PlanOption } from '@/constants/monetization';
@@ -183,18 +183,14 @@ export function PaywallModal({ visible, onClose }: PaywallModalProps) {
             ))}
           </View>
 
-          <Pressable
-            style={({ pressed }) => [styles.cta, (pressed || purchasing) && styles.ctaPressed]}
+          <Button
+            label="Start Free Trial"
             onPress={handleSubscribe}
-            disabled={purchasing}
+            size="lg"
+            loading={purchasing}
             accessibilityLabel="Start free trial"
-            accessibilityRole="button"
-          >
-            {purchasing
-              ? <ActivityIndicator size="small" color={theme.colors.onPrimary} />
-              : <Text style={styles.ctaText}>Start Free Trial</Text>
-            }
-          </Pressable>
+            style={{ marginTop: theme.spacing.xs }}
+          />
           <Text style={styles.fine}>
             {TRIAL_DURATION_DAYS}-day free trial · then {activePlan.price}{activePlan.period} · cancel anytime
           </Text>
@@ -400,22 +396,6 @@ function createStyles(theme: Theme, isDesktop: boolean) {
   },
   planPerMonthSelected: {
     color: theme.colors.vintageBlueDark,
-  },
-  cta: {
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: theme.colors.vintageBlueDark,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: theme.spacing.sm,
-  },
-  ctaPressed: {
-    opacity: 0.9,
-  },
-  ctaText: {
-    ...theme.typography.body,
-    fontWeight: '600',
-    color: theme.colors.onPrimary,
   },
   fine: {
     ...theme.typography.caption,

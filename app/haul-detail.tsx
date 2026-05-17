@@ -555,17 +555,20 @@ function createStyles(theme: Theme) {
       borderTopWidth: 1,
       borderTopColor: theme.colors.lavender,
       backgroundColor: theme.colors.surface,
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      gap: theme.spacing.sm,
     },
     collageFooterName: {
       ...theme.typography.caption,
       fontWeight: '600',
       color: theme.colors.charcoal,
+      flex: 1,
     },
     collageFooterResale: {
       ...theme.typography.caption,
       fontWeight: '600',
       color: theme.colors.profit,
-      marginTop: 2,
     },
     statusBadge: {
       position: 'absolute',

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '@/components/AppIcon';
+import { Button } from '@/components/Button';
 import { PaywallModal } from '@/components/PaywallModal';
 import { TRIAL_DURATION_DAYS } from '@/constants/monetization';
 import { useInventory } from '@/context/InventoryContext';
@@ -147,15 +148,13 @@ if (id === 'subscription') {
         <View style={styles.header}>
           <Text style={styles.title}>Profile</Text>
         </View>
-        <Pressable
-          style={({ pressed }) => [styles.upgradeBtn, pressed && styles.btnPressed]}
+        <Button
+          label="Upgrade to Pro"
+          icon="sparkles"
           onPress={() => setPaywallVisible(true)}
           accessibilityLabel="Upgrade to Pro"
-          accessibilityRole="button"
-        >
-          <AppIcon name="sparkles" size={20} color={theme.colors.onPrimary} />
-          <Text style={styles.upgradeBtnText}>Upgrade to Pro</Text>
-        </Pressable>
+          style={{ marginHorizontal: 24, marginBottom: 4 }}
+        />
         <Text style={styles.trialNote}>{TRIAL_DURATION_DAYS}-day free trial · no commitment</Text>
         {storeStats.length > 0 && (
           <View style={styles.section}>
@@ -308,25 +307,6 @@ function createStyles(theme: Theme, headerHPad: number, formMaxWidth?: number) {
   title: {
     ...theme.typography.h1,
     color: theme.colors.charcoal,
-  },
-  upgradeBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    height: 48,
-    marginHorizontal: 24,
-    borderRadius: 24,
-    backgroundColor: theme.colors.vintageBlueDark,
-    marginBottom: 4,
-  },
-  btnPressed: {
-    opacity: 0.9,
-  },
-  upgradeBtnText: {
-    ...theme.typography.body,
-    fontWeight: '600',
-    color: theme.colors.onPrimary,
   },
   trialNote: {
     ...theme.typography.caption,
