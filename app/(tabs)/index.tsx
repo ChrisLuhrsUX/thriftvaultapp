@@ -19,6 +19,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '@/components/AppIcon';
 import { Button } from '@/components/Button';
+import { EmptyState } from '@/components/EmptyState';
 import { useInventory } from '@/context/InventoryContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useToast } from '@/context/ToastContext';
@@ -704,32 +705,29 @@ export default function InventoryScreen() {
             </View>
           }
           ListEmptyComponent={
-            <View style={styles.empty}>
-              <AppIcon
-                name="bag-handle-outline"
-                size={48}
-                color={theme.colors.mauve}
+            hauls.length === 0 ? (
+              <EmptyState
+                icon="bag-handle-outline"
+                title="Your haul history lives here"
+                body="Log items from your last thrift run to track spending and profits by trip."
+                action={{
+                  label: 'New Haul',
+                  icon: 'images-outline',
+                  onPress: handleNewHaul,
+                }}
               />
-              <Text style={styles.emptyTitle}>
-                {hauls.length === 0
-                  ? 'Your haul history lives here'
-                  : 'No hauls match your search'}
-              </Text>
-              <Text style={styles.emptySub}>
-                {hauls.length === 0
-                  ? 'Log items from your last thrift run to track spending and profits by trip.'
-                  : 'Try clearing the search.'}
-              </Text>
-              {hauls.length === 0 && (
-                <Button
-                  label="New Haul"
-                  icon="images-outline"
-                  onPress={handleNewHaul}
-                  accessibilityLabel="Create new haul"
-                  style={{ marginTop: 20 }}
-                />
-              )}
-            </View>
+            ) : (
+              <EmptyState
+                icon="search-outline"
+                title="No hauls match your search"
+                body="Try a different word, or clear the search to see every trip."
+                action={{
+                  label: 'Clear search',
+                  onPress: () => setSearch(''),
+                  variant: 'ghost',
+                }}
+              />
+            )
           }
           renderItem={({ item: haul }) => (
             <HaulCard
@@ -756,53 +754,76 @@ export default function InventoryScreen() {
           columnWrapperStyle={styles.gridRow}
           ListHeaderComponent={flipsClosetListHeader}
           ListEmptyComponent={
-            <View style={styles.empty}>
-              {isFiltering ? (
-                <AppIcon name="search-outline" size={48} color={theme.colors.mauve} />
-              ) : (
-                <View style={styles.emptyGhostRow}>
-                  <View style={styles.emptyGhostCard}>
-                    <View style={styles.emptyGhostImg} />
-                    <View style={styles.emptyGhostLine} />
-                    <View style={styles.emptyGhostLineSm} />
+            isFiltering ? (
+              <EmptyState
+                icon="search-outline"
+                title="Nothing matches that filter"
+                body="Try a different word, or clear filters to see everything."
+                action={{
+                  label: 'Clear filters',
+                  onPress: () => { setSearch(''); setFilter('all'); },
+                  variant: 'ghost',
+                }}
+              />
+            ) : view === 'closet' ? (
+              <EmptyState
+                decoration={
+                  <View style={styles.emptyGhostRow}>
+                    <View style={styles.emptyGhostCard}>
+                      <View style={styles.emptyGhostImg} />
+                      <View style={styles.emptyGhostLine} />
+                      <View style={styles.emptyGhostLineSm} />
+                    </View>
+                    <View style={styles.emptyGhostCard}>
+                      <View style={styles.emptyGhostImg} />
+                      <View style={[styles.emptyGhostLine, { width: '55%' }]} />
+                      <View style={[styles.emptyGhostLineSm, { width: '70%' }]} />
+                    </View>
                   </View>
-                  <View style={styles.emptyGhostCard}>
-                    <View style={styles.emptyGhostImg} />
-                    <View style={[styles.emptyGhostLine, { width: '55%' }]} />
-                    <View style={[styles.emptyGhostLineSm, { width: '70%' }]} />
+                }
+                title="Pieces you're keeping for yourself"
+                body="Add wardrobe favorites and we'll track what they're worth today."
+                action={{
+                  label: 'Scan with AI',
+                  icon: 'arrow-forward',
+                  iconPosition: 'right',
+                  onPress: () => router.replace('/(tabs)/scan'),
+                }}
+                secondaryAction={{
+                  label: 'Add manually',
+                  onPress: handleManualAdd,
+                }}
+              />
+            ) : (
+              <EmptyState
+                decoration={
+                  <View style={styles.emptyGhostRow}>
+                    <View style={styles.emptyGhostCard}>
+                      <View style={styles.emptyGhostImg} />
+                      <View style={styles.emptyGhostLine} />
+                      <View style={styles.emptyGhostLineSm} />
+                    </View>
+                    <View style={styles.emptyGhostCard}>
+                      <View style={styles.emptyGhostImg} />
+                      <View style={[styles.emptyGhostLine, { width: '55%' }]} />
+                      <View style={[styles.emptyGhostLineSm, { width: '70%' }]} />
+                    </View>
                   </View>
-                </View>
-              )}
-              <Text style={styles.emptyTitle}>
-                {isFiltering
-                  ? 'No results'
-                  : view === 'closet' ? 'Keep what you love in one place' : 'Your first find is one scan away'}
-              </Text>
-              <Text style={styles.emptySub}>
-                {isFiltering
-                  ? 'Try a different search or filter.'
-                  : view === 'closet'
-                    ? 'Add pieces from your personal wardrobe to track their value.'
-                    : 'Scan an item with AI to see its resale value instantly.'}
-              </Text>
-              {!isFiltering && (
-                <>
-                  <Button
-                    label="Scan with AI"
-                    icon="arrow-forward"
-                    iconPosition="right"
-                    onPress={() => router.replace('/(tabs)/scan')}
-                    style={{ marginTop: 20 }}
-                  />
-                  <Button
-                    label="Add manually"
-                    variant="ghost"
-                    onPress={handleManualAdd}
-                    style={{ marginTop: 12 }}
-                  />
-                </>
-              )}
-            </View>
+                }
+                title="Your first find is one scan away"
+                body="Scan an item with AI to see its resale value instantly."
+                action={{
+                  label: 'Scan with AI',
+                  icon: 'arrow-forward',
+                  iconPosition: 'right',
+                  onPress: () => router.replace('/(tabs)/scan'),
+                }}
+                secondaryAction={{
+                  label: 'Add manually',
+                  onPress: handleManualAdd,
+                }}
+              />
+            )
           }
           renderItem={({ item }) => (
             <ItemCard
@@ -1336,14 +1357,6 @@ function createStyles(theme: Theme, hPad: number, headerHPad: number, numColumns
     fontWeight: '600',
     color: theme.colors.profit,
   },
-  empty: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 40,
-    paddingTop: 40,
-    paddingBottom: 60,
-  },
   emptyGhostRow: {
     flexDirection: 'row',
     gap: 12,
@@ -1378,17 +1391,6 @@ function createStyles(theme: Theme, hPad: number, headerHPad: number, numColumns
     borderRadius: theme.radius.full,
     marginHorizontal: 8,
     marginBottom: 8,
-  },
-  emptyTitle: {
-    ...theme.typography.h2,
-    color: theme.colors.charcoal,
-    marginTop: 16,
-  },
-  emptySub: {
-    ...theme.typography.bodySmall,
-    color: theme.colors.mauve,
-    marginTop: 8,
-    textAlign: 'center',
   },
   });
 }

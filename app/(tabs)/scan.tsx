@@ -1,4 +1,5 @@
 import { AppIcon } from '@/components/AppIcon';
+import { EmptyState } from '@/components/EmptyState';
 import { PaywallModal } from '@/components/PaywallModal';
 import { DEFAULT_ITEM_PLACEHOLDER_IMAGE } from '@/constants/seedItems';
 import { useInventory } from '@/context/InventoryContext';
@@ -2294,7 +2295,12 @@ export default function ScanScreen() {
         )}
 
         {!result && savedForLater.length === 0 && recents.length === 0 && (
-          <Text style={styles.emptyNudge}>Scan an item to see it here</Text>
+          <EmptyState
+            compact
+            icon="scan-outline"
+            title="Your scan history starts here"
+            body="Point the camera at an item and we'll price it on the spot."
+          />
         )}
 
         {savedForLater.length > 0 && (
@@ -2912,13 +2918,6 @@ function createStyles(
     ...theme.typography.bodySmall,
     fontWeight: '600',
     color: theme.colors.overlayWhiteStrong,
-  },
-  emptyNudge: {
-    ...theme.typography.caption,
-    color: theme.colors.mauve,
-    textAlign: 'center' as const,
-    paddingTop: 24,
-    paddingBottom: 8,
   },
   recentsSection: {
     marginTop: 24,

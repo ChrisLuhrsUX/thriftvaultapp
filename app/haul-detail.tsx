@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '@/components/AppIcon';
+import { EmptyState } from '@/components/EmptyState';
 import { useInventory } from '@/context/InventoryContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useToast } from '@/context/ToastContext';
@@ -199,14 +200,19 @@ export default function HaulDetailScreen() {
             <Text style={styles.headerHeroTitle}>Haul</Text>
           </View>
         </View>
-        <View style={styles.emptyWrap}>
-          <Text style={styles.emptyText}>
-            {!date ? 'No haul selected' : 'No items in this haul'}
-          </Text>
-          <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')} style={styles.emptyBtn} accessibilityLabel="Go back" accessibilityRole="button">
-            <Text style={styles.emptyBtnText}>Go back</Text>
-          </Pressable>
-        </View>
+        <EmptyState
+          icon="bag-handle-outline"
+          title={!date ? 'No haul selected' : 'This haul is empty'}
+          body={
+            !date
+              ? 'Pick a trip from the vault to see what you brought home.'
+              : 'Add items to the haul, or head back to the vault.'
+          }
+          action={{
+            label: 'Back to vault',
+            onPress: () => router.canGoBack() ? router.back() : router.replace('/(tabs)'),
+          }}
+        />
       </View>
     );
   }
@@ -663,22 +669,6 @@ function createStyles(theme: Theme) {
       justifyContent: 'center',
       alignItems: 'center',
       padding: theme.spacing.xxl,
-    },
-    emptyText: {
-      ...theme.typography.body,
-      color: theme.colors.mauve,
-      marginBottom: theme.spacing.lg,
-    },
-    emptyBtn: {
-      paddingHorizontal: theme.spacing.xl,
-      paddingVertical: theme.spacing.md,
-      backgroundColor: theme.colors.vintageBlueDark,
-      borderRadius: theme.radius.sm,
-    },
-    emptyBtnText: {
-      ...theme.typography.body,
-      fontWeight: '600',
-      color: theme.colors.onPrimary,
     },
     haulStoreOverlay: {
       flex: 1,

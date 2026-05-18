@@ -33,6 +33,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '@/components/AppIcon';
 import { Button } from '@/components/Button';
+import { EmptyState } from '@/components/EmptyState';
 import { useInventory } from '@/context/InventoryContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useToast } from '@/context/ToastContext';
@@ -1235,7 +1236,12 @@ export default function DetailScreen() {
                       ))}
                     </>
                   ) : (
-                    <Text style={styles.insightsEmptyIdeas}>No flip suggestions for this scan.</Text>
+                    <EmptyState
+                      compact
+                      icon="bulb-outline"
+                      title="No suggestions for this scan"
+                      body="Try rescanning with the tag in frame."
+                    />
                   )}
                 </View>
                 <View style={styles.insightsActions}>
@@ -1347,7 +1353,7 @@ export default function DetailScreen() {
           </View>
         )}
 
-        <View style={styles.fields}>
+        <View>
           <FieldRow label="Date" value={item.date} editable={false} styles={styles} theme={theme} />
           <View style={styles.fieldRow}>
             <Text style={styles.fieldLabel}>Category</Text>
@@ -1355,7 +1361,6 @@ export default function DetailScreen() {
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.platformRowScroll}
-              style={styles.platformRowScrollView}
             >
               {ITEM_CATEGORIES.map((c) => (
                 <Pressable
@@ -1389,7 +1394,6 @@ export default function DetailScreen() {
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.platformRowScroll}
-                  style={styles.platformRowScrollView}
                 >
                   {KNOWN_PLATFORMS.map((p) => (
                     <Pressable
@@ -1415,7 +1419,7 @@ export default function DetailScreen() {
                 </ScrollView>
                 {!KNOWN_PLATFORMS.includes(item.platform) && (
                   <TextInput
-                    style={[styles.fieldInput, { marginTop: 8 }]}
+                    style={[styles.fieldInput, styles.platformOtherInput]}
                     value={item.platform}
                     onChangeText={(t) => update({ platform: t })}
                     placeholder="Type platform name..."
@@ -1481,12 +1485,13 @@ export default function DetailScreen() {
         </View>
 
         {!isCloset && item.status !== 'sold' && (
-          <Button
-            label="Mark as Sold"
-            onPress={handleMarkSold}
-            accessibilityLabel="Mark as sold"
-            style={{ marginTop: 8 }}
-          />
+          <View style={styles.markSoldWrap}>
+            <Button
+              label="Mark as Sold"
+              onPress={handleMarkSold}
+              accessibilityLabel="Mark as sold"
+            />
+          </View>
         )}
 
       </ScrollView>
@@ -2215,7 +2220,7 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     ...theme.typography.bodySmall,
     fontWeight: '600',
     color: theme.colors.charcoal,
-    marginTop: 8,
+    marginTop: theme.spacing.sm,
   },
   galleryEmptySub: {
     ...theme.typography.caption,
@@ -2394,21 +2399,20 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
     backgroundColor: theme.colors.surface,
-    marginTop: 8,
-    marginBottom: 20,
+    marginBottom: theme.spacing.xl,
     borderRadius: theme.radius.md,
-    ...(theme.shadows.sm ?? {}),
+    borderWidth: 1,
+    borderColor: theme.colors.surfaceVariant,
   },
   insightsWrap: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.radius.md,
     borderWidth: 1,
     borderColor: theme.colors.surfaceVariant,
-    marginBottom: 20,
-    ...(theme.shadows.sm ?? {}),
+    marginBottom: theme.spacing.xl,
   },
   insightsHeader: {
     flexDirection: 'row',
@@ -2517,6 +2521,7 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
   },
   insightsCustomYes: {
     justifyContent: 'center',
+    minHeight: theme.minTouchTargetSize,
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: theme.radius.full,
@@ -2529,6 +2534,7 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
   },
   insightsCustomNo: {
     justifyContent: 'center',
+    minHeight: theme.minTouchTargetSize,
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: theme.radius.full,
@@ -2580,10 +2586,6 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     ...theme.typography.caption,
     color: theme.colors.profit,
     marginTop: 4,
-  },
-  insightsEmptyIdeas: {
-    ...theme.typography.caption,
-    color: theme.colors.mauve,
   },
   insightsUpcycleHeader: {
     flexDirection: 'row',
@@ -2693,6 +2695,7 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
   },
   insightsRedFlagYes: {
     justifyContent: 'center',
+    minHeight: theme.minTouchTargetSize,
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: theme.radius.full,
@@ -2705,6 +2708,7 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
   },
   insightsRedFlagNo: {
     justifyContent: 'center',
+    minHeight: theme.minTouchTargetSize,
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: theme.radius.full,
@@ -2844,10 +2848,8 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
   profitNeg: {
     color: theme.colors.loss,
   },
-  fields: {
-  },
   fieldRow: {
-    marginBottom: 16,
+    marginBottom: theme.spacing.lg,
   },
   fieldLabel: {
     ...theme.typography.label,
@@ -2858,9 +2860,15 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     ...theme.typography.body,
     color: theme.colors.charcoal,
     backgroundColor: theme.colors.surface,
-    padding: 12,
+    padding: theme.spacing.md,
     borderRadius: theme.radius.sm,
     ...(theme.shadows.sm ?? {}),
+  },
+  platformOtherInput: {
+    marginTop: theme.spacing.sm,
+  },
+  markSoldWrap: {
+    marginTop: theme.spacing.xl,
   },
   fieldHint: {
     ...theme.typography.caption,
@@ -2872,22 +2880,20 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     ...theme.typography.body,
     color: theme.colors.charcoal,
   },
-  platformRowScrollView: {},
   platformRowScroll: {
     flexDirection: 'row',
     gap: 8,
     paddingRight: theme.spacing.section,
   },
   platformChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: theme.radius.sm,
-    borderWidth: 1,
-    borderColor: theme.colors.surfaceVariant,
+    paddingHorizontal: 14,
+    height: 34,
+    justifyContent: 'center',
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.surfaceVariant,
   },
   platformChipActive: {
     backgroundColor: theme.colors.vintageBlueDark,
-    borderColor: theme.colors.vintageBlueDark,
   },
   platformChipText: {
     ...theme.typography.caption,
@@ -2903,9 +2909,10 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     gap: 8,
   },
   statusChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: theme.radius.sm,
+    paddingHorizontal: 14,
+    height: 34,
+    justifyContent: 'center',
+    borderRadius: theme.radius.full,
     backgroundColor: theme.colors.surfaceVariant,
   },
   statusChipActive: {
