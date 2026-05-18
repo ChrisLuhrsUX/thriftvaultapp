@@ -641,7 +641,7 @@ export default function InventoryScreen() {
         <AppIcon name="search" size={20} color={theme.colors.mauve} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search by name, price, category, flagged..."
+          placeholder="Search by name, price, category..."
           placeholderTextColor={theme.colors.mauve}
           value={search}
           onChangeText={setSearch}
