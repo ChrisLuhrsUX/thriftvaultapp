@@ -181,6 +181,16 @@
       flex-direction: column;
       align-items: center;
     }
+    .hero-logo {
+      width: 100%;
+      max-width: 340px;
+      height: auto;
+      margin: 0 auto 32px;
+      border-radius: 4px 4px 14px 14px;
+      box-shadow:
+        0 30px 80px -28px rgba(60, 47, 47, 0.4),
+        0 12px 24px -12px rgba(60, 47, 47, 0.18);
+    }
     .hero h1 {
       font-family: 'Playfair Display', Georgia, serif;
       font-weight: 700;
@@ -677,6 +687,7 @@
       .hero { padding: 16px 0 56px; }
       .hero h1 { font-size: 40px; margin-bottom: 18px; }
       .hero-lead { font-size: 16px; margin-bottom: 28px; }
+      .hero-logo { max-width: 240px; margin-bottom: 24px; }
       .feature-title { font-size: 18px; }
       .price-amount { font-size: 40px; }
       .topnav { gap: 18px; }
@@ -831,6 +842,11 @@
     <section class="hero">
       <div class="hero-grid">
         <div class="hero-text">
+          <img
+            class="hero-logo rise"
+            src="assets/logo/thriftvault_logo.jpg"
+            alt="ThriftVault: vintage hanger and price-tag emblem on teal fabric"
+          />
           <h1 class="rise delay-1">Flip thrift finds.<br /><em>Real profit.</em></h1>
           <p class="hero-lead rise delay-2">
             Snap any thrift find and get a quick read on what it's worth, a worth-it or skip-it nudge, and a tidy little vault for every flip, all on your phone.
