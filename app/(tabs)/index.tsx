@@ -458,7 +458,10 @@ export default function InventoryScreen() {
         const textMatch =
           i.name.toLowerCase().includes(q) ||
           i.store.toLowerCase().includes(q) ||
-          i.notes.toLowerCase().includes(q);
+          i.notes.toLowerCase().includes(q) ||
+          i.cat.toLowerCase().includes(q) ||
+          i.status.toLowerCase().includes(q) ||
+          i.platform.toLowerCase().includes(q);
         if (textMatch) return true;
         if (matchesPrice) {
           if (Number(i.resale) === priceQuery) return true;
@@ -534,7 +537,10 @@ export default function InventoryScreen() {
           haul.date.toLowerCase().includes(q) ||
           (haul.title?.toLowerCase().includes(q) ?? false) ||
           haul.stores.some((s) => s.toLowerCase().includes(q)) ||
-          haul.items.some((i) => i.name.toLowerCase().includes(q))
+          haul.items.some((i) =>
+            i.name.toLowerCase().includes(q) ||
+            i.cat.toLowerCase().includes(q)
+          )
       );
     }
 
