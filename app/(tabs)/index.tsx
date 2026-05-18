@@ -96,6 +96,115 @@ function parseDateToDayStart(dateStr: string): number | null {
   return null;
 }
 
+// ─── Search helpers ─────────────────────────────────────────────────
+const MONTH_TO_SHORT: Record<string, string> = {
+  january: 'jan', february: 'feb', march: 'mar', april: 'apr',
+  may: 'may', june: 'jun', july: 'jul', august: 'aug',
+  september: 'sep', october: 'oct', november: 'nov', december: 'dec',
+};
+
+const SYNONYM_TO_CAT: Record<string, ItemCategory> = {
+  // bottoms / denim
+  jeans: 'denim', jean: 'denim', denim: 'denim',
+  pants: 'bottoms', trousers: 'bottoms', slacks: 'bottoms',
+  shorts: 'bottoms', skirt: 'bottoms', skirts: 'bottoms',
+  // tops
+  tee: 'tops', tees: 'tops', tshirt: 'tops', tshirts: 'tops',
+  shirt: 'tops', shirts: 'tops', blouse: 'tops', blouses: 'tops',
+  top: 'tops', sweater: 'tops', sweaters: 'tops', cardigan: 'tops',
+  hoodie: 'tops', hoodies: 'tops', sweatshirt: 'tops',
+  // dresses
+  dress: 'dresses', gown: 'dresses', gowns: 'dresses', frock: 'dresses',
+  // outerwear
+  coat: 'outerwear', coats: 'outerwear',
+  jacket: 'outerwear', jackets: 'outerwear',
+  parka: 'outerwear', anorak: 'outerwear', windbreaker: 'outerwear',
+  // shoes
+  shoe: 'shoes', sneaker: 'shoes', sneakers: 'shoes', kicks: 'shoes',
+  boot: 'shoes', boots: 'shoes', heel: 'shoes', heels: 'shoes',
+  sandal: 'shoes', sandals: 'shoes', loafer: 'shoes', loafers: 'shoes',
+  // bags
+  bag: 'bags', purse: 'bags', purses: 'bags', handbag: 'bags', handbags: 'bags',
+  clutch: 'bags', clutches: 'bags', tote: 'bags', totes: 'bags',
+  backpack: 'bags', backpacks: 'bags',
+  // accessories (jewelry, hats, eyewear, etc.)
+  earring: 'accessories', earrings: 'accessories',
+  necklace: 'accessories', necklaces: 'accessories',
+  ring: 'accessories', rings: 'accessories',
+  bracelet: 'accessories', bracelets: 'accessories',
+  watch: 'accessories', watches: 'accessories',
+  hat: 'accessories', hats: 'accessories', cap: 'accessories', caps: 'accessories',
+  belt: 'accessories', belts: 'accessories',
+  sunglasses: 'accessories', glasses: 'accessories', eyewear: 'accessories',
+  jewelry: 'accessories', jewellery: 'accessories',
+};
+
+const FLAGGED_TOKENS = new Set(['flag', 'flagged', 'redflag', 'redflagged']);
+const CUSTOM_TOKENS = new Set(['handmade', 'custom', 'upcycle', 'upcycled', 'altered', 'reworked']);
+
+function normalizeToken(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/['`‘’ʹʼ′]/g, '')
+    .replace(/[\-./,]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function applyMonthShortening(q: string): string {
+  return q.replace(
+    /\b(january|february|march|april|may|june|july|august|september|october|november|december)\b/g,
+    (m) => MONTH_TO_SHORT[m] ?? m,
+  );
+}
+
+interface ItemSearchFlags {
+  hasRedFlags: boolean;
+  isCustom: boolean;
+}
+
+function getItemFlags(item: Item, dismissedIds: Set<number>): ItemSearchFlags {
+  const snap = item.scanSnapshots?.find((s) => s.id === item.activeScanSnapshotId) ?? item.scanSnapshots?.[0];
+  return {
+    hasRedFlags: (snap?.redFlags?.length ?? 0) > 0 && !dismissedIds.has(item.id),
+    isCustom: Boolean(snap?.isCustom) || Boolean(snap?.beforeAfterDetected),
+  };
+}
+
+function itemMatchesToken(item: Item, token: string, flags: ItemSearchFlags): boolean {
+  if (FLAGGED_TOKENS.has(token) && flags.hasRedFlags) return true;
+  if (CUSTOM_TOKENS.has(token) && flags.isCustom) return true;
+
+  const synCat = SYNONYM_TO_CAT[token];
+  if (synCat && item.cat === synCat) return true;
+
+  const priceQuery = parseFloat(token.replace(/[$,\s]/g, ''));
+  if (!isNaN(priceQuery) && priceQuery >= 0) {
+    if (Number(item.resale) === priceQuery) return true;
+    if (item.soldPrice != null && Number(item.soldPrice) === priceQuery) return true;
+    if (Number(item.paid) === priceQuery) return true;
+  }
+
+  const dateNormalized = applyMonthShortening(normalizeToken(item.date));
+  return (
+    normalizeToken(item.name).includes(token) ||
+    normalizeToken(item.store).includes(token) ||
+    normalizeToken(item.notes).includes(token) ||
+    item.cat.toLowerCase().includes(token) ||
+    item.status.toLowerCase().includes(token) ||
+    normalizeToken(item.platform).includes(token) ||
+    dateNormalized.includes(token)
+  );
+}
+
+function itemMatchesQuery(item: Item, rawQuery: string, dismissedIds: Set<number>): boolean {
+  const normalized = applyMonthShortening(normalizeToken(rawQuery));
+  const tokens = normalized.split(' ').filter(Boolean);
+  if (tokens.length === 0) return true;
+  const flags = getItemFlags(item, dismissedIds);
+  return tokens.every((t) => itemMatchesToken(item, t, flags));
+}
+
 const HaulCard = React.memo(function HaulCard({
   haul,
   onPress,
@@ -451,25 +560,7 @@ export default function InventoryScreen() {
   const filtered = useMemo(() => {
     let list = listByView;
     if (search.trim()) {
-      const q = search.trim().toLowerCase();
-      const priceQuery = parseFloat(q.replace(/[$,\s]/g, ''));
-      const matchesPrice = !isNaN(priceQuery) && priceQuery >= 0;
-      list = list.filter((i) => {
-        const textMatch =
-          i.name.toLowerCase().includes(q) ||
-          i.store.toLowerCase().includes(q) ||
-          i.notes.toLowerCase().includes(q) ||
-          i.cat.toLowerCase().includes(q) ||
-          i.status.toLowerCase().includes(q) ||
-          i.platform.toLowerCase().includes(q);
-        if (textMatch) return true;
-        if (matchesPrice) {
-          if (Number(i.resale) === priceQuery) return true;
-          if (i.soldPrice != null && Number(i.soldPrice) === priceQuery) return true;
-          if (Number(i.paid) === priceQuery) return true;
-        }
-        return false;
-      });
+      list = list.filter((i) => itemMatchesQuery(i, search, redFlagDismissedIds));
     }
     if (filter !== 'all') {
       const group = CATEGORY_GROUPS.find((g) => g.key === filter);
@@ -483,7 +574,7 @@ export default function InventoryScreen() {
       list = [...list].sort((a, b) => (b.updatedAt ?? b.id) - (a.updatedAt ?? a.id));
     }
     return list;
-  }, [listByView, search, filter, view]);
+  }, [listByView, search, filter, view, redFlagDismissedIds]);
 
 
   const hauls = useMemo(() => {
@@ -521,27 +612,20 @@ export default function InventoryScreen() {
       return parseDateToDayStart(haul.date);
     };
 
-    const FULL_TO_SHORT_MONTH: Record<string, string> = {
-      january: 'jan', february: 'feb', march: 'mar', april: 'apr',
-      may: 'may', june: 'jun', july: 'jul', august: 'aug',
-      september: 'sep', october: 'oct', november: 'nov', december: 'dec',
-    };
-
     let list = hauls;
     if (haulSearch.trim()) {
-      const raw = haulSearch.trim().toLowerCase();
-      const q = raw.replace(/\b(january|february|march|april|may|june|july|august|september|october|november|december)\b/g,
-        (m) => FULL_TO_SHORT_MONTH[m] ?? m);
-      list = list.filter(
-        (haul) =>
-          haul.date.toLowerCase().includes(q) ||
-          (haul.title?.toLowerCase().includes(q) ?? false) ||
-          haul.stores.some((s) => s.toLowerCase().includes(q)) ||
-          haul.items.some((i) =>
-            i.name.toLowerCase().includes(q) ||
-            i.cat.toLowerCase().includes(q)
+      const normalized = applyMonthShortening(normalizeToken(haulSearch));
+      const tokens = normalized.split(' ').filter(Boolean);
+      if (tokens.length > 0) {
+        list = list.filter((haul) =>
+          tokens.every((t) =>
+            normalizeToken(haul.date).includes(t) ||
+            normalizeToken(haul.title ?? '').includes(t) ||
+            haul.stores.some((s) => normalizeToken(s).includes(t)) ||
+            haul.items.some((i) => itemMatchesToken(i, t, getItemFlags(i, redFlagDismissedIds)))
           )
-      );
+        );
+      }
     }
 
     return [...list].sort((a, b) => {
@@ -549,7 +633,7 @@ export default function InventoryScreen() {
       const tB = getHaulDayStart(b) ?? 0;
       return tB - tA;
     });
-  }, [hauls, haulSearch]);
+  }, [hauls, haulSearch, redFlagDismissedIds]);
 
   const flipsClosetListHeader = (
     <View style={styles.listHeaderWrap}>
@@ -557,7 +641,7 @@ export default function InventoryScreen() {
         <AppIcon name="search" size={20} color={theme.colors.mauve} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search by name, price, category..."
+          placeholder="Search by name, price, category, flagged..."
           placeholderTextColor={theme.colors.mauve}
           value={search}
           onChangeText={setSearch}
