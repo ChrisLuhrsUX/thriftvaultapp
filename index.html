@@ -172,9 +172,13 @@
       padding: 40px 0 96px;
     }
     .hero-grid {
-      display: grid;
-      grid-template-columns: 7fr 5fr;
-      gap: 72px;
+      max-width: 720px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .hero-text {
+      display: flex;
+      flex-direction: column;
       align-items: center;
     }
     .hero h1 {
@@ -196,195 +200,6 @@
       color: var(--charcoal-soft);
       max-width: 520px;
       margin: 0 0 36px;
-    }
-
-    /* ─── Hero phone mockup ──────────────────────── */
-    .phone-mock {
-      position: relative;
-      width: 100%;
-      max-width: 300px;
-      margin: 0 auto;
-      padding-top: 30px;
-    }
-    .phone-mock::before {
-      content: '';
-      position: absolute;
-      top: 22px;
-      left: 50%;
-      width: 18px;
-      height: 18px;
-      background: var(--cream);
-      border: 2px solid var(--charcoal);
-      border-radius: 50%;
-      transform: translateX(-50%);
-      box-shadow: inset 0 1px 2px rgba(60, 47, 47, 0.3);
-      z-index: 3;
-    }
-    .phone-mock::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 50%;
-      width: 1px;
-      height: 24px;
-      background: var(--charcoal-soft);
-      opacity: 0.55;
-      transform: translateX(-50%);
-    }
-    .phone-body {
-      position: relative;
-      background: var(--charcoal);
-      border-radius: 42px;
-      padding: 10px;
-      box-shadow:
-        0 36px 80px -30px rgba(60, 47, 47, 0.5),
-        0 14px 28px -14px rgba(60, 47, 47, 0.25);
-    }
-    .phone-body::before {
-      content: '';
-      position: absolute;
-      top: 14px;
-      left: 50%;
-      width: 84px;
-      height: 18px;
-      background: var(--charcoal);
-      border-radius: 0 0 14px 14px;
-      transform: translateX(-50%);
-      z-index: 2;
-    }
-    .phone-screen {
-      background: var(--cream);
-      border-radius: 32px;
-      overflow: hidden;
-      padding: 44px 18px 16px;
-      display: flex;
-      flex-direction: column;
-      min-height: 480px;
-      position: relative;
-    }
-    .phone-screen::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      background-image:
-        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.025 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
-    }
-    .phone-eyebrow {
-      font-size: 9px;
-      letter-spacing: 0.28em;
-      text-transform: uppercase;
-      color: var(--terra);
-      font-weight: 600;
-      margin: 0 0 12px;
-      position: relative;
-    }
-    .scan-card {
-      background: var(--cream);
-      border: 1px solid var(--brass-soft);
-      border-radius: 14px;
-      padding: 14px;
-      box-shadow: 0 4px 12px -8px rgba(60, 47, 47, 0.22);
-      position: relative;
-    }
-    .scan-thumb {
-      width: 100%;
-      aspect-ratio: 1.1 / 1;
-      background: var(--cream-warm);
-      border-radius: 10px;
-      border: 1px solid var(--brass-soft);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 14px;
-      overflow: hidden;
-    }
-    .scan-thumb svg {
-      width: 44%;
-      height: auto;
-      color: var(--teal-deep);
-      opacity: 0.78;
-    }
-    .scan-name {
-      font-family: 'Playfair Display', Georgia, serif;
-      font-weight: 700;
-      font-size: 15px;
-      color: var(--charcoal);
-      margin: 0 0 4px;
-      line-height: 1.25;
-      letter-spacing: -0.005em;
-    }
-    .scan-meta {
-      font-size: 10px;
-      color: var(--mauve);
-      letter-spacing: 0.04em;
-      margin: 0 0 12px;
-    }
-    .scan-price {
-      font-family: 'Playfair Display', Georgia, serif;
-      font-weight: 400;
-      font-size: 30px;
-      color: var(--teal-deep);
-      letter-spacing: -0.02em;
-      margin: 0 0 4px;
-      line-height: 1;
-    }
-    .scan-price-suffix {
-      font-family: 'DM Sans', sans-serif;
-      font-size: 11px;
-      color: var(--mauve);
-      letter-spacing: 0.04em;
-      margin-left: 4px;
-      font-weight: 500;
-    }
-    .scan-confidence {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 9px;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--brass);
-      font-weight: 700;
-      margin-top: 10px;
-      padding-top: 10px;
-      border-top: 1px solid var(--rule);
-      width: 100%;
-    }
-    .scan-confidence::before {
-      content: '✦';
-      font-size: 11px;
-      letter-spacing: 0;
-    }
-    .phone-tabs {
-      margin-top: auto;
-      padding-top: 16px;
-      border-top: 1px solid var(--rule);
-      display: flex;
-      justify-content: space-around;
-      font-size: 8.5px;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      font-weight: 600;
-      color: var(--mauve);
-    }
-    .phone-tabs span {
-      padding-top: 4px;
-      position: relative;
-    }
-    .phone-tabs .active {
-      color: var(--teal-deep);
-    }
-    .phone-tabs .active::before {
-      content: '';
-      position: absolute;
-      top: -10px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 18px;
-      height: 2px;
-      background: var(--teal-deep);
-      border-radius: 1px;
     }
 
     /* ─── Ornamental divider ─────────────────────── */
@@ -812,13 +627,6 @@
       .topnav { gap: 24px; }
       .container { padding: 0 24px; }
       .hero { padding: 24px 0 72px; }
-      .hero-grid {
-        grid-template-columns: 1fr;
-        gap: 32px;
-      }
-      .hero-text { order: 1; text-align: center; }
-      .phone-mock { order: 2; max-width: 260px; margin: 0 auto; }
-      .hero-lead { margin-left: auto; margin-right: auto; }
       .hero h1 { font-size: clamp(40px, 8.5vw, 64px); margin-bottom: 20px; }
       .features {
         grid-template-columns: 1fr;
@@ -869,7 +677,6 @@
       .hero { padding: 16px 0 56px; }
       .hero h1 { font-size: 40px; margin-bottom: 18px; }
       .hero-lead { font-size: 16px; margin-bottom: 28px; }
-      .phone-mock { max-width: 220px; }
       .feature-title { font-size: 18px; }
       .price-amount { font-size: 40px; }
       .topnav { gap: 18px; }
@@ -1032,30 +839,6 @@
             <p class="waitlist-status" role="status" aria-live="polite"></p>
           </form>
         </div>
-        <div class="phone-mock rise delay-2" aria-label="Example ThriftVault scan result">
-          <div class="phone-body">
-            <div class="phone-screen">
-              <p class="phone-eyebrow">Just scanned</p>
-              <div class="scan-card">
-                <div class="scan-thumb">
-                  <svg viewBox="0 0 60 80" fill="currentColor" aria-hidden="true">
-                    <path d="M11 8 H49 V18 L46 22 H14 L11 18 Z" />
-                    <path d="M14 22 L18 74 L29 74 L29.6 36 H30.4 L31 74 L42 74 L46 22 Z" />
-                  </svg>
-                </div>
-                <h3 class="scan-name">Levi's 501 · Dark Wash</h3>
-                <p class="scan-meta">Denim · Women's 28</p>
-                <p class="scan-price">$48<span style="margin: 0 6px; color: var(--mauve); font-size: 22px;">–</span>$72<span class="scan-price-suffix">est. resale</span></p>
-                <div class="scan-confidence">High confidence</div>
-              </div>
-              <div class="phone-tabs">
-                <span>Vault</span>
-                <span class="active">Scan</span>
-                <span>Profile</span>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </section>
 
@@ -1191,13 +974,11 @@
     <div class="container">
       <div class="footer-sign">
         <div class="footer-wordmark">Thrift<em>Vault</em></div>
-        <p class="footer-tagline">The vault is yours.</p>
+        <p class="footer-tagline">Flip your thrift finds.</p>
         <div class="footer-ornament" aria-hidden="true">✦ ✦ ✦</div>
       </div>
       <div class="footer-meta">
         <span>© 2026 ThriftVault LLC</span>
-        <span class="footer-meta-sep" aria-hidden="true">✦</span>
-        <span>Built in Tennessee</span>
         <span class="footer-meta-sep" aria-hidden="true">✦</span>
         <a href="/terms/">Terms</a>
         <span class="footer-meta-sep" aria-hidden="true">✦</span>
