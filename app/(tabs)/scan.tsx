@@ -2992,7 +2992,6 @@ function createStyles(
   recentPrice: {
     ...theme.typography.caption,
     color: theme.colors.profit,
-    fontFamily: 'DMSans_600SemiBold',
   },
   savedImgWrap: {
     width: 100,
