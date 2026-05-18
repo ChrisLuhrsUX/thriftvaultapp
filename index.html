@@ -665,6 +665,14 @@
       font-weight: 700;
       margin-right: 8px;
     }
+    .prelaunch-sep {
+      color: var(--brass);
+      margin: 0 8px;
+      font-size: 9px;
+      letter-spacing: 0;
+      vertical-align: 1px;
+      opacity: 0.85;
+    }
     @media (max-width: 480px) {
       .prelaunch-bar { font-size: 10px; letter-spacing: 0.14em; padding: 9px 16px; }
     }
@@ -757,7 +765,7 @@
 </head>
 <body>
   <div class="prelaunch-bar" role="status" aria-label="Pre-launch announcement">
-    <strong>Pre-launch</strong> · ThriftVault isn't out yet, we're putting the finishing touches on it
+    <strong>Pre-launch</strong> <span class="prelaunch-sep" aria-hidden="true">✦</span> ThriftVault isn't out yet, we're putting the finishing touches on it
   </div>
   <header class="topbar">
     <div class="wordmark">Thrift<em>Vault</em></div>
