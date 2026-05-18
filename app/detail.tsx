@@ -34,6 +34,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '@/components/AppIcon';
 import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
+import { InlinePromptButton } from '@/components/InlinePromptButton';
 import { useInventory } from '@/context/InventoryContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useToast } from '@/context/ToastContext';
@@ -1100,24 +1101,18 @@ export default function DetailScreen() {
                   <View style={styles.insightsCustomPromptRow}>
                     <AppIcon name="brush-outline" size={14} color={theme.colors.mauve} />
                     <Text style={styles.insightsCustomPromptText}>Is this handmade?</Text>
-                    <Pressable
-                      style={({ pressed }) => [styles.insightsCustomYes, pressed && { opacity: 0.7 }]}
+                    <InlinePromptButton
+                      label="Yes"
+                      variant="accent"
                       onPress={() => { Haptics.selectionAsync(); confirmHandmade(); }}
-                      hitSlop={8}
                       accessibilityLabel="Yes, this is handmade"
-                      accessibilityRole="button"
-                    >
-                      <Text style={styles.insightsCustomYesText}>Yes</Text>
-                    </Pressable>
-                    <Pressable
-                      style={({ pressed }) => [styles.insightsCustomNo, pressed && { opacity: 0.7 }]}
+                    />
+                    <InlinePromptButton
+                      label="No"
+                      variant="muted"
                       onPress={() => { Haptics.selectionAsync(); setCustomDismissed(true); AsyncStorage.setItem(`tv_prompt_dismissed_${id}`, JSON.stringify({ handmade: true, wrongScan: wrongScanDismissed, redFlagPrompt: redFlagPromptDismissed, redFlagBanner: redFlagDismissed })); }}
-                      hitSlop={8}
                       accessibilityLabel="No, not handmade"
-                      accessibilityRole="button"
-                    >
-                      <Text style={styles.insightsCustomNoText}>No</Text>
-                    </Pressable>
+                    />
                   </View>
                 ) : null}
                 {rescanningWrong ? (
@@ -1129,24 +1124,18 @@ export default function DetailScreen() {
                   <View style={styles.insightsCustomPromptRow}>
                     <AppIcon name="alert-circle-outline" size={14} color={theme.colors.mauve} />
                     <Text style={styles.insightsCustomPromptText}>Is this scan wrong?</Text>
-                    <Pressable
-                      style={({ pressed }) => [styles.insightsCustomYes, pressed && { opacity: 0.7 }]}
+                    <InlinePromptButton
+                      label="Yes"
+                      variant="accent"
                       onPress={() => { Haptics.selectionAsync(); rescanWrong(); }}
-                      hitSlop={8}
                       accessibilityLabel="Yes, rescan this item"
-                      accessibilityRole="button"
-                    >
-                      <Text style={styles.insightsCustomYesText}>Yes</Text>
-                    </Pressable>
-                    <Pressable
-                      style={({ pressed }) => [styles.insightsCustomNo, pressed && { opacity: 0.7 }]}
+                    />
+                    <InlinePromptButton
+                      label="No"
+                      variant="muted"
                       onPress={() => { Haptics.selectionAsync(); setWrongScanDismissed(true); AsyncStorage.setItem(`tv_prompt_dismissed_${id}`, JSON.stringify({ handmade: customDismissed, wrongScan: true, redFlagPrompt: redFlagPromptDismissed, redFlagBanner: redFlagDismissed })); }}
-                      hitSlop={8}
                       accessibilityLabel="No, scan is correct"
-                      accessibilityRole="button"
-                    >
-                      <Text style={styles.insightsCustomNoText}>No</Text>
-                    </Pressable>
+                    />
                   </View>
                 ) : null}
                 {activeSnapshot.redFlags && activeSnapshot.redFlags.length > 0 && !redFlagDismissed && (
@@ -1167,51 +1156,43 @@ export default function DetailScreen() {
                         {isVerificationFlags ? (
                           <>
                             <View style={{ flex: 1 }} />
-                            <Pressable
-                              style={({ pressed }) => [styles.insightsRedFlagNo, pressed && { opacity: 0.7 }]}
+                            <InlinePromptButton
+                              label="Got it"
+                              variant="neutral"
+                              textColor={redFlagAccent}
                               onPress={() => {
                                 Haptics.selectionAsync();
                                 setRedFlagPromptDismissed(true);
                                 setRedFlagDismissed(true);
                                 AsyncStorage.setItem(`tv_prompt_dismissed_${id}`, JSON.stringify({ handmade: customDismissed, wrongScan: wrongScanDismissed, redFlagPrompt: true, redFlagBanner: true }));
                               }}
-                              hitSlop={8}
                               accessibilityLabel="Got it"
-                              accessibilityRole="button"
-                            >
-                              <Text style={[styles.insightsRedFlagNoText, { color: redFlagAccent }]}>Got it</Text>
-                            </Pressable>
+                            />
                           </>
                         ) : (
                           <>
                             <Text style={styles.insightsRedFlagPromptText}>Look fake to you?</Text>
-                            <Pressable
-                              style={({ pressed }) => [styles.insightsRedFlagYes, pressed && { opacity: 0.7 }]}
+                            <InlinePromptButton
+                              label="Yes"
+                              variant="danger"
                               onPress={() => {
                                 Haptics.selectionAsync();
                                 setRedFlagPromptDismissed(true);
                                 AsyncStorage.setItem(`tv_prompt_dismissed_${id}`, JSON.stringify({ handmade: customDismissed, wrongScan: wrongScanDismissed, redFlagPrompt: true, redFlagBanner: redFlagDismissed }));
                               }}
-                              hitSlop={8}
                               accessibilityLabel="Yes, this looks fake"
-                              accessibilityRole="button"
-                            >
-                              <Text style={styles.insightsRedFlagYesText}>Yes</Text>
-                            </Pressable>
-                            <Pressable
-                              style={({ pressed }) => [styles.insightsRedFlagNo, pressed && { opacity: 0.7 }]}
+                            />
+                            <InlinePromptButton
+                              label="No"
+                              variant="neutral"
                               onPress={() => {
                                 Haptics.selectionAsync();
                                 setRedFlagPromptDismissed(true);
                                 setRedFlagDismissed(true);
                                 AsyncStorage.setItem(`tv_prompt_dismissed_${id}`, JSON.stringify({ handmade: customDismissed, wrongScan: wrongScanDismissed, redFlagPrompt: true, redFlagBanner: true }));
                               }}
-                              hitSlop={8}
                               accessibilityLabel="No, false alarm"
-                              accessibilityRole="button"
-                            >
-                              <Text style={styles.insightsRedFlagNoText}>No</Text>
-                            </Pressable>
+                            />
                           </>
                         )}
                       </View>
@@ -2520,32 +2501,6 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     ...theme.typography.caption,
     color: theme.colors.mauve,
   },
-  insightsCustomYes: {
-    justifyContent: 'center',
-    minHeight: theme.minTouchTargetSize,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: theme.radius.full,
-    backgroundColor: theme.colors.terraLight,
-  },
-  insightsCustomYesText: {
-    ...theme.typography.caption,
-    fontWeight: '600',
-    color: theme.colors.terra,
-  },
-  insightsCustomNo: {
-    justifyContent: 'center',
-    minHeight: theme.minTouchTargetSize,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: theme.radius.full,
-    backgroundColor: theme.colors.mauveLight,
-  },
-  insightsCustomNoText: {
-    ...theme.typography.caption,
-    fontWeight: '600',
-    color: theme.colors.mauve,
-  },
   insightsSub: {
     ...theme.typography.caption,
     color: theme.colors.mauve,
@@ -2693,32 +2648,6 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     ...theme.typography.caption,
     color: theme.colors.loss,
     flex: 1,
-  },
-  insightsRedFlagYes: {
-    justifyContent: 'center',
-    minHeight: theme.minTouchTargetSize,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: theme.radius.full,
-    backgroundColor: theme.colors.surface,
-  },
-  insightsRedFlagYesText: {
-    ...theme.typography.caption,
-    fontWeight: '600',
-    color: theme.colors.loss,
-  },
-  insightsRedFlagNo: {
-    justifyContent: 'center',
-    minHeight: theme.minTouchTargetSize,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: theme.radius.full,
-    backgroundColor: theme.colors.surface,
-  },
-  insightsRedFlagNoText: {
-    ...theme.typography.caption,
-    fontWeight: '600',
-    color: theme.colors.mauve,
   },
   insightsAuthHeader: {
     flexDirection: 'row',

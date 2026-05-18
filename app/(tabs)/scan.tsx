@@ -1,5 +1,6 @@
 import { AppIcon } from '@/components/AppIcon';
 import { EmptyState } from '@/components/EmptyState';
+import { InlinePromptButton } from '@/components/InlinePromptButton';
 import { PaywallModal } from '@/components/PaywallModal';
 import { DEFAULT_ITEM_PLACEHOLDER_IMAGE } from '@/constants/seedItems';
 import { useInventory } from '@/context/InventoryContext';
@@ -370,24 +371,18 @@ function ScanResultCard({
           <View style={styles.handmadePromptRow}>
             <AppIcon name="brush-outline" size={14} color={theme.colors.mauve} />
             <Text style={styles.handmadePromptText}>Is this handmade?</Text>
-            <Pressable
-              style={({ pressed }) => [styles.handmadeYes, pressed && { opacity: 0.7 }]}
+            <InlinePromptButton
+              label="Yes"
+              variant="accent"
               onPress={onConfirmHandmade}
-              hitSlop={12}
               accessibilityLabel="Yes, this is handmade"
-              accessibilityRole="button"
-            >
-              <Text style={styles.handmadeYesText}>Yes</Text>
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [styles.handmadeNo, pressed && { opacity: 0.7 }]}
+            />
+            <InlinePromptButton
+              label="No"
+              variant="muted"
               onPress={onDismissCustom}
-              hitSlop={12}
               accessibilityLabel="No, not handmade"
-              accessibilityRole="button"
-            >
-              <Text style={styles.handmadeNoText}>No</Text>
-            </Pressable>
+            />
           </View>
         ) : null}
         {rescanningWrong ? (
@@ -399,24 +394,18 @@ function ScanResultCard({
           <View style={styles.handmadePromptRow}>
             <AppIcon name="alert-circle-outline" size={14} color={theme.colors.mauve} />
             <Text style={styles.handmadePromptText}>Is this scan wrong?</Text>
-            <Pressable
-              style={({ pressed }) => [styles.handmadeYes, pressed && { opacity: 0.7 }]}
+            <InlinePromptButton
+              label="Yes"
+              variant="accent"
               onPress={onRescanWrong}
-              hitSlop={12}
               accessibilityLabel="Yes, rescan this item"
-              accessibilityRole="button"
-            >
-              <Text style={styles.handmadeYesText}>Yes</Text>
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [styles.handmadeNo, pressed && { opacity: 0.7 }]}
+            />
+            <InlinePromptButton
+              label="No"
+              variant="muted"
               onPress={onDismissWrongScan}
-              hitSlop={12}
               accessibilityLabel="No, scan is correct"
-              accessibilityRole="button"
-            >
-              <Text style={styles.handmadeNoText}>No</Text>
-            </Pressable>
+            />
           </View>
         )}
         {confPresentation && (
@@ -972,30 +961,6 @@ function createScanStyles(theme: Theme, formMaxWidth?: number) {
     },
     handmadePromptText: {
       ...theme.typography.caption,
-      color: theme.colors.mauve,
-    },
-    handmadeYes: {
-      justifyContent: 'center',
-      paddingVertical: 6,
-      paddingHorizontal: 10,
-      borderRadius: theme.radius.full,
-      backgroundColor: theme.colors.terraLight,
-    },
-    handmadeYesText: {
-      ...theme.typography.caption,
-      fontWeight: '600',
-      color: theme.colors.terra,
-    },
-    handmadeNo: {
-      justifyContent: 'center',
-      paddingVertical: 6,
-      paddingHorizontal: 10,
-      borderRadius: theme.radius.full,
-      backgroundColor: theme.colors.mauveLight,
-    },
-    handmadeNoText: {
-      ...theme.typography.caption,
-      fontWeight: '600',
       color: theme.colors.mauve,
     },
     historyBtn: {
@@ -2766,8 +2731,8 @@ function createStyles(
   },
   clearBtnBlur: {
     position: 'absolute',
-    top: 16,
-    right: 16,
+    bottom: 16,
+    alignSelf: 'center',
     borderRadius: 9999,
     overflow: 'hidden',
     borderWidth: 1.5,
