@@ -40,6 +40,13 @@ const SIGNED_COSTUME_RX = /\b(trifari|coro|weiss|haskell|eisenberg|hob[eé]|whit
 // Stamp/signature evidence that the designer brand is actually present on the piece.
 const DESIGNER_STAMP_RX = /\b(t&co|©\s?tiffany|tiffany\s*&\s*co|cartier\s+signature|ale\s+925|\bale\b|\bdy\b|\bjh\b|vca\s+\w+|bvlgari\s+stamp|hallmark|maker'?s?\s+mark|stamp(ed)?|signed|signature|engraved|serial)\b/i;
 const WATCH_LUXURY_RX = /\b(rolex|omega|patek|audemars|piguet|\bap\b|cartier|vacheron|jaeger|jlc|breitling|iwc|panerai|hublot|richard\s+mille|tudor)\b/i;
+// Full watch-brand allowlist used by the WATCH NAME CLAMP. Matches the KNOWN
+// WATCH BRAND ALLOWLIST in the prompt. If `name` starts with a word that is
+// neither on this list nor a generic descriptor, strip it as a probable
+// watermark / box-text / band-engraving hallucination (ZUNAIRA, etc).
+const WATCH_BRAND_RX = /^(rolex|omega|cartier|patek|philippe|audemars|piguet|iwc|breitling|vacheron|constantin|jaeger|lecoultre|jaeger-lecoultre|hublot|tudor|panerai|zenith|blancpain|grand\s+seiko|montblanc|chopard|piaget|breguet|nomos|bell\s+&\s+ross|bvlgari|girard-perregaux|ulysse\s+nardin|tag\s+heuer|tissot|hamilton|longines|oris|frederique\s+constant|raymond\s+weil|rado|citizen|seiko|bulova|movado|baume\s+&\s+mercier|junghans|maurice\s+lacroix|fossil|michael\s+kors|skagen|anne\s+klein|guess|dkny|diesel|armani|emporio\s+armani|daniel\s+wellington|mvmt|marc\s+jacobs|coach|kate\s+spade|tory\s+burch|olivia\s+burton|invicta|casio|g-shock|g\s+shock|gshock|timex|swatch|nixon|bertucci|apple\s+watch|garmin|fitbit|samsung|whoop|polar|suunto|withings|amazfit|huawei|mobvoi|ticwatch|disney|hello\s+kitty|sanrio|lego|marvel|dc|star\s+wars)\b/i;
+// Generic watch descriptors that may legitimately lead the name.
+const WATCH_DESCRIPTOR_RX = /^(gold|silver|rose|two|black|white|brown|blue|red|green|navy|stainless|titanium|ceramic|steel|leather|rubber|nylon|nato|metal|plastic|tan|cream|ivory|gunmetal|copper|bronze|pink|purple|yellow|vintage|modern|antique|classic|new|nwt|men|mens|women|womens|unisex|kids|boys|girls|small|large|oversized|mini|quartz|mechanical|automatic|digital|analog|smart|chronograph|chrono|diver|dive|field|pilot|aviator|dress|sport|sports|skeleton|tourbillon|moonphase|moon|day|date|gmt|tank|carrera|round|square|octagonal|cushion|tonneau)\b/i;
 
 // MCM designer brands. Authentic Saarinen Tulip / Knoll / Eames pieces use laminate as
 // original construction, bypass particleboard clamp when these names appear.
@@ -154,6 +161,14 @@ Guidelines:
   • A maker's stamp engraved on the CASE BACK or inside the case-back when visible.
   • A signed crown bearing the brand monogram (Rolex crown, Omega Ω, Audemars Piguet AP, Cartier C, Patek Calatrava cross).
   None of the following count as brand evidence: text printed or stamped on the watch BOX or packaging (boxes are sold separately and frequently rebranded by jewelers / resellers); watermarks or photo overlays (Instagram handles, watermarks, eBay seller stamps, Depop @username, social-media re-share text); decorative engravings on the BAND or BRACELET (often a jeweler's logo, owner's monogram, or store mark, not the watchmaker); the case material or color (gold-tone is not Rolex, two-tone is not Datejust); the bezel or dial silhouette (octagonal bezel, fluted bezel, cyclops date window, Roman-numeral dial, moon-phase subdial are styling choices, not brand identification); the strap material (rubber, leather, NATO are not brand). Without dial-or-case brand evidence, do NOT include any brand word in "name". Describe by silhouette + case material + complication ("Gold-Tone Octagonal Chronograph with Moon Phase", "Stainless Diver with Rotating Bezel", "Two-Tone Quartz with Date") and price at the Fashion-watch tier, NOT Mid or Luxury.
+
+  KNOWN WATCH BRAND ALLOWLIST: ONLY the following brand names may appear in "name" when category="watches", and ONLY when dial-or-case evidence is present per the rules above. Any word in "name" that is not on this list and is not a generic descriptor (Gold-Tone, Silver-Tone, Two-Tone, Stainless, Vintage, Modern, Quartz, Mechanical, Automatic, Digital, Analog, Chronograph, Diver, Field, Pilot, Dress, Sport, Smart, Men's, Women's, Unisex, etc.) is a hallucination from in-frame watermark / box text / band engraving / social-media overlay and MUST be omitted:
+  Luxury: Rolex, Omega, Cartier, Patek Philippe, Audemars Piguet, IWC, Breitling, Vacheron Constantin, Jaeger-LeCoultre, Hublot, Tudor, Panerai, Zenith, Blancpain, A. Lange & Söhne, Grand Seiko, Montblanc, Chopard, Piaget, Breguet, Nomos, Bell & Ross, Bvlgari, Girard-Perregaux, Ulysse Nardin.
+  Mid-tier: Tag Heuer, Tissot, Hamilton, Longines, Oris, Frederique Constant, Raymond Weil, Mido, Rado, Citizen (Eco-Drive premium / Promaster), Seiko (Presage / Prospex / 5 Sports), Bulova, Movado, Baume & Mercier, Junghans, Maurice Lacroix.
+  Fashion: Fossil, Michael Kors, Skagen, Anne Klein, Guess, DKNY, Diesel, Armani Exchange, Emporio Armani, Daniel Wellington, MVMT, Marc Jacobs, Coach, Kate Spade, Tory Burch, Olivia Burton, Invicta, Casio, G-Shock, Timex, Swatch, Nixon, Bertucci.
+  Smart / tech: Apple Watch, Garmin, Fitbit, Samsung Galaxy Watch, Whoop, Polar, Suunto, Withings, Amazfit, Huawei Watch, Mobvoi TicWatch.
+  Character / licensed: Disney, Hello Kitty, Sanrio, Lego, Marvel, DC, Star Wars (only when the licensed character is a printed dial graphic, not the watch maker's brand).
+  Five-to-eight-letter ALL-CAPS words that don't match this list (e.g. ZUNAIRA, ZUNAIR, RAYMOND, JOSEPH, MARIA, etc.) are typically watermarks, jeweler shop names, or owner monograms and are NEVER watch brand names.
 - BAG AUTHENTICATION, HARD RULE: To assert a luxury or designer bag brand in "name" or to price at the luxury tier ($500+), the photo MUST show specific authentication evidence:
   • Louis Vuitton: a date code stamped inside (FL/SD/CT/MI/SP + 4 digits in pre-2021 bags) OR the heat-stamped logo plate inside; on genuine pieces the monogram pattern flows continuously and never has cut letters at panel joins (cheap fakes show cut Ls/Vs at seams).
   • Chanel: serial sticker (8-digit, post-1984) inside flap pocket OR authentication card; quilting forms perfect interlocking diamonds with single-piece leather panels.
@@ -1162,15 +1177,33 @@ When uncertain about a single photo, default to (a). But if shared fabric identi
     ? roundDisplayPrice(resaleLow + (resaleHigh - resaleLow) * 0.3)
     : 0;
 
+  // WATCH NAME CLAMP: when category="watches" and the leading word isn't a
+  // known watch brand or a generic descriptor, strip it. Catches watermark
+  // text / box engravings / social-media handles that the model still attaches
+  // as a "brand" prefix despite the prompt rule (e.g. "ZUNAIRA Gold-Tone
+  // Octagonal Chronograph...").
+  let cleanedName = String(parsed.name || 'Unknown Item');
+  if (parsed.category === 'watches') {
+    let safety = 0;
+    while (safety < 3) {
+      if (WATCH_BRAND_RX.test(cleanedName)) break;
+      if (WATCH_DESCRIPTOR_RX.test(cleanedName)) break;
+      const stripped = cleanedName.replace(/^\S+\s+/, '');
+      if (stripped === cleanedName) break;
+      cleanedName = stripped.trim();
+      safety++;
+    }
+  }
+
   return {
-    name: String(parsed.name || 'Unknown Item'),
+    name: cleanedName,
     sub: String(parsed.sub || ''),
     profit: resaleLow > 0 ? `${formatMoney(resaleLow)}–${formatMoney(resaleHigh)}` : '',
     suggestedPaid: paid,
     suggestedResale: resale,
     suggestedResaleLow: resaleLow,
     suggestedResaleHigh: resaleHigh,
-    isCustom: parsed.isCustom === true || detectCustomFromText(parsed.name, parsed.sub),
+    isCustom: parsed.isCustom === true || detectCustomFromText(cleanedName, parsed.sub),
     category: VALID_CATEGORIES.includes(parsed.category as ItemCategory)
       ? (parsed.category as ItemCategory)
       : 'other',
