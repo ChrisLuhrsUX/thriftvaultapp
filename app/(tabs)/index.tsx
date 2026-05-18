@@ -452,12 +452,21 @@ export default function InventoryScreen() {
     let list = listByView;
     if (search.trim()) {
       const q = search.trim().toLowerCase();
-      list = list.filter(
-        (i) =>
+      const priceQuery = parseFloat(q.replace(/[$,\s]/g, ''));
+      const matchesPrice = !isNaN(priceQuery) && priceQuery >= 0;
+      list = list.filter((i) => {
+        const textMatch =
           i.name.toLowerCase().includes(q) ||
           i.store.toLowerCase().includes(q) ||
-          i.notes.toLowerCase().includes(q)
-      );
+          i.notes.toLowerCase().includes(q);
+        if (textMatch) return true;
+        if (matchesPrice) {
+          if (Number(i.resale) === priceQuery) return true;
+          if (i.soldPrice != null && Number(i.soldPrice) === priceQuery) return true;
+          if (Number(i.paid) === priceQuery) return true;
+        }
+        return false;
+      });
     }
     if (filter !== 'all') {
       const group = CATEGORY_GROUPS.find((g) => g.key === filter);
@@ -542,7 +551,7 @@ export default function InventoryScreen() {
         <AppIcon name="search" size={20} color={theme.colors.mauve} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search by name, store, or notes..."
+          placeholder="Search by name, store, notes, or price..."
           placeholderTextColor={theme.colors.mauve}
           value={search}
           onChangeText={setSearch}
