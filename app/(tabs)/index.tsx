@@ -559,6 +559,11 @@ export default function InventoryScreen() {
           </Pressable>
         )}
       </View>
+      {search.trim().length > 0 && (
+        <Text style={styles.searchResultCount}>
+          {filtered.length} {filtered.length === 1 ? 'result' : 'results'}
+        </Text>
+      )}
       <FlatList
         horizontal
         data={filtersForView}
@@ -695,6 +700,11 @@ export default function InventoryScreen() {
                   </Pressable>
                 )}
               </View>
+              {haulSearch.trim().length > 0 && (
+                <Text style={styles.searchResultCount}>
+                  {filteredHauls.length} {filteredHauls.length === 1 ? 'result' : 'results'}
+                </Text>
+              )}
               <Button
                 label="New Haul"
                 icon="images-outline"
@@ -976,6 +986,13 @@ function createStyles(theme: Theme, hPad: number, headerHPad: number, numColumns
     backgroundColor: theme.colors.surface,
     borderRadius: theme.radius.sm,
     ...(theme.shadows.sm ?? {}),
+  },
+  searchResultCount: {
+    ...theme.typography.caption,
+    color: theme.colors.mauve,
+    marginHorizontal: hPad,
+    marginTop: -4,
+    marginBottom: theme.spacing.md,
   },
   searchInput: {
     flex: 1,
