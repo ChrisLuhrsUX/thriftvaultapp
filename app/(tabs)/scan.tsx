@@ -2766,8 +2766,8 @@ function createStyles(
   },
   clearBtnBlur: {
     position: 'absolute',
-    bottom: 16,
-    alignSelf: 'center',
+    top: 16,
+    right: 16,
     borderRadius: 9999,
     overflow: 'hidden',
     borderWidth: 1.5,
