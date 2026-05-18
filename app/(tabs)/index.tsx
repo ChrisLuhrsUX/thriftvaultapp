@@ -557,7 +557,7 @@ export default function InventoryScreen() {
         <AppIcon name="search" size={20} color={theme.colors.mauve} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search by name, store, notes, or price..."
+          placeholder="Search by name, price, category..."
           placeholderTextColor={theme.colors.mauve}
           value={search}
           onChangeText={setSearch}
@@ -698,7 +698,7 @@ export default function InventoryScreen() {
                 <AppIcon name="search" size={20} color={theme.colors.mauve} />
                 <TextInput
                   style={styles.searchInput}
-                  placeholder="Search by date, store, or item name..."
+                  placeholder="Search by date, store, or category..."
                   placeholderTextColor={theme.colors.mauve}
                   value={haulSearch}
                   onChangeText={setHaulSearch}
