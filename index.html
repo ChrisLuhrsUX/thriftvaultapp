@@ -172,20 +172,19 @@
       padding: 40px 0 96px;
     }
     .hero-grid {
-      max-width: 720px;
-      margin: 0 auto;
-      text-align: center;
+      display: grid;
+      grid-template-columns: 5fr 7fr;
+      gap: 72px;
+      align-items: center;
     }
     .hero-text {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      min-width: 0;
     }
     .hero-logo {
       width: 100%;
-      max-width: 340px;
+      max-width: 420px;
       height: auto;
-      margin: 0 auto 32px;
+      display: block;
       border-radius: 4px 4px 14px 14px;
       box-shadow:
         0 30px 80px -28px rgba(60, 47, 47, 0.4),
@@ -687,7 +686,7 @@
       .hero { padding: 16px 0 56px; }
       .hero h1 { font-size: 40px; margin-bottom: 18px; }
       .hero-lead { font-size: 16px; margin-bottom: 28px; }
-      .hero-logo { max-width: 240px; margin-bottom: 24px; }
+      .hero-logo { max-width: 220px; }
       .feature-title { font-size: 18px; }
       .price-amount { font-size: 40px; }
       .topnav { gap: 18px; }
@@ -799,6 +798,14 @@
       white-space: nowrap; border: 0;
     }
     @media (max-width: 920px) {
+      .hero-grid {
+        grid-template-columns: 1fr;
+        gap: 32px;
+        text-align: center;
+      }
+      .hero-text { display: flex; flex-direction: column; align-items: center; }
+      .hero-lead { margin-left: auto; margin-right: auto; }
+      .hero-logo { max-width: 280px; margin: 0 auto; }
       .waitlist { margin-left: auto; margin-right: auto; justify-content: center; }
       .waitlist-status { text-align: center; }
     }
@@ -841,12 +848,12 @@
 
     <section class="hero">
       <div class="hero-grid">
+        <img
+          class="hero-logo rise"
+          src="assets/logo/thriftvault_logo.jpg"
+          alt="ThriftVault: vintage hanger and price-tag emblem on teal fabric"
+        />
         <div class="hero-text">
-          <img
-            class="hero-logo rise"
-            src="assets/logo/thriftvault_logo.jpg"
-            alt="ThriftVault: vintage hanger and price-tag emblem on teal fabric"
-          />
           <h1 class="rise delay-1">Flip thrift finds.<br /><em>Real profit.</em></h1>
           <p class="hero-lead rise delay-2">
             Snap any thrift find and get a quick read on what it's worth, a worth-it or skip-it nudge, and a tidy little vault for every flip, all on your phone.
