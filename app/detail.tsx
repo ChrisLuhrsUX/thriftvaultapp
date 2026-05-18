@@ -346,6 +346,7 @@ export default function DetailScreen() {
   }, []);
 
   const flushPrices = useCallback((updates: Partial<Item>) => {
+    hasEdited.current = true;
     setItem((prev) => {
       if (!prev) return null;
       const next = { ...prev, ...updates };
@@ -946,7 +947,7 @@ export default function DetailScreen() {
                     const s = sanitizePrice(t);
                     setPaidStr(s);
                     const val = parseFloat(s);
-                    if (!isNaN(val)) update({ paid: val });
+                    if (!isNaN(val)) flushPrices({ paid: val });
                   }}
                   onFocus={() => {
                     setTimeout(() => {
@@ -982,11 +983,11 @@ export default function DetailScreen() {
                     if (soldNum != null) {
                       setSoldStr(s);
                       const val = parseFloat(s);
-                      if (!isNaN(val)) update({ soldPrice: val });
+                      if (!isNaN(val)) flushPrices({ soldPrice: val });
                     } else {
                       setResaleStr(s);
                       const val = parseFloat(s);
-                      if (!isNaN(val)) update({ resale: val });
+                      if (!isNaN(val)) flushPrices({ resale: val });
                     }
                   }}
                   onBlur={() => {
