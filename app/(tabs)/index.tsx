@@ -49,6 +49,7 @@ const CATEGORY_GROUPS: { key: string; label: string; cats: ItemCategory[] }[] = 
   { key: 'denim-outerwear', label: 'Bottoms & Outerwear', cats: ['denim', 'bottoms', 'outerwear'] },
   { key: 'shoes-bags', label: 'Shoes & Bags', cats: ['shoes', 'bags'] },
   { key: 'accessories', label: 'Accessories', cats: ['accessories'] },
+  { key: 'watches', label: 'Watches', cats: ['watches'] },
   { key: 'furniture', label: 'Furniture', cats: ['furniture'] },
   { key: 'other', label: 'Other', cats: ['other'] },
 ];
@@ -132,11 +133,12 @@ const SYNONYM_TO_CAT: Record<string, ItemCategory> = {
   necklace: 'accessories', necklaces: 'accessories',
   ring: 'accessories', rings: 'accessories',
   bracelet: 'accessories', bracelets: 'accessories',
-  watch: 'accessories', watches: 'accessories',
   hat: 'accessories', hats: 'accessories', cap: 'accessories', caps: 'accessories',
   belt: 'accessories', belts: 'accessories',
   sunglasses: 'accessories', glasses: 'accessories', eyewear: 'accessories',
   jewelry: 'accessories', jewellery: 'accessories',
+  // watches
+  watch: 'watches', watches: 'watches', wristwatch: 'watches', chronograph: 'watches',
 };
 
 const FLAGGED_TOKENS = new Set(['flag', 'flagged', 'redflag', 'redflagged']);
