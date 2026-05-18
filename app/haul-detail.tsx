@@ -235,14 +235,6 @@ export default function HaulDetailScreen() {
           <View style={styles.headerRight}>
             <Pressable
               style={({ pressed }) => [styles.headerBtn, pressed && { opacity: 0.6 }]}
-              onPress={openTitleModal}
-              accessibilityLabel={title ? 'Edit haul title' : 'Add haul title'}
-              accessibilityRole="button"
-            >
-              <AppIcon name="create-outline" size={22} color={theme.colors.charcoal} />
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [styles.headerBtn, pressed && { opacity: 0.6 }]}
               onPress={openStoreModal}
               accessibilityLabel="Set store for haul"
             >
@@ -265,12 +257,23 @@ export default function HaulDetailScreen() {
           </View>
         </View>
         <View style={styles.headerTitleBlock}>
-          <Text style={styles.headerHeroTitle} numberOfLines={2}>
-            {title || date}
-          </Text>
+          <Pressable
+            onPress={openTitleModal}
+            style={styles.headerTitleRow}
+            accessibilityLabel={title ? 'Edit haul title' : 'Name this haul'}
+            accessibilityRole="button"
+            hitSlop={8}
+          >
+            <Text
+              style={[styles.headerHeroTitle, !title && styles.headerHeroTitleUntitled]}
+              numberOfLines={2}
+            >
+              {title || 'Untitled haul'}
+            </Text>
+            <AppIcon name="pencil" size={16} color={theme.colors.mauve} />
+          </Pressable>
           <Text style={styles.headerMetaLine}>
-            {title ? `${date} · ` : ''}
-            {items.length} find{items.length !== 1 ? 's' : ''} · {formatMoney(totalSpent)} spent
+            {date} · {items.length} find{items.length !== 1 ? 's' : ''} · {formatMoney(totalSpent)} spent
             {haulProfit > 0 ? (
               <Text style={styles.headerProfit}> · {formatMoneyWithSign(haulProfit)} profit</Text>
             ) : null}
@@ -491,9 +494,18 @@ function createStyles(theme: Theme) {
       paddingHorizontal: theme.spacing.xl,
       paddingTop: theme.spacing.xs,
     },
+    headerTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.sm,
+    },
     headerHeroTitle: {
       ...theme.typography.h1,
       color: theme.colors.charcoal,
+      flexShrink: 1,
+    },
+    headerHeroTitleUntitled: {
+      color: theme.colors.mauve,
     },
     headerMetaLine: {
       ...theme.typography.bodySmall,
