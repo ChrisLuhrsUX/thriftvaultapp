@@ -2368,7 +2368,12 @@ export default function ScanScreen() {
                         </View>
                       )}
                     </View>
-                    <Text style={styles.recentName} numberOfLines={2}>{item.name}</Text>
+                    <View style={styles.recentFooter}>
+                      <Text style={styles.recentName} numberOfLines={2}>{item.name}</Text>
+                      {item.resale > 0 && (
+                        <Text style={styles.recentPrice} numberOfLines={1}>{formatMoney(item.resale)}</Text>
+                      )}
+                    </View>
                   </Pressable>
                 );
               }}
@@ -2973,10 +2978,21 @@ function createStyles(
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },
+  recentFooter: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    marginTop: theme.spacing.xs,
+    gap: theme.spacing.xs,
+  },
   recentName: {
     ...theme.typography.caption,
     color: theme.colors.charcoal,
-    marginTop: 4,
+    flex: 1,
+  },
+  recentPrice: {
+    ...theme.typography.caption,
+    color: theme.colors.profit,
+    fontFamily: 'DMSans_600SemiBold',
   },
   savedImgWrap: {
     width: 100,
