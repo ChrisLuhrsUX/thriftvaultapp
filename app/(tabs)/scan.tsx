@@ -2278,25 +2278,33 @@ export default function ScanScreen() {
               horizontal
               keyExtractor={(item) => String(item.savedAt)}
               showsHorizontalScrollIndicator={false}
-              renderItem={({ item }) => (
-                <Pressable
-                  style={({ pressed }) => [styles.recentCard, pressed && styles.btnPressed]}
-                  onPress={() => openSavedItem(item)}
-                >
-                  <View style={styles.savedImgWrap}>
-                    {item.photoUri ? (
-                      <Image source={{ uri: item.photoUri }} style={styles.recentImg} resizeMode="cover" />
-                    ) : (
-                      <View style={styles.savedPlaceholder} />
-                    )}
-                    <View style={styles.savedBadge}>
-                      <AppIcon name="bookmark" size={12} color={theme.colors.onPrimary} />
+              renderItem={({ item }) => {
+                const savedHasRedFlags = (item.redFlags?.length ?? 0) > 0 && !item.redFlagDismissed;
+                return (
+                  <Pressable
+                    style={({ pressed }) => [styles.recentCard, pressed && styles.btnPressed]}
+                    onPress={() => openSavedItem(item)}
+                  >
+                    <View style={styles.savedImgWrap}>
+                      {item.photoUri ? (
+                        <Image source={{ uri: item.photoUri }} style={styles.recentImg} resizeMode="cover" />
+                      ) : (
+                        <View style={styles.savedPlaceholder} />
+                      )}
+                      <View style={styles.savedBadge}>
+                        <AppIcon name="bookmark" size={12} color={theme.colors.onPrimary} />
+                      </View>
+                      {savedHasRedFlags && (
+                        <View style={styles.recentRedFlag}>
+                          <AppIcon name="flag" size={11} color="#FFFFFF" />
+                        </View>
+                      )}
                     </View>
-                  </View>
-                  <Text style={styles.recentName} numberOfLines={2}>{item.name}</Text>
-                  <Text style={styles.savedProfit}>{item.profit}</Text>
-                </Pressable>
-              )}
+                    <Text style={styles.recentName} numberOfLines={2}>{item.name}</Text>
+                    <Text style={styles.savedProfit}>{item.profit}</Text>
+                  </Pressable>
+                );
+              }}
             />
           </View>
         )}
