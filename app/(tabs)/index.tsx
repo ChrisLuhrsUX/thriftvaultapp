@@ -49,7 +49,6 @@ const CATEGORY_GROUPS: { key: string; label: string; cats: ItemCategory[] }[] = 
   { key: 'denim-outerwear', label: 'Bottoms & Outerwear', cats: ['denim', 'bottoms', 'outerwear'] },
   { key: 'shoes-bags', label: 'Shoes & Bags', cats: ['shoes', 'bags'] },
   { key: 'accessories', label: 'Accessories', cats: ['accessories'] },
-  { key: 'watches', label: 'Watches', cats: ['watches'] },
   { key: 'furniture', label: 'Furniture', cats: ['furniture'] },
   { key: 'other', label: 'Other', cats: ['other'] },
 ];
@@ -137,8 +136,7 @@ const SYNONYM_TO_CAT: Record<string, ItemCategory> = {
   belt: 'accessories', belts: 'accessories',
   sunglasses: 'accessories', glasses: 'accessories', eyewear: 'accessories',
   jewelry: 'accessories', jewellery: 'accessories',
-  // watches
-  watch: 'watches', watches: 'watches', wristwatch: 'watches', chronograph: 'watches',
+  watch: 'accessories', watches: 'accessories', wristwatch: 'accessories', chronograph: 'accessories',
 };
 
 const FLAGGED_TOKENS = new Set(['flag', 'flagged', 'redflag', 'redflagged']);
@@ -158,6 +156,62 @@ function applyMonthShortening(q: string): string {
     /\b(january|february|march|april|may|june|july|august|september|october|november|december)\b/g,
     (m) => MONTH_TO_SHORT[m] ?? m,
   );
+}
+
+const MONTH_NAME_TO_NUM: Record<string, number> = {
+  january: 1, jan: 1,
+  february: 2, feb: 2,
+  march: 3, mar: 3,
+  april: 4, apr: 4,
+  may: 5,
+  june: 6, jun: 6,
+  july: 7, jul: 7,
+  august: 8, aug: 8,
+  september: 9, sept: 9, sep: 9,
+  october: 10, oct: 10,
+  november: 11, nov: 11,
+  december: 12, dec: 12,
+};
+
+const MONTH_NAME_DAY_RX = /\b(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec)\s+(\d{1,2})(?:,?\s*\d{2,4})?\b/gi;
+const NUMERIC_DATE_RX = /\b(\d{1,2})[\/.\-](\d{1,2})(?:[\/.\-]\d{2,4})?\b/g;
+
+interface DateFilter {
+  month: number;
+  day: number;
+}
+
+function extractDateFilters(rawQuery: string): { dateFilters: DateFilter[]; residual: string } {
+  const dateFilters: DateFilter[] = [];
+  let residual = rawQuery.replace(MONTH_NAME_DAY_RX, (match, monthName: string, dayStr: string) => {
+    const month = MONTH_NAME_TO_NUM[monthName.toLowerCase()];
+    const day = parseInt(dayStr, 10);
+    if (month && day >= 1 && day <= 31) {
+      dateFilters.push({ month, day });
+      return ' ';
+    }
+    return match;
+  });
+  residual = residual.replace(NUMERIC_DATE_RX, (match, mStr: string, dStr: string) => {
+    const month = parseInt(mStr, 10);
+    const day = parseInt(dStr, 10);
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+      dateFilters.push({ month, day });
+      return ' ';
+    }
+    return match;
+  });
+  return { dateFilters, residual };
+}
+
+function dateStringMatchesFilters(dateStr: string, filters: DateFilter[]): boolean {
+  if (filters.length === 0) return true;
+  const ts = parseDateToDayStart(dateStr);
+  if (ts == null) return false;
+  const d = new Date(ts);
+  const m = d.getMonth() + 1;
+  const day = d.getDate();
+  return filters.every((f) => f.month === m && f.day === day);
 }
 
 interface ItemSearchFlags {
@@ -200,7 +254,9 @@ function itemMatchesToken(item: Item, token: string, flags: ItemSearchFlags): bo
 }
 
 function itemMatchesQuery(item: Item, rawQuery: string, dismissedIds: Set<number>): boolean {
-  const normalized = applyMonthShortening(normalizeToken(rawQuery));
+  const { dateFilters, residual } = extractDateFilters(rawQuery);
+  if (!dateStringMatchesFilters(item.date, dateFilters)) return false;
+  const normalized = applyMonthShortening(normalizeToken(residual));
   const tokens = normalized.split(' ').filter(Boolean);
   if (tokens.length === 0) return true;
   const flags = getItemFlags(item, dismissedIds);
@@ -616,17 +672,20 @@ export default function InventoryScreen() {
 
     let list = hauls;
     if (haulSearch.trim()) {
-      const normalized = applyMonthShortening(normalizeToken(haulSearch));
+      const { dateFilters, residual } = extractDateFilters(haulSearch);
+      const normalized = applyMonthShortening(normalizeToken(residual));
       const tokens = normalized.split(' ').filter(Boolean);
-      if (tokens.length > 0) {
-        list = list.filter((haul) =>
-          tokens.every((t) =>
+      if (dateFilters.length > 0 || tokens.length > 0) {
+        list = list.filter((haul) => {
+          if (!dateStringMatchesFilters(haul.date, dateFilters)) return false;
+          if (tokens.length === 0) return true;
+          return tokens.every((t) =>
             normalizeToken(haul.date).includes(t) ||
             normalizeToken(haul.title ?? '').includes(t) ||
             haul.stores.some((s) => normalizeToken(s).includes(t)) ||
             haul.items.some((i) => itemMatchesToken(i, t, getItemFlags(i, redFlagDismissedIds)))
-          )
-        );
+          );
+        });
       }
     }
 

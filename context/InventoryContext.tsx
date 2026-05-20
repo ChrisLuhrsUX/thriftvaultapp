@@ -89,9 +89,10 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
               date = normalized.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
             }
             const rawCat = (i as { cat?: unknown }).cat;
+            const remappedCat = rawCat === 'watches' ? 'accessories' : rawCat;
             const cat: ItemCategory =
-              typeof rawCat === 'string' && ITEM_CATEGORIES.includes(rawCat as ItemCategory)
-                ? (rawCat as ItemCategory) : 'other';
+              typeof remappedCat === 'string' && ITEM_CATEGORIES.includes(remappedCat as ItemCategory)
+                ? (remappedCat as ItemCategory) : 'other';
             const scanSnapshots = Array.isArray((i as { scanSnapshots?: unknown[] }).scanSnapshots)
               ? (i as { scanSnapshots?: unknown[] }).scanSnapshots
                   ?.map(sanitizeSnapshot)

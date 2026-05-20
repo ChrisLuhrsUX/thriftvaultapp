@@ -7,7 +7,6 @@ export type ItemCategory =
   | 'shoes'
   | 'bags'
   | 'accessories'
-  | 'watches'
   | 'furniture'
   | 'other';
 
@@ -21,7 +20,6 @@ export const ITEM_CATEGORIES: ItemCategory[] = [
   'shoes',
   'bags',
   'accessories',
-  'watches',
   'furniture',
   'other',
 ];

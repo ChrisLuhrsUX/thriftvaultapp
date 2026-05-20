@@ -419,8 +419,14 @@ export default function DetailScreen() {
   const confirmHandmade = useCallback(async () => {
     if (!item) return;
     const snapshot = getActiveSnapshot(item);
-    const photoUri = snapshot?.sourceImageUri || snapshot?.sourceImageUris?.[0] || item.img;
-    if (!photoUri) {
+    const photoUris = snapshot?.sourceImageUris?.length
+      ? snapshot.sourceImageUris
+      : snapshot?.sourceImageUri
+        ? [snapshot.sourceImageUri]
+        : item.img
+          ? [item.img]
+          : [];
+    if (photoUris.length === 0) {
       // No photo to rescan, just flag the snapshot
       if (snapshot) {
         const updated = item.scanSnapshots?.map((s) =>
@@ -433,7 +439,7 @@ export default function DetailScreen() {
     }
     setRescanningHandmade(true);
     try {
-      const result = await rescanAsHandmade(photoUri);
+      const result = await rescanAsHandmade(photoUris);
       const newSnapshot: ItemScanSnapshot = {
         id: `${Date.now()}-handmade`,
         createdAt: Date.now(),
@@ -446,7 +452,8 @@ export default function DetailScreen() {
         authFlags: Array.isArray(result.authFlags) ? result.authFlags.slice(0, 3) : [],
         redFlags: Array.isArray(result.redFlags) ? result.redFlags.slice(0, 3) : [],
         beforeAfterDetected: result.beforeAfterDetected === true || snapshot?.beforeAfterDetected === true,
-        sourceImageUri: photoUri,
+        sourceImageUri: photoUris[0],
+        sourceImageUris: photoUris,
       };
       const prev = item.scanSnapshots ?? [];
       const nextSnapshots = [newSnapshot, ...prev].slice(0, 10);
@@ -479,8 +486,14 @@ export default function DetailScreen() {
   const rescanWrong = useCallback(async () => {
     if (!item) return;
     const snapshot = getActiveSnapshot(item);
-    const photoUri = snapshot?.sourceImageUri || item.img;
-    if (!photoUri) { showToast('No photo to rescan'); return; }
+    const photoUris = snapshot?.sourceImageUris?.length
+      ? snapshot.sourceImageUris
+      : snapshot?.sourceImageUri
+        ? [snapshot.sourceImageUri]
+        : item.img
+          ? [item.img]
+          : [];
+    if (photoUris.length === 0) { showToast('No photo to rescan'); return; }
     const wasHandmade = snapshot?.isCustom === true;
     const priorRange = snapshot?.profit ? parseProfitRange(snapshot.profit) : null;
     const prior: ScanScenario = {
@@ -498,8 +511,8 @@ export default function DetailScreen() {
     setRescanningWrong(true);
     try {
       const result = wasHandmade
-        ? await rescanAsHandmade(photoUri, undefined, prior)
-        : await scanWithGemini(photoUri, undefined, undefined, prior);
+        ? await rescanAsHandmade(photoUris, undefined, prior)
+        : await scanWithGemini(photoUris, undefined, undefined, prior);
       const newLow = Math.max(result.suggestedResaleLow ?? 0, 0);
       const newHigh = Math.max(result.suggestedResaleHigh ?? 0, 0);
       const newResale = newLow > 0 ? Math.round((newLow + newHigh) / 2) : 0;
@@ -515,7 +528,8 @@ export default function DetailScreen() {
         authFlags: Array.isArray(result.authFlags) ? result.authFlags.slice(0, 3) : [],
         redFlags: Array.isArray(result.redFlags) ? result.redFlags.slice(0, 3) : [],
         beforeAfterDetected: result.beforeAfterDetected === true,
-        sourceImageUri: photoUri,
+        sourceImageUri: photoUris[0],
+        sourceImageUris: photoUris,
       };
       const nextSnapshots = [newSnapshot, ...(item.scanSnapshots ?? [])].slice(0, 10);
       const resaleUpdate = newResale > 0 ? { resale: newResale } : {};
@@ -1400,13 +1414,26 @@ export default function DetailScreen() {
                   </Pressable>
                 </ScrollView>
                 {!KNOWN_PLATFORMS.includes(item.platform) && (
-                  <TextInput
-                    style={[styles.fieldInput, styles.platformOtherInput]}
-                    value={item.platform}
-                    onChangeText={(t) => update({ platform: t })}
-                    placeholder="Type platform name..."
-                    placeholderTextColor={theme.colors.mauve}
-                  />
+                  <View style={styles.platformOtherWrap}>
+                    <TextInput
+                      style={[styles.fieldInput, item.platform.length > 0 && styles.platformOtherInputWithClear]}
+                      value={item.platform}
+                      onChangeText={(t) => update({ platform: t })}
+                      placeholder="Type platform name..."
+                      placeholderTextColor={theme.colors.mauve}
+                    />
+                    {item.platform.length > 0 && (
+                      <Pressable
+                        onPress={() => update({ platform: '' })}
+                        style={({ pressed }) => [styles.platformOtherClear, pressed && styles.platformOtherClearPressed]}
+                        hitSlop={8}
+                        accessibilityLabel="Clear platform"
+                        accessibilityRole="button"
+                      >
+                        <AppIcon name="close-circle" size={20} color={theme.colors.mauve} />
+                      </Pressable>
+                    )}
+                  </View>
                 )}
               </View>
               <View style={styles.fieldRow}>
@@ -1809,6 +1836,7 @@ export default function DetailScreen() {
           </Animated.View>
         </Pressable>
       </Modal>
+
     </KeyboardAvoidingView>
   );
 }
@@ -2794,8 +2822,22 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     borderRadius: theme.radius.sm,
     ...(theme.shadows.sm ?? {}),
   },
-  platformOtherInput: {
+  platformOtherWrap: {
     marginTop: theme.spacing.sm,
+  },
+  platformOtherInputWithClear: {
+    paddingRight: 36,
+  },
+  platformOtherClear: {
+    position: 'absolute',
+    right: 8,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  platformOtherClearPressed: {
+    opacity: 0.7,
   },
   markSoldWrap: {
     marginTop: theme.spacing.xl,

@@ -259,6 +259,22 @@ function ScanResultCard({
 
   return (
     <View style={styles.resultCard}>
+      {!rescanningHandmade && (scenario.isCustom || scenario.beforeAfterDetected) && (
+        <View style={styles.topPillRow}>
+          {scenario.isCustom && (
+            <View style={styles.customBanner}>
+              <AppIcon name="brush-outline" size={14} color={theme.colors.terra} />
+              <Text style={styles.customBannerText}>Handmade</Text>
+            </View>
+          )}
+          {scenario.beforeAfterDetected && (
+            <View style={styles.customBanner}>
+              <AppIcon name="swap-horizontal-outline" size={14} color={theme.colors.terra} />
+              <Text style={styles.customBannerText}>Before / After</Text>
+            </View>
+          )}
+        </View>
+      )}
       <View style={styles.resultHeader}>
         {editingName ? (
           <TextInput
@@ -346,22 +362,6 @@ function ScanResultCard({
         </View>
       )}
 <View style={styles.pillRow}>
-        {!rescanningHandmade && (scenario.isCustom || scenario.beforeAfterDetected) && (
-          <View style={styles.staticPillRow}>
-            {scenario.isCustom && (
-              <View style={styles.customBanner}>
-                <AppIcon name="brush-outline" size={14} color={theme.colors.terra} />
-                <Text style={styles.customBannerText}>Handmade</Text>
-              </View>
-            )}
-            {scenario.beforeAfterDetected && (
-              <View style={styles.customBanner}>
-                <AppIcon name="swap-horizontal-outline" size={14} color={theme.colors.terra} />
-                <Text style={styles.customBannerText}>Before / After</Text>
-              </View>
-            )}
-          </View>
-        )}
         {rescanningHandmade ? (
           <View style={styles.handmadePromptRow}>
             <ActivityIndicator size="small" color={theme.colors.terra} />
@@ -912,11 +912,12 @@ function createScanStyles(theme: Theme, formMaxWidth?: number) {
       gap: 6,
       marginTop: 8,
     },
-    staticPillRow: {
+    topPillRow: {
       flexDirection: 'row',
       alignItems: 'center',
       flexWrap: 'wrap',
       gap: 8,
+      marginBottom: 10,
     },
     confidenceBanner: {
       flexDirection: 'row',
@@ -1833,14 +1834,13 @@ export default function ScanScreen() {
   }, [showToast, clearResultAndPhoto]);
 
   const handleConfirmHandmade = useCallback(async () => {
-    const photoUri = stagedPhotos[0];
-    if (!photoUri || rescanningHandmade) return;
+    if (stagedPhotos.length === 0 || rescanningHandmade) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const controller = new AbortController();
     abortControllerRef.current = controller;
     setRescanningHandmade(true);
     try {
-      const updated = await rescanAsHandmade(photoUri, controller.signal);
+      const updated = await rescanAsHandmade(stagedPhotos, controller.signal);
       if (controller.signal.aborted) return;
       const prev = resultRef.current;
       if (!prev) return;
@@ -1850,7 +1850,7 @@ export default function ScanScreen() {
         beforeAfterDetected: updated.beforeAfterDetected === true || prev.beforeAfterDetected === true,
       };
       setResult(merged);
-      const snap = buildSessionSnapshot(merged, [photoUri]);
+      const snap = buildSessionSnapshot(merged, stagedPhotos);
       setSessionSnapshots(s => [snap, ...s].slice(0, SESSION_SNAPSHOT_CAP));
       setActiveSessionSnapshotId(snap.id);
     } catch (err) {
@@ -1862,8 +1862,7 @@ export default function ScanScreen() {
   }, [stagedPhotos, rescanningHandmade, showToast]);
 
   const handleRescanWrong = useCallback(async () => {
-    const photoUri = stagedPhotos[0];
-    if (!photoUri || rescanningWrong) return;
+    if (stagedPhotos.length === 0 || rescanningWrong) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -1872,13 +1871,13 @@ export default function ScanScreen() {
       const wasHandmade = result?.isCustom === true;
       const prior = result ?? undefined;
       const updated = wasHandmade
-        ? await rescanAsHandmade(photoUri, controller.signal, prior)
-        : await scanWithGemini(photoUri, controller.signal, undefined, prior);
+        ? await rescanAsHandmade(stagedPhotos, controller.signal, prior)
+        : await scanWithGemini(stagedPhotos, controller.signal, undefined, prior);
       if (controller.signal.aborted) return;
       if (resultRef.current === null) return;
       const merged: ScanScenario = { ...updated, isCustom: wasHandmade || updated.isCustom };
       setResult(merged);
-      const snap = buildSessionSnapshot(merged, [photoUri]);
+      const snap = buildSessionSnapshot(merged, stagedPhotos);
       setSessionSnapshots(s => [snap, ...s].slice(0, SESSION_SNAPSHOT_CAP));
       setActiveSessionSnapshotId(snap.id);
       if (updated.correction) showToast(toastForCorrection(updated.correction));
@@ -1966,8 +1965,11 @@ export default function ScanScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Scan</Text>
-          <Text style={styles.sub}>Find your next flip</Text>
+          <View style={styles.headerTitleBlock}>
+            <Text style={styles.title}>Scan</Text>
+            <Text style={styles.sub}>Find your next flip</Text>
+          </View>
+          <Text style={styles.versionTag}>ThriftVault · Launching June</Text>
         </View>
         <View style={[styles.cameraBoxWrap, result?.redFlags?.length && !redFlagDismissed ? styles.cameraBoxRedFlag : null]}>
         <View style={styles.cameraBox}>
@@ -2597,7 +2599,13 @@ function createStyles(
     paddingHorizontal: headerHPad,
     paddingTop: 20,
     paddingBottom: 14,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
     ...(formMaxWidth ? { maxWidth: formMaxWidth, alignSelf: 'center' as const, width: '100%' as const } : {}),
+  },
+  headerTitleBlock: {
+    flex: 1,
   },
   title: {
     ...theme.typography.h1,
@@ -2607,6 +2615,12 @@ function createStyles(
     ...theme.typography.bodySmall,
     color: theme.colors.mauve,
     marginTop: 2,
+  },
+  versionTag: {
+    ...theme.typography.caption,
+    color: theme.colors.mauve,
+    marginTop: 10,
+    marginLeft: 12,
   },
   cameraBoxWrap: {
     marginHorizontal: hPad,

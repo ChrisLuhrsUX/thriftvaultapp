@@ -455,6 +455,7 @@ export default function HaulDetailScreen() {
           </Pressable>
         </View>
       </Modal>
+
     </View>
   );
 }

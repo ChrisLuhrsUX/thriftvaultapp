@@ -47,6 +47,9 @@ const WATCH_LUXURY_RX = /\b(rolex|omega|patek|audemars|piguet|\bap\b|cartier|vac
 const WATCH_BRAND_RX = /^(rolex|omega|cartier|patek|philippe|audemars|piguet|iwc|breitling|vacheron|constantin|jaeger|lecoultre|jaeger-lecoultre|hublot|tudor|panerai|zenith|blancpain|grand\s+seiko|montblanc|chopard|piaget|breguet|nomos|bell\s+&\s+ross|bvlgari|girard-perregaux|ulysse\s+nardin|tag\s+heuer|tissot|hamilton|longines|oris|frederique\s+constant|raymond\s+weil|rado|citizen|seiko|bulova|movado|baume\s+&\s+mercier|junghans|maurice\s+lacroix|fossil|michael\s+kors|skagen|anne\s+klein|guess|dkny|diesel|armani|emporio\s+armani|daniel\s+wellington|mvmt|marc\s+jacobs|coach|kate\s+spade|tory\s+burch|olivia\s+burton|invicta|casio|g-shock|g\s+shock|gshock|timex|swatch|nixon|bertucci|apple\s+watch|garmin|fitbit|samsung|whoop|polar|suunto|withings|amazfit|huawei|mobvoi|ticwatch|disney|hello\s+kitty|sanrio|lego|marvel|dc|star\s+wars)\b/i;
 // Generic watch descriptors that may legitimately lead the name.
 const WATCH_DESCRIPTOR_RX = /^(gold|silver|rose|two|black|white|brown|blue|red|green|navy|stainless|titanium|ceramic|steel|leather|rubber|nylon|nato|metal|plastic|tan|cream|ivory|gunmetal|copper|bronze|pink|purple|yellow|vintage|modern|antique|classic|new|nwt|men|mens|women|womens|unisex|kids|boys|girls|small|large|oversized|mini|quartz|mechanical|automatic|digital|analog|smart|chronograph|chrono|diver|dive|field|pilot|aviator|dress|sport|sports|skeleton|tourbillon|moonphase|moon|day|date|gmt|tank|carrera|round|square|octagonal|cushion|tonneau)\b/i;
+// Watch keyword detector: triggers the WATCH NAME CLAMP when a watch is filed
+// under "accessories" (watches no longer have their own ItemCategory).
+const WATCH_NAME_KEYWORD_RX = /\b(watch|wristwatch|chronograph|chrono|smartwatch|timepiece)\b/i;
 
 // MCM designer brands. Authentic Saarinen Tulip / Knoll / Eames pieces use laminate as
 // original construction, bypass particleboard clamp when these names appear.
@@ -106,7 +109,7 @@ const PROMPT = `You are an expert thrift reseller. Analyze this photo of a thrif
 Return ONLY a valid JSON object with this exact structure, no markdown fences, no explanation:
 {
   "name": "Descriptive item name; prepend brand ONLY if a label/logo/tag is visibly readable in the photo",
-  "sub": "Brief description: estimated size if visible (e.g. \"Women's 8\", \"Men's L\", \"US 10\"), color, material, condition. Omit any field that can't be determined from the photo, never echo the field name as a placeholder.",
+  "sub": "Brief description: estimated size if visible (e.g. \"Women's 8\", \"Men's L\", \"US 10\"), color, material, condition in plain language (e.g. \"new with tags\", \"like new\", \"good condition\", \"some wear\"; NEVER use reseller abbreviations like \"NWT\", \"NWOT\", \"VGUC\", \"EUC\", or \"BNIB\" in user-facing output, even though the internal pricing tiers reference these terms). Omit any field that can't be determined from the photo, never echo the field name as a placeholder.",
   "category": "denim|bottoms|tops|dresses|outerwear|shoes|bags|accessories|furniture|other",
   "isCustom": <boolean>,
   "suggestedPaid": <number>,
@@ -148,7 +151,7 @@ Set isCustom = false ONLY when you are confident the item is entirely factory-ma
 Guidelines:
 - category: use "bottoms" for pants, leggings, joggers, athletic bottoms, shorts (non-denim); "denim" for jeans; "outerwear" for jackets and coats; "tops" for shirts, sweatshirts worn as tops, hoodies when not outerwear
 - category "furniture": use for any furniture, lighting, mirror, rug, or large home good, chairs, sofas/sectionals/loveseats, dining/coffee/side/console tables, desks, dressers/cabinets/bookshelves/nightstands/sideboards/credenzas/armoires, bed frames/headboards, lamps/sconces/chandeliers, mirrors, rugs, vases/sculptures/wall art, outdoor patio furniture. In the "name" field include the specific subtype (e.g. "Vintage Walnut Credenza", "MCM-Style Dining Chair", "Vintage Brass Floor Lamp", "Persian Wool Rug").
-- category "watches": use for any wristwatch (men's, women's), pocket watch, or smart-watch when the watch is the primary subject of the photo. In the "name" field include silhouette / case material / complication subtype (e.g. "Gold-Tone Chronograph with Moon Phase", "Stainless Steel Diver", "Vintage Day-Date", "Two-Tone Quartz with Date Cyclops"). Do NOT use "watches" for jewelry, belts, hats, sunglasses, or other accessories, those stay in "accessories".
+- category "accessories": use for jewelry, belts, hats, sunglasses, scarves, gloves, AND watches (wristwatch / pocket watch / smart-watch). For watches specifically, in the "name" field include silhouette / case material / complication subtype (e.g. "Gold-Tone Chronograph with Moon Phase", "Stainless Steel Diver", "Vintage Day-Date", "Two-Tone Quartz with Date Cyclops").
 - BRAND IN NAME, HARD RULE: Only include a brand word in "name" if you can see an actual LOGO, WORDMARK, PRINTED TAG, EMBROIDERED LABEL, WOVEN LABEL, or STAMPED HARDWARE bearing that brand's text or recognized logomark, and it is legible enough to read. You must be able to point to the specific region of the photo where the brand marking appears. DO NOT infer brand from silhouette, cut, aesthetic, era, embellishment pattern, stitching style, fabric weight, hardware style, or resemblance to brands known for a similar look. Inference from aesthetic is a guess, not identification.
 - JEWELRY HALLMARK, HARD RULE: Yellow-tone metal is NOT gold. Silver-tone metal is NOT sterling. Clear sparkly stones are NOT diamonds. To price a jewelry piece at a metal-specific tier (sterling, gold-filled, vermeil, solid gold, platinum), you MUST be able to see a readable hallmark stamp in the photo:
   • Silver: 925 / STER / STERLING / 800
@@ -162,7 +165,7 @@ Guidelines:
   • A signed crown bearing the brand monogram (Rolex crown, Omega Ω, Audemars Piguet AP, Cartier C, Patek Calatrava cross).
   None of the following count as brand evidence: text printed or stamped on the watch BOX or packaging (boxes are sold separately and frequently rebranded by jewelers / resellers); watermarks or photo overlays (Instagram handles, watermarks, eBay seller stamps, Depop @username, social-media re-share text); decorative engravings on the BAND or BRACELET (often a jeweler's logo, owner's monogram, or store mark, not the watchmaker); the case material or color (gold-tone is not Rolex, two-tone is not Datejust); the bezel or dial silhouette (octagonal bezel, fluted bezel, cyclops date window, Roman-numeral dial, moon-phase subdial are styling choices, not brand identification); the strap material (rubber, leather, NATO are not brand). Without dial-or-case brand evidence, do NOT include any brand word in "name". Describe by silhouette + case material + complication ("Gold-Tone Octagonal Chronograph with Moon Phase", "Stainless Diver with Rotating Bezel", "Two-Tone Quartz with Date") and price at the Fashion-watch tier, NOT Mid or Luxury.
 
-  KNOWN WATCH BRAND ALLOWLIST: ONLY the following brand names may appear in "name" when category="watches", and ONLY when dial-or-case evidence is present per the rules above. Any word in "name" that is not on this list and is not a generic descriptor (Gold-Tone, Silver-Tone, Two-Tone, Stainless, Vintage, Modern, Quartz, Mechanical, Automatic, Digital, Analog, Chronograph, Diver, Field, Pilot, Dress, Sport, Smart, Men's, Women's, Unisex, etc.) is a hallucination from in-frame watermark / box text / band engraving / social-media overlay and MUST be omitted:
+  KNOWN WATCH BRAND ALLOWLIST: ONLY the following brand names may appear in "name" when the item is a watch, and ONLY when dial-or-case evidence is present per the rules above. Any word in "name" that is not on this list and is not a generic descriptor (Gold-Tone, Silver-Tone, Two-Tone, Stainless, Vintage, Modern, Quartz, Mechanical, Automatic, Digital, Analog, Chronograph, Diver, Field, Pilot, Dress, Sport, Smart, Men's, Women's, Unisex, etc.) is a hallucination from in-frame watermark / box text / band engraving / social-media overlay and MUST be omitted:
   Luxury: Rolex, Omega, Cartier, Patek Philippe, Audemars Piguet, IWC, Breitling, Vacheron Constantin, Jaeger-LeCoultre, Hublot, Tudor, Panerai, Zenith, Blancpain, A. Lange & Söhne, Grand Seiko, Montblanc, Chopard, Piaget, Breguet, Nomos, Bell & Ross, Bvlgari, Girard-Perregaux, Ulysse Nardin.
   Mid-tier: Tag Heuer, Tissot, Hamilton, Longines, Oris, Frederique Constant, Raymond Weil, Mido, Rado, Citizen (Eco-Drive premium / Promaster), Seiko (Presage / Prospex / 5 Sports), Bulova, Movado, Baume & Mercier, Junghans, Maurice Lacroix.
   Fashion: Fossil, Michael Kors, Skagen, Anne Klein, Guess, DKNY, Diesel, Armani Exchange, Emporio Armani, Daniel Wellington, MVMT, Marc Jacobs, Coach, Kate Spade, Tory Burch, Olivia Burton, Invicta, Casio, G-Shock, Timex, Swatch, Nixon, Bertucci.
@@ -391,8 +394,8 @@ Guidelines:
 
     FURNITURE isCustom: refinished, restained, repainted, limewashed, whitewashed, reupholstered, recaned, or repurposed (dresser → bathroom vanity, ladder → blanket rack, drawer → wall shelf, door → headboard) qualifies as isCustom. Pricing: brand/era tier as base + 30–50% labor premium for skilled work. Do NOT exceed the subcategory ceiling for the base piece, refinished IKEA stays under $120 regardless of effort. Refinishing only meaningfully boosts pieces with quality bones (solid wood, MCM lines, antique structure). Refinish on particleboard adds $0, call out as red flag if the user invested labor in particleboard.
 
-  ► IF category = "watches" OR (category = "accessories" AND the item is jewelry) → JEWELRY PRICING (use this path; IGNORE the jewelry lines in FACTORY ITEM PRICING above, the tiers below are refreshed Q2 2026 and supersede them. Jewelry and watches have their own market dynamics: metal + stamp + maker, not era × embellishment × trend stacking):
-    Detection: category = "watches" OR name/sub contains ring, necklace, pendant, chain, earrings, bracelet, bangle, cuff, brooch, pin, charm, locket, choker, anklet, watch, jewelry, or jewellery.
+  ► IF category = "accessories" AND the item is jewelry or a watch → JEWELRY PRICING (use this path; IGNORE the jewelry lines in FACTORY ITEM PRICING above, the tiers below are refreshed Q2 2026 and supersede them. Jewelry and watches have their own market dynamics: metal + stamp + maker, not era × embellishment × trend stacking):
+    Detection: category = "accessories" AND name/sub contains ring, necklace, pendant, chain, earrings, bracelet, bangle, cuff, brooch, pin, charm, locket, choker, anklet, watch, wristwatch, chronograph, jewelry, or jewellery.
     suggestedPaid: thrift stores often underprice precious metals and stones, when gold karat stamp, designer maker mark, or visible gemstones are present, suggestedPaid can be $5–$100+; otherwise $3–$15.
 
     METAL / MATERIAL TIERS, apply only with a readable hallmark stamp visible (see JEWELRY HALLMARK, HARD RULE above). Without a stamp, default to the costume tier even when the piece looks high-quality:
@@ -452,7 +455,7 @@ Guidelines:
   "Check the underside of seat or inside the drawer for a Herman Miller / Knoll / Cassina / Vitra / maker label, sticker, or burn-in stamp, knockoffs of MCM designer pieces are mass-produced"
   "Verify Tiffany lamp signature on bronze base and feel the glass weight, leaded glass is significantly heavier than reproduction"
   "Look for a maker's mark, paper label, or stamp on the back or underside, authenticates antique era and origin"
-  "Look for 'T&Co' or '©Tiffany & Co.' stamp on clasp or back, heart pendants, beaded chains, and Return-to-Tiffany silhouettes are heavily counterfeited"
+  "Look for 'T&Co' or '©Tiffany & Co.' stamp on clasp or back, heart pendants, beaded chains, and Return-to-Tiffany shapes are heavily counterfeited"
   "Cartier Love and Juste un Clou pieces have a serial number engraved beside the Cartier signature, knockoffs lack the serial or use shallow / uneven engraving"
   "Pandora charms and bracelets have 'ALE 925' stamped on the inner ring or charm core, counterfeits omit ALE or use blurry / off-center stamping"
   "Look for the LV date code (FL/SD/CT/MI/SP + 4 digits) inside an interior pocket or under the flap, pre-2021 bags require this; counterfeits omit or print the wrong format"
@@ -565,11 +568,11 @@ Guidelines:
   GOLD MASQUERADE: yellow-tone metal but no karat stamp visible (10k / 14k / 18k / 24k / 375 / 585 / 750 / 916). Common when only the front/face of a piece is photographed and the inner band or clasp is hidden. → Flag: "No karat stamp visible, verify a 10k/14k/18k/750 stamp inside the band or on the clasp before paying solid-gold prices. Brass and gold-plated are commonly mistaken for solid gold."
   STERLING MASQUERADE: silver-tone metal but no 925 / STER / STERLING stamp visible. → Flag: "No 925 or sterling stamp visible, could be silver-plated, stainless steel, or pewter. Verify stamp on clasp or inside the band before paying sterling prices."
   DIAMOND MASQUERADE: clear sparkly stones with no grading cert and no hallmarked precious-metal setting visible. → Flag: "Without a grading cert (GIA / AGS / EGL) or a stamped 14k+ gold or platinum setting, clear stones may be CZ, moissanite, or glass, verify before paying diamond prices."
-  DESIGNER KNOCKOFF: silhouette resembles an iconic designer piece (Tiffany heart or "T" pendant, Cartier Love or Juste un Clou bracelet, Van Cleef Alhambra clover, Pandora charm bracelet, David Yurman cable cuff, Bulgari B.zero1 or Serpenti) but no maker stamp is visible in the photo. → Flag: "Iconic designer silhouette but no maker stamp visible, verify hallmark on clasp, inner band, or back before paying designer prices. Counterfeits of this exact silhouette are widespread."
+  DESIGNER KNOCKOFF: silhouette resembles an iconic designer piece (Tiffany heart or "T" pendant, Cartier Love or Juste un Clou bracelet, Van Cleef Alhambra clover, Pandora charm bracelet, David Yurman cable cuff, Bulgari B.zero1 or Serpenti) but no maker stamp is visible in the photo. → Flag: "Iconic designer shape but no maker stamp visible, verify hallmark on clasp, inner band, or back before paying designer prices. Counterfeits of this exact shape are widespread."
 
   BAG / SNEAKER RED FLAGS, apply ONLY when the item is a bag or sneaker:
-  LUXURY BAG KNOCKOFF: silhouette + canvas pattern resembles iconic luxury (LV monogram, Chanel CC quilt, Hermès Birkin/Kelly, Goyard chevron, Gucci GG, Prada triangle, Dior CD) but no date code, heat stamp, blind stamp, serial sticker, or interior brand plaque is visible. → Flag: "Iconic luxury bag silhouette but no date code / heat stamp / serial visible, verify on the interior pocket, leather tab, or under the flap before paying luxury prices. Counterfeit luxury bags dominate resale traffic."
-  DESIGNER BAG KNOCKOFF: signature canvas (Coach C-monogram, Tory T-emblem, Michael Kors MK-monogram) without creed patch / interior brand stamp visible. → Flag: "Designer-bag silhouette but no interior creed patch or serial visible, verify before paying designer prices. Lookalike contemporary bag knockoffs are common."
+  LUXURY BAG KNOCKOFF: silhouette + canvas pattern resembles iconic luxury (LV monogram, Chanel CC quilt, Hermès Birkin/Kelly, Goyard chevron, Gucci GG, Prada triangle, Dior CD) but no date code, heat stamp, blind stamp, serial sticker, or interior brand plaque is visible. → Flag: "Iconic luxury bag shape but no date code / heat stamp / serial visible, verify on the interior pocket, leather tab, or under the flap before paying luxury prices. Counterfeit luxury bags dominate resale traffic."
+  DESIGNER BAG KNOCKOFF: signature canvas (Coach C-monogram, Tory T-emblem, Michael Kors MK-monogram) without creed patch / interior brand stamp visible. → Flag: "Designer-bag shape but no interior creed patch or serial visible, verify before paying designer prices. Lookalike contemporary bag knockoffs are common."
   SUPERFAKE SEAM TELL: monogram canvas pattern (LV, Gucci, Goyard) shows visibly cut letters at the panel seams, off-color stitching, or laser-printed pattern with no fabric depth. Genuine luxury houses align canvas pattern across panels so letters never break at seams. → Flag: "Monogram pattern breaks at seams or shows printed (not woven) detail, superfake tell. Verify weave and seam alignment in person."
   HYPED SNEAKER COLLAB KNOCKOFF: collab-claim silhouette (Travis Scott reverse swoosh, Off-White zip-tie, Fragment bolt, Sacai dual-tongue) but no SKU label, box label, or co-brand insole signature visible. → Flag: "Collab-specific styling but no SKU / box / co-brand insole visible, collab fakes are the most-replicated sneaker category. Verify with StockX or GOAT before paying collab prices."
 - upcycle[]: exactly 3 short, specific ideas for transforming this item to increase resale value. Before writing, identify: (1) exact material and texture, (2) specific construction details like hardware, seams, collar, lining, silhouette, (3) the era or subculture it references, (4) what niche aesthetic or current resale trend it could tap into if transformed. Use those observations to write ideas that could ONLY apply to this exact item, not any other. Each idea names a specific technique AND the niche aesthetic it creates. CLOTHING BANNED techniques (apply when category is NOT "furniture"): bleach dye, tie-dye, cropping, patches, pins, buttons, generic embroidery, if you catch yourself writing one, think harder about what makes this item unique. BANNED aesthetic defaults (apply to ALL categories): do not use any of these unless the item is literally from that era/style and you can point to a specific visible detail that justifies it: cottagecore, floral, bohemian, coquette, fairy-tale, whimsical, romantic. If you catch yourself writing one of these aesthetics, delete it and think of something more specific to this item.
@@ -1177,13 +1180,15 @@ When uncertain about a single photo, default to (a). But if shared fabric identi
     ? roundDisplayPrice(resaleLow + (resaleHigh - resaleLow) * 0.3)
     : 0;
 
-  // WATCH NAME CLAMP: when category="watches" and the leading word isn't a
-  // known watch brand or a generic descriptor, strip it. Catches watermark
-  // text / box engravings / social-media handles that the model still attaches
-  // as a "brand" prefix despite the prompt rule (e.g. "ZUNAIRA Gold-Tone
-  // Octagonal Chronograph...").
+  // WATCH NAME CLAMP: when the item is a watch (under accessories) and the
+  // leading word isn't a known watch brand or a generic descriptor, strip it.
+  // Catches watermark text / box engravings / social-media handles that the
+  // model still attaches as a "brand" prefix despite the prompt rule
+  // (e.g. "ZUNAIRA Gold-Tone Octagonal Chronograph...").
   let cleanedName = String(parsed.name || 'Unknown Item');
-  if (parsed.category === 'watches') {
+  const isWatch = parsed.category === 'accessories' &&
+    WATCH_NAME_KEYWORD_RX.test(`${cleanedName} ${parsed.sub || ''}`);
+  if (isWatch) {
     let safety = 0;
     while (safety < 3) {
       if (WATCH_BRAND_RX.test(cleanedName)) break;
@@ -1355,7 +1360,8 @@ The user explicitly flagged this scan as wrong. Commit to a direction. Do NOT ec
 
 DEFAULT BIAS, when uncertain about direction, choose "lower". User "wrong scan" flags are most often overprice protests, not underprice protests; sellers know when an item won't move at the suggested price. Reserve "higher" for cases where you can name a SPECIFIC upper-tier signal you missed on the first pass: visible vintage Big E tab, NWT/original tags hanging, named designer label legible, chain-stitched hem, union-made tag, single-stitch construction, premium material tag (cashmere/silk/leather verified), mint condition with original packaging or box. Generic descriptors like "distressed", "looks worn", "feels vintage", or "strong brand name" are NOT upper-tier signals, those are already factored into the modern factory tier. Modern Levi's, Madewell, AG, Gap, Old Navy with factory distressing belong in their modern tier, not vintage. When the prior price falls within the correct factory tier and rescrutiny does not surface an explicit upper-tier signal you missed, choose "lower" and pull both ends down 15–25%.`;
 
-export async function rescanAsHandmade(photoUri: string, signal?: AbortSignal, priorResult?: ScanScenario): Promise<ScanScenario> {
+export async function rescanAsHandmade(photoUris: string | string[], signal?: AbortSignal, priorResult?: ScanScenario): Promise<ScanScenario> {
+  const uris = Array.isArray(photoUris) ? photoUris : [photoUris];
   const suffix = HANDMADE_SUFFIX + (priorResult ? RESCAN_CORRECTION_SUFFIX(priorResult) : '');
-  return runScanPipeline([photoUri], suffix, signal, priorResult);
+  return runScanPipeline(uris, suffix, signal, priorResult);
 }
