@@ -1,3 +1,17 @@
+import { AppIcon } from '@/components/AppIcon';
+import { BottomSheetModal } from '@/components/BottomSheetModal';
+import { Button } from '@/components/Button';
+import { EmptyState } from '@/components/EmptyState';
+import { InlinePromptButton } from '@/components/InlinePromptButton';
+import { useInventory } from '@/context/InventoryContext';
+import { useTheme } from '@/context/ThemeContext';
+import { useToast } from '@/context/ToastContext';
+import { useResponsive } from '@/hooks/useResponsive';
+import { classifyRedFlags, refreshUpcycleIdeas, rescanAsHandmade, scanWithGemini } from '@/services/gemini';
+import type { Theme } from '@/theme';
+import { ITEM_CATEGORIES, type Item, type ItemScanSnapshot, type ItemStatus, type Platform as PlatformType, type ScanScenario } from '@/types/inventory';
+import { getConfidenceColor } from '@/utils/confidencePresentation';
+import { formatMoney } from '@/utils/currency';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -7,43 +21,30 @@ import * as MediaLibrary from 'expo-media-library';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  Easing,
-  Image,
-  InputAccessoryView,
-  Keyboard,
-  KeyboardAvoidingView,
-  Modal,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  PanResponder,
-  Platform,
-  Pressable,
-  ScrollView,
-  Share,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableWithoutFeedback,
-  View,
-  useWindowDimensions,
+    ActivityIndicator,
+    Alert,
+    Animated,
+    Easing,
+    Image,
+    InputAccessoryView,
+    Keyboard,
+    KeyboardAvoidingView,
+    Modal,
+    NativeScrollEvent,
+    NativeSyntheticEvent,
+    PanResponder,
+    Platform,
+    Pressable,
+    ScrollView,
+    Share,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableWithoutFeedback,
+    View,
+    useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppIcon } from '@/components/AppIcon';
-import { Button } from '@/components/Button';
-import { EmptyState } from '@/components/EmptyState';
-import { InlinePromptButton } from '@/components/InlinePromptButton';
-import { useInventory } from '@/context/InventoryContext';
-import { useTheme } from '@/context/ThemeContext';
-import { useToast } from '@/context/ToastContext';
-import { useResponsive } from '@/hooks/useResponsive';
-import { classifyRedFlags, rescanAsHandmade, refreshUpcycleIdeas, scanWithGemini } from '@/services/gemini';
-import { getConfidenceColor } from '@/utils/confidencePresentation';
-import { formatMoney } from '@/utils/currency';
-import { ITEM_CATEGORIES, type Item, type ItemScanSnapshot, type ItemStatus, type Platform as PlatformType, type ScanScenario } from '@/types/inventory';
-import type { Theme } from '@/theme';
 
 function getItemPhotos(item: Item | null | undefined): string[] {
   if (!item) return [];
@@ -932,7 +933,7 @@ export default function DetailScreen() {
         </View>
 
         <Pressable
-          style={({ pressed }) => [styles.addPhotoLink, pressed && { opacity: 0.6 }]}
+          style={({ pressed }) => [styles.addPhotoLink, pressed && { opacity: theme.pressedOpacity.subtle }]}
           onPress={handleAddPhoto}
           hitSlop={{ top: 5, bottom: 5, left: 10, right: 10 }}
           accessibilityLabel="Add photos"
@@ -1085,11 +1086,6 @@ export default function DetailScreen() {
 
             {scanInsightsExpanded && (
               <View style={styles.insightsContent}>
-                {activeSnapshot.sub ? (
-                  <Text style={styles.insightsSub}>{activeSnapshot.sub}</Text>
-                ) : (
-                  <Text style={styles.insightsSub}>No additional summary for this scan.</Text>
-                )}
                 {!rescanningHandmade && (activeSnapshot.isCustom || activeSnapshot.beforeAfterDetected) && (
                   <View style={styles.insightsCustomPillWrap}>
                     {activeSnapshot.isCustom && (
@@ -1105,6 +1101,11 @@ export default function DetailScreen() {
                       </View>
                     )}
                   </View>
+                )}
+                {activeSnapshot.sub ? (
+                  <Text style={styles.insightsSub}>{activeSnapshot.sub}</Text>
+                ) : (
+                  <Text style={styles.insightsSub}>No additional summary for this scan.</Text>
                 )}
                 {rescanningHandmade ? (
                   <View style={styles.insightsCustomPromptRow}>
@@ -1218,7 +1219,7 @@ export default function DetailScreen() {
                     <>
                       <View style={styles.insightIdeasHeader}>
                         <Text style={styles.insightIdeasLabel}>Listing suggestions</Text>
-                        <Pressable onPress={() => handleCopyIdeas(activeSnapshot.ideas)} hitSlop={8} style={({ pressed }) => pressed && { opacity: 0.6 }} accessibilityLabel="Copy all suggestions">
+                        <Pressable onPress={() => handleCopyIdeas(activeSnapshot.ideas)} hitSlop={8} style={({ pressed }) => pressed && { opacity: theme.pressedOpacity.subtle }} accessibilityLabel="Copy all suggestions">
                           <AppIcon name="copy-outline" size={15} color={theme.colors.mauve} />
                         </Pressable>
                       </View>
@@ -1317,7 +1318,7 @@ export default function DetailScreen() {
                             onPress={handleRefreshUpcycle}
                             disabled={refreshingUpcycle}
                             hitSlop={8}
-                            style={({ pressed }) => [styles.insightsUpcycleRegenerate, pressed && { opacity: 0.6 }]}
+                            style={({ pressed }) => [styles.insightsUpcycleRegenerate, pressed && { opacity: theme.pressedOpacity.subtle }]}
                             accessibilityLabel="Regenerate upcycle ideas"
                           >
                             {refreshingUpcycle ? (
@@ -1334,7 +1335,7 @@ export default function DetailScreen() {
                     </View>
                   )}
                   <Pressable
-                    style={({ pressed }) => [styles.deleteScanBtn, pressed && { opacity: 0.7 }]}
+                    style={({ pressed }) => [styles.deleteScanBtn, pressed && { opacity: theme.pressedOpacity.primary }]}
                     onPress={deleteActiveScan}
                     hitSlop={8}
                     accessibilityLabel="Delete scan"
@@ -1521,12 +1522,10 @@ export default function DetailScreen() {
         </InputAccessoryView>
       )}
 
-      <Modal
+      <BottomSheetModal
         visible={addPhotoModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={closeAddPhotoModal}
-        onDismiss={() => {
+        onDismiss={closeAddPhotoModal}
+        onAfterDismiss={() => {
           if (pendingPhotoAction.current !== null) {
             const useCamera = pendingPhotoAction.current;
             pendingPhotoAction.current = null;
@@ -1534,48 +1533,38 @@ export default function DetailScreen() {
           }
         }}
       >
-        <View style={styles.addPhotoOverlay}>
-          <Pressable
-            style={styles.addPhotoBackdrop}
-            onPress={closeAddPhotoModal}
-            accessibilityRole="button"
-            accessibilityLabel="Dismiss"
-          />
-          <View style={styles.addPhotoSheet}>
-            <Text style={styles.addPhotoTitle}>Add photo</Text>
-            <Pressable
-              style={({ pressed }) => [styles.addPhotoRow, pressed && styles.btnPressed]}
-              onPress={() => {
-                pendingPhotoAction.current = true;
-                closeAddPhotoModal();
-              }}
-              accessibilityRole="button"
-            >
-              <AppIcon name="camera" size={22} color={theme.colors.vintageBlueDark} />
-              <Text style={styles.addPhotoRowText}>Take photo</Text>
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [styles.addPhotoRow, pressed && styles.btnPressed]}
-              onPress={() => {
-                pendingPhotoAction.current = false;
-                closeAddPhotoModal();
-              }}
-              accessibilityRole="button"
-            >
-              <AppIcon name="images-outline" size={22} color={theme.colors.vintageBlueDark} />
-              <Text style={styles.addPhotoRowText}>Choose from library</Text>
-            </Pressable>
-            <View style={styles.addPhotoSeparator} />
-            <Pressable
-              style={({ pressed }) => [styles.addPhotoCancelWrap, pressed && styles.btnPressed]}
-              onPress={closeAddPhotoModal}
-              accessibilityRole="button"
-            >
-              <Text style={styles.addPhotoCancelText}>Cancel</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
+        <Text style={styles.addPhotoTitle}>Add photo</Text>
+        <Pressable
+          style={({ pressed }) => [styles.addPhotoRow, pressed && styles.btnPressed]}
+          onPress={() => {
+            pendingPhotoAction.current = true;
+            closeAddPhotoModal();
+          }}
+          accessibilityRole="button"
+        >
+          <AppIcon name="camera" size={22} color={theme.colors.vintageBlueDark} />
+          <Text style={styles.addPhotoRowText}>Take photo</Text>
+        </Pressable>
+        <Pressable
+          style={({ pressed }) => [styles.addPhotoRow, pressed && styles.btnPressed]}
+          onPress={() => {
+            pendingPhotoAction.current = false;
+            closeAddPhotoModal();
+          }}
+          accessibilityRole="button"
+        >
+          <AppIcon name="images-outline" size={22} color={theme.colors.vintageBlueDark} />
+          <Text style={styles.addPhotoRowText}>Choose from library</Text>
+        </Pressable>
+        <View style={styles.addPhotoSeparator} />
+        <Pressable
+          style={({ pressed }) => [styles.addPhotoCancelWrap, pressed && styles.btnPressed]}
+          onPress={closeAddPhotoModal}
+          accessibilityRole="button"
+        >
+          <Text style={styles.addPhotoCancelText}>Cancel</Text>
+        </Pressable>
+      </BottomSheetModal>
 
       <Modal
         visible={itemMenuVisible}
@@ -1934,26 +1923,6 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     color: theme.colors.mauve,
     textAlign: 'center',
     marginTop: 1,
-  },
-  addPhotoOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  addPhotoBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: theme.colors.overlayHeavy,
-  },
-  addPhotoSheet: {
-    backgroundColor: theme.colors.cream,
-    borderRadius: theme.radius.xl,
-    paddingHorizontal: theme.spacing.xxl,
-    paddingTop: theme.spacing.xxl,
-    paddingBottom: theme.spacing.lg,
-    marginHorizontal: theme.spacing.xl,
-    width: '90%',
-    maxWidth: 400,
-    ...(theme.shadows.md ?? {}),
   },
   addPhotoTitle: {
     ...theme.typography.h2,
@@ -2498,6 +2467,7 @@ function createStyles(theme: Theme, formMaxWidth?: number) {
     alignItems: 'center',
     flexWrap: 'wrap',
     gap: 8,
+    marginBottom: theme.spacing.sm,
   },
   insightsCustomPill: {
     flexDirection: 'row',

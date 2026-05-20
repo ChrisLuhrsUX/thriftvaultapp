@@ -1,28 +1,27 @@
-import * as Haptics from 'expo-haptics';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useMemo, useState } from 'react';
-import {
-  Alert,
-  Image,
-  Keyboard,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-  useWindowDimensions,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '@/components/AppIcon';
+import { BottomSheetModal } from '@/components/BottomSheetModal';
 import { EmptyState } from '@/components/EmptyState';
 import { useInventory } from '@/context/InventoryContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useToast } from '@/context/ToastContext';
-import { formatMoney, formatMoneyWithSign } from '@/utils/currency';
-import type { Item } from '@/types/inventory';
 import type { Theme } from '@/theme';
+import type { Item } from '@/types/inventory';
+import { formatMoney, formatMoneyWithSign } from '@/utils/currency';
+import * as Haptics from 'expo-haptics';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useCallback, useMemo, useState } from 'react';
+import {
+    Alert,
+    Image,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
+    useWindowDimensions,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 function HaulItemStatusBadge({
   item,
@@ -98,6 +97,14 @@ export default function HaulDetailScreen() {
     const uniq = new Set(trimmed);
     if (uniq.size === 1) return [...uniq][0];
     return '';
+  }, [items]);
+
+  // Multi-store label for the meta line, mirrors the vault haul-thumbnail logic in
+  // app/(tabs)/index.tsx so the detail page meta line stays in sync with the card caption.
+  const haulStoresLabel = useMemo(() => {
+    const stores = [...new Set(items.map((i) => i.store.trim()))].filter(Boolean);
+    if (stores.length === 0) return '';
+    return stores.slice(0, 2).join(', ') + (stores.length > 2 ? '...' : '');
   }, [items]);
 
   const [deleted, setDeleted] = useState(false);
@@ -234,21 +241,21 @@ export default function HaulDetailScreen() {
           </Pressable>
           <View style={styles.headerRight}>
             <Pressable
-              style={({ pressed }) => [styles.headerBtn, pressed && { opacity: 0.6 }]}
+              style={({ pressed }) => [styles.headerBtn, pressed && { opacity: theme.pressedOpacity.subtle }]}
               onPress={openStoreModal}
               accessibilityLabel="Set store for haul"
             >
               <AppIcon name="storefront-outline" size={22} color={theme.colors.charcoal} />
             </Pressable>
             <Pressable
-              style={({ pressed }) => [styles.headerBtn, pressed && { opacity: 0.6 }]}
+              style={({ pressed }) => [styles.headerBtn, pressed && { opacity: theme.pressedOpacity.subtle }]}
               onPress={() => { Haptics.selectionAsync(); setViewMode(viewMode === 'list' ? 'grid' : 'list'); }}
               accessibilityLabel={viewMode === 'list' ? 'Grid view' : 'List view'}
             >
               <AppIcon name={viewMode === 'list' ? 'grid-outline' : 'list-outline'} size={22} color={theme.colors.charcoal} />
             </Pressable>
             <Pressable
-              style={({ pressed }) => [styles.headerBtn, pressed && { opacity: 0.6 }]}
+              style={({ pressed }) => [styles.headerBtn, pressed && { opacity: theme.pressedOpacity.subtle }]}
               onPress={handleDeleteHaul}
               accessibilityLabel="Delete haul"
             >
@@ -273,7 +280,9 @@ export default function HaulDetailScreen() {
             <AppIcon name="pencil" size={16} color={theme.colors.mauve} />
           </Pressable>
           <Text style={styles.headerMetaLine}>
-            {date} · {items.length} find{items.length !== 1 ? 's' : ''} · {formatMoney(totalSpent)} spent
+            {date}
+            {haulStoresLabel ? ` · ${haulStoresLabel}` : ''}
+            {' · '}{items.length} find{items.length !== 1 ? 's' : ''} · {formatMoney(totalSpent)} spent
             {haulProfit > 0 ? (
               <Text style={styles.headerProfit}> · {formatMoneyWithSign(haulProfit)} profit</Text>
             ) : null}
@@ -294,6 +303,8 @@ export default function HaulDetailScreen() {
               onPress={() =>
                 router.push({ pathname: '/detail', params: { itemId: String(item.id) } })
               }
+              onLongPress={() => handleRemoveFromHaul(item)}
+              accessibilityHint="Long-press to remove from this haul"
             >
               <View style={styles.itemRowImageWrap}>
                 <HaulItemStatusBadge item={item} styles={styles} hide />
@@ -329,6 +340,8 @@ export default function HaulDetailScreen() {
                   onPress={() =>
                     router.push({ pathname: '/detail', params: { itemId: String(item.id) } })
                   }
+                  onLongPress={() => handleRemoveFromHaul(item)}
+                  accessibilityHint="Long-press to remove from this haul"
                 >
                   <View style={[styles.collageImageBlock, { width: cellSize, height: cellSize }]}>
                     <HaulItemStatusBadge item={item} styles={styles} />
@@ -351,110 +364,98 @@ export default function HaulDetailScreen() {
         )}
       </ScrollView>
 
-      <Modal
+      <BottomSheetModal
         visible={storeModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setStoreModalVisible(false)}
+        onDismiss={() => setStoreModalVisible(false)}
       >
-        <View style={styles.haulStoreOverlay}>
-          <Pressable style={styles.haulStoreBackdrop} onPress={() => setStoreModalVisible(false)} accessibilityLabel="Dismiss" accessibilityRole="button" />
-          <Pressable style={styles.haulStoreSheet} onPress={() => Keyboard.dismiss()}>
-            <Text style={styles.haulStoreTitle}>Store for this haul</Text>
-            <Text style={styles.haulStoreHint}>
-              Applies to every item on this date. Leave blank to clear.
-            </Text>
-            <TextInput
-              style={styles.haulStoreInput}
-              value={bulkStoreText}
-              onChangeText={setBulkStoreText}
-              placeholder="e.g. Goodwill"
-              placeholderTextColor={theme.colors.mauve}
-              autoCapitalize="words"
-              autoCorrect
-            />
-            <Pressable
-              style={({ pressed }) => [styles.haulStoreClearBtn, pressed && { opacity: 0.6 }]}
-              onPress={handleClearBulkStore}
-              accessibilityLabel="Clear store"
-              accessibilityRole="button"
-            >
-              <Text style={styles.haulStoreClearText}>Clear store</Text>
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [styles.haulStoreApplyBtn, pressed && { opacity: 0.85 }]}
-              onPress={handleApplyBulkStore}
-              accessibilityLabel="Apply store to all items"
-              accessibilityRole="button"
-            >
-              <Text style={styles.haulStoreApplyText}>Apply</Text>
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [styles.haulStoreCancelBtn, pressed && { opacity: 0.6 }]}
-              onPress={() => setStoreModalVisible(false)}
-              accessibilityLabel="Cancel"
-              accessibilityRole="button"
-            >
-              <Text style={styles.haulStoreCancelText}>Cancel</Text>
-            </Pressable>
-          </Pressable>
-        </View>
-      </Modal>
+        <Text style={styles.haulStoreTitle}>Store for this haul</Text>
+        <Text style={styles.haulStoreHint}>
+          Applies to every item on this date. Leave blank to clear.
+        </Text>
+        <TextInput
+          style={styles.haulStoreInput}
+          value={bulkStoreText}
+          onChangeText={setBulkStoreText}
+          placeholder="e.g. Goodwill"
+          placeholderTextColor={theme.colors.mauve}
+          autoCapitalize="words"
+          autoCorrect
+          returnKeyType="done"
+          onSubmitEditing={handleApplyBulkStore}
+        />
+        <Pressable
+          style={({ pressed }) => [styles.haulStoreClearBtn, pressed && { opacity: theme.pressedOpacity.subtle }]}
+          onPress={handleClearBulkStore}
+          accessibilityLabel="Clear store"
+          accessibilityRole="button"
+        >
+          <Text style={styles.haulStoreClearText}>Clear store</Text>
+        </Pressable>
+        <Pressable
+          style={({ pressed }) => [styles.haulStoreApplyBtn, pressed && { opacity: theme.pressedOpacity.primary }]}
+          onPress={handleApplyBulkStore}
+          accessibilityLabel="Apply store to all items"
+          accessibilityRole="button"
+        >
+          <Text style={styles.haulStoreApplyText}>Apply</Text>
+        </Pressable>
+        <Pressable
+          style={({ pressed }) => [styles.haulStoreCancelBtn, pressed && { opacity: theme.pressedOpacity.subtle }]}
+          onPress={() => setStoreModalVisible(false)}
+          accessibilityLabel="Cancel"
+          accessibilityRole="button"
+        >
+          <Text style={styles.haulStoreCancelText}>Cancel</Text>
+        </Pressable>
+      </BottomSheetModal>
 
-      <Modal
+      <BottomSheetModal
         visible={titleModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setTitleModalVisible(false)}
+        onDismiss={() => setTitleModalVisible(false)}
       >
-        <View style={styles.haulStoreOverlay}>
-          <Pressable style={styles.haulStoreBackdrop} onPress={() => setTitleModalVisible(false)} accessibilityLabel="Dismiss" accessibilityRole="button" />
-          <Pressable style={styles.haulStoreSheet} onPress={() => Keyboard.dismiss()}>
-            <Text style={styles.haulStoreTitle}>Name this haul</Text>
-            <Text style={styles.haulStoreHint}>
-              A title shows above the date in your vault. Leave blank to clear.
-            </Text>
-            <TextInput
-              style={styles.haulStoreInput}
-              value={titleDraft}
-              onChangeText={(t) => setTitleDraft(t.slice(0, 60))}
-              placeholder="e.g. Goodwill bin run"
-              placeholderTextColor={theme.colors.mauve}
-              autoCapitalize="sentences"
-              autoCorrect
-              maxLength={60}
-              returnKeyType="done"
-              onSubmitEditing={handleApplyTitle}
-            />
-            {title.length > 0 && (
-              <Pressable
-                style={({ pressed }) => [styles.haulStoreClearBtn, pressed && { opacity: 0.6 }]}
-                onPress={handleClearTitle}
-                accessibilityLabel="Clear title"
-                accessibilityRole="button"
-              >
-                <Text style={styles.haulStoreClearText}>Clear title</Text>
-              </Pressable>
-            )}
-            <Pressable
-              style={({ pressed }) => [styles.haulStoreApplyBtn, pressed && { opacity: 0.85 }]}
-              onPress={handleApplyTitle}
-              accessibilityLabel="Save title"
-              accessibilityRole="button"
-            >
-              <Text style={styles.haulStoreApplyText}>Save</Text>
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [styles.haulStoreCancelBtn, pressed && { opacity: 0.6 }]}
-              onPress={() => setTitleModalVisible(false)}
-              accessibilityLabel="Cancel"
-              accessibilityRole="button"
-            >
-              <Text style={styles.haulStoreCancelText}>Cancel</Text>
-            </Pressable>
+        <Text style={styles.haulStoreTitle}>Name this haul</Text>
+        <Text style={styles.haulStoreHint}>
+          A title shows above the date in your vault. Leave blank to clear.
+        </Text>
+        <TextInput
+          style={styles.haulStoreInput}
+          value={titleDraft}
+          onChangeText={(t) => setTitleDraft(t.slice(0, 60))}
+          placeholder="e.g. Goodwill bin run"
+          placeholderTextColor={theme.colors.mauve}
+          autoCapitalize="sentences"
+          autoCorrect
+          maxLength={60}
+          returnKeyType="done"
+          onSubmitEditing={handleApplyTitle}
+        />
+        {title.length > 0 && (
+          <Pressable
+            style={({ pressed }) => [styles.haulStoreClearBtn, pressed && { opacity: theme.pressedOpacity.subtle }]}
+            onPress={handleClearTitle}
+            accessibilityLabel="Clear title"
+            accessibilityRole="button"
+          >
+            <Text style={styles.haulStoreClearText}>Clear title</Text>
           </Pressable>
-        </View>
-      </Modal>
+        )}
+        <Pressable
+          style={({ pressed }) => [styles.haulStoreApplyBtn, pressed && { opacity: theme.pressedOpacity.primary }]}
+          onPress={handleApplyTitle}
+          accessibilityLabel="Save title"
+          accessibilityRole="button"
+        >
+          <Text style={styles.haulStoreApplyText}>Save</Text>
+        </Pressable>
+        <Pressable
+          style={({ pressed }) => [styles.haulStoreCancelBtn, pressed && { opacity: theme.pressedOpacity.subtle }]}
+          onPress={() => setTitleModalVisible(false)}
+          accessibilityLabel="Cancel"
+          accessibilityRole="button"
+        >
+          <Text style={styles.haulStoreCancelText}>Cancel</Text>
+        </Pressable>
+      </BottomSheetModal>
 
     </View>
   );
@@ -682,27 +683,6 @@ function createStyles(theme: Theme) {
       justifyContent: 'center',
       alignItems: 'center',
       padding: theme.spacing.xxl,
-    },
-    haulStoreOverlay: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    haulStoreBackdrop: {
-      ...StyleSheet.absoluteFillObject,
-      backgroundColor: theme.colors.overlayHeavy,
-    },
-    haulStoreSheet: {
-      backgroundColor: theme.colors.cream,
-      borderRadius: theme.radius.xl,
-      paddingHorizontal: theme.spacing.xxl,
-      paddingTop: theme.spacing.xxl,
-      paddingBottom: theme.spacing.xl,
-      marginHorizontal: theme.spacing.xl,
-      width: '90%',
-      maxWidth: 400,
-      zIndex: 1,
-      ...(theme.shadows.md ?? {}),
     },
     haulStoreTitle: {
       ...theme.typography.h2,

@@ -1,6 +1,6 @@
+import { useTheme } from '@/context/ThemeContext';
 import React from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { useTheme } from '@/context/ThemeContext';
 import { AppIcon } from './AppIcon';
 import { Button } from './Button';
 

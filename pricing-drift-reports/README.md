@@ -1,6 +1,6 @@
 # Pricing Drift Reports
 
-Weekly output of the pricing-drift watch routine (`trig_0113xK23HSeSpB46ySDYJtBF`, Mon 9am ET). Each report at `YYYY-MM-DD.md` spot-checks 10 tiers from `PRICING_TIERS.md` against Depop/eBay/Poshmark sold comps (or Chairish/1stDibs/Etsy for furniture rows) and flags any tier whose comp median has drifted out of its current band in `services/gemini.ts`.
+Weekly output of the pricing-drift watch routine (`trig_0113xK23HSeSpB46ySDYJtBF`, Mon 9am ET). Each report at `YYYY-MM-DD.md` spot-checks 10 tiers from `PRICING_TIERS.md` against Depop/eBay/Poshmark sold comps (or Chairish/1stDibs/Etsy for furniture and homewares rows) and flags any tier whose comp median has drifted out of its current band in `services/gemini.ts`.
 
 The routine does NOT modify `services/gemini.ts`. Apply band edits manually after reviewing the report.
 
@@ -80,6 +80,8 @@ The routine applies these rules to compute each tier's verdict:
 ## Weighting
 
 eBay sold counts are weighted 2x toward consensus. Depop 1x, Poshmark 1x. This matches the existing CLAUDE.md trust convention (eBay has the deepest sold-comp data and most-reliable filtering).
+
+**Per-category override for `homewares` tiers (070, 071, 072, 073, 088, 090, 091, 092, 093, 094):** Etsy is weighted 2x instead of eBay. The Etsy/Chairish/1stDibs buyer pool drives homewares pricing (pottery, art glass, antique smalls, clocks, vintage tableware, decor smalls); eBay sold-comps for this category routinely trail Etsy by 20-40% because eBay's buyer base is deal-hunters, not aesthetic-curators. For top-grail studio pottery (tier 090 grail band) and grail art glass (tier 091), 1stDibs is weighted 2x because eBay comps are sparse and unreliable at that ceiling.
 
 ## Suggested-new-band calculation
 

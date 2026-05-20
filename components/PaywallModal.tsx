@@ -1,23 +1,23 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Animated,
-  Linking,
-  Modal,
-  PanResponder,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '@/components/AppIcon';
 import { Button } from '@/components/Button';
+import { DEFAULT_PLAN_ID, PLANS, TRIAL_DURATION_DAYS, type PlanOption } from '@/constants/monetization';
 import { useTheme } from '@/context/ThemeContext';
 import { useToast } from '@/context/ToastContext';
-import { TRIAL_DURATION_DAYS, PLANS, DEFAULT_PLAN_ID, type PlanOption } from '@/constants/monetization';
 import { usePurchases } from '@/hooks/usePurchases';
 import { useResponsive } from '@/hooks/useResponsive';
 import type { Theme } from '@/theme';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+    Animated,
+    Linking,
+    Modal,
+    PanResponder,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const SHEET_OFFSCREEN = 700;
 

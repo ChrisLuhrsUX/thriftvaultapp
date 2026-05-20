@@ -1,6 +1,6 @@
+import { useTheme } from '@/context/ThemeContext';
 import React from 'react';
 import { Pressable, Text } from 'react-native';
-import { useTheme } from '@/context/ThemeContext';
 
 type Variant = 'accent' | 'muted' | 'danger' | 'neutral';
 
@@ -44,7 +44,7 @@ export function InlinePromptButton({
           borderRadius: theme.radius.full,
           backgroundColor: bgByVariant[variant],
         },
-        pressed && { opacity: 0.7 },
+        pressed && { opacity: theme.pressedOpacity.default },
       ]}
       onPress={onPress}
       hitSlop={12}

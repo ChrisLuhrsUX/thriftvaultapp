@@ -51,6 +51,12 @@ const animation = {
   easing: [0.4, 0, 0.2, 1] as const,
 };
 
+const pressedOpacity = {
+  subtle: 0.6,    // dismiss / cancel / header buttons / utility links / secondary actions
+  default: 0.75,  // nav links / inline prompts / mid-priority feedback
+  primary: 0.85,  // Apply / Save / affirmative CTAs / destructive confirm
+} as const;
+
 const minTouchTargetSize = 44;
 
 export type Theme = {
@@ -60,6 +66,7 @@ export type Theme = {
   radius: typeof radius;
   shadows: ReturnType<typeof shadowsFor>;
   animation: typeof animation;
+  pressedOpacity: typeof pressedOpacity;
   minTouchTargetSize: number;
 };
 
@@ -71,6 +78,7 @@ export function getTheme(colorsOverride: ThemeColors): Theme {
     radius,
     shadows: shadowsFor(),
     animation,
+    pressedOpacity,
     minTouchTargetSize,
   };
 }

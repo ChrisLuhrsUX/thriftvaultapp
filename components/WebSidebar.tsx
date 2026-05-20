@@ -1,8 +1,8 @@
+import { AppIcon } from '@/components/AppIcon';
+import { useTheme } from '@/context/ThemeContext';
 import { usePathname, useRouter } from 'expo-router';
 import React, { useMemo } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { AppIcon } from '@/components/AppIcon';
-import { useTheme } from '@/context/ThemeContext';
 
 export const SIDEBAR_WIDTH = 220;
 
@@ -95,7 +95,7 @@ export function WebSidebar() {
               style={({ pressed }) => [
                 styles.navItem,
                 active && styles.navItemActive,
-                pressed && { opacity: 0.75 },
+                pressed && { opacity: theme.pressedOpacity.default },
               ]}
               onPress={() => router.replace(item.path as any)}
               accessibilityRole="button"

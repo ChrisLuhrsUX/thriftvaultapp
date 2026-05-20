@@ -1,6 +1,6 @@
+import { useTheme } from '@/context/ThemeContext';
 import React from 'react';
 import { ActivityIndicator, Pressable, Text, type ViewStyle } from 'react-native';
-import { useTheme } from '@/context/ThemeContext';
 import { AppIcon } from './AppIcon';
 
 type Variant = 'primary' | 'secondary' | 'ghost';

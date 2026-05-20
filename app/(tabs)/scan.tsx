@@ -23,25 +23,25 @@ import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  AppState,
-  Easing,
-  FlatList,
-  Image,
-  ImageBackground,
-  Linking,
-  Modal,
-  PanResponder,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  useWindowDimensions,
-  View,
+    ActivityIndicator,
+    Alert,
+    Animated,
+    AppState,
+    Easing,
+    FlatList,
+    Image,
+    ImageBackground,
+    Linking,
+    Modal,
+    PanResponder,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    useWindowDimensions,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -325,7 +325,7 @@ function ScanResultCard({
                 <>
                   <View style={{ flex: 1 }} />
                   <Pressable
-                    style={({ pressed }) => [styles.redFlagNo, pressed && { opacity: 0.7 }]}
+                    style={({ pressed }) => [styles.redFlagNo, pressed && { opacity: theme.pressedOpacity.subtle }]}
                     onPress={onMarkRedFlagFalseAlarm}
                     hitSlop={12}
                     accessibilityLabel="Got it"
@@ -338,7 +338,7 @@ function ScanResultCard({
                 <>
                   <Text style={styles.redFlagPromptText}>Look fake to you?</Text>
                   <Pressable
-                    style={({ pressed }) => [styles.redFlagYes, pressed && { opacity: 0.7 }]}
+                    style={({ pressed }) => [styles.redFlagYes, pressed && { opacity: theme.pressedOpacity.primary }]}
                     onPress={onConfirmRedFlag}
                     hitSlop={12}
                     accessibilityLabel="Yes, this looks fake"
@@ -347,7 +347,7 @@ function ScanResultCard({
                     <Text style={styles.redFlagYesText}>Yes</Text>
                   </Pressable>
                   <Pressable
-                    style={({ pressed }) => [styles.redFlagNo, pressed && { opacity: 0.7 }]}
+                    style={({ pressed }) => [styles.redFlagNo, pressed && { opacity: theme.pressedOpacity.subtle }]}
                     onPress={onMarkRedFlagFalseAlarm}
                     hitSlop={12}
                     accessibilityLabel="No, false alarm"
@@ -422,7 +422,7 @@ function ScanResultCard({
       <View style={styles.ideaRows}>
         <View style={styles.ideaRowsHeader}>
           <Text style={styles.ideaRowsLabel}>Listing suggestions</Text>
-          <Pressable onPress={handleCopyIdeas} hitSlop={8} style={({ pressed }) => pressed && { opacity: 0.6 }} accessibilityLabel="Copy all suggestions">
+          <Pressable onPress={handleCopyIdeas} hitSlop={8} style={({ pressed }) => pressed && { opacity: theme.pressedOpacity.subtle }} accessibilityLabel="Copy all suggestions">
             <AppIcon name="copy-outline" size={15} color={theme.colors.mauve} />
           </Pressable>
         </View>
@@ -498,7 +498,7 @@ function ScanResultCard({
             <AppIcon name="color-palette-outline" size={15} color={theme.colors.terra} />
             <Text style={styles.upcycleHeaderText}>Upcycle ideas</Text>
             {upcycleExpanded && (
-              <Pressable onPress={handleCopyUpcycle} hitSlop={8} style={({ pressed }) => pressed && { opacity: 0.6 }} accessibilityLabel="Copy upcycle ideas">
+              <Pressable onPress={handleCopyUpcycle} hitSlop={8} style={({ pressed }) => pressed && { opacity: theme.pressedOpacity.subtle }} accessibilityLabel="Copy upcycle ideas">
                 <AppIcon name="copy-outline" size={15} color={theme.colors.terra} />
               </Pressable>
             )}
@@ -520,7 +520,7 @@ function ScanResultCard({
                 onPress={onRefreshUpcycle}
                 disabled={refreshingUpcycle}
                 hitSlop={8}
-                style={({ pressed }) => [styles.upcycleRegenerate, pressed && { opacity: 0.6 }]}
+                style={({ pressed }) => [styles.upcycleRegenerate, pressed && { opacity: theme.pressedOpacity.subtle }]}
                 accessibilityLabel="Regenerate upcycle ideas"
               >
                 {refreshingUpcycle ? (
@@ -537,7 +537,7 @@ function ScanResultCard({
         </View>
       )}
       <Pressable
-        style={({ pressed }) => [styles.deleteScanBtn, pressed && { opacity: 0.7 }]}
+        style={({ pressed }) => [styles.deleteScanBtn, pressed && { opacity: theme.pressedOpacity.primary }]}
         onPress={onClearScan}
         hitSlop={8}
         accessibilityLabel="Delete scan"
@@ -1709,14 +1709,19 @@ export default function ScanScreen() {
       ? activeSessionSnapshotId
       : newSnapshots[0]?.id;
     const newResale = result.suggestedResale ?? 0;
-    const resaleUpdate = newResale > (target.resale ?? 0) ? { resale: newResale, name: result.name } : {};
+    const catFromScan = result.category && result.category !== 'other' ? { cat: result.category } : {};
+    const fieldUpdates = {
+      name: result.name,
+      ...(newResale > 0 ? { resale: newResale } : {}),
+      ...catFromScan,
+    };
     updateItem(target.id, {
       img: persistedNew[0] || target.img,
       photos: mergedPhotos.length > 0 ? mergedPhotos : target.photos,
       scanSnapshots: nextSnapshots,
       activeScanSnapshotId: activeId,
       updatedAt: Date.now(),
-      ...resaleUpdate,
+      ...fieldUpdates,
     });
     if (promptCustomDismissed || promptWrongScanDismissed || promptRedFlagDismissed || redFlagDismissed) {
       // Merge scan-card dismissals into existing per-item flags so a No tap on scan

@@ -1,14 +1,3 @@
-import React, { useMemo, useState } from 'react';
-import {
-  Alert,
-  Linking,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '@/components/AppIcon';
 import { Button } from '@/components/Button';
 import { PaywallModal } from '@/components/PaywallModal';
@@ -20,6 +9,17 @@ import { usePurchases } from '@/hooks/usePurchases';
 import { useResponsive } from '@/hooks/useResponsive';
 import type { Theme } from '@/theme';
 import { formatMoney, formatMoneyWithSign } from '@/utils/currency';
+import React, { useMemo, useState } from 'react';
+import {
+    Alert,
+    Linking,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const SETTINGS_ROWS = [
   { id: 'subscription', label: 'Subscription', icon: 'card-outline' as const },

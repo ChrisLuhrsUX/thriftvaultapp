@@ -1,3 +1,14 @@
+import { AppIcon } from '@/components/AppIcon';
+import { BottomSheetModal } from '@/components/BottomSheetModal';
+import { Button } from '@/components/Button';
+import { EmptyState } from '@/components/EmptyState';
+import { useInventory } from '@/context/InventoryContext';
+import { useTheme } from '@/context/ThemeContext';
+import { useToast } from '@/context/ToastContext';
+import { useResponsive } from '@/hooks/useResponsive';
+import type { Theme } from '@/theme';
+import type { Item, ItemCategory, ItemStatus } from '@/types/inventory';
+import { formatMoney, formatMoneyWithSign } from '@/utils/currency';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
@@ -5,28 +16,16 @@ import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
-  FlatList,
-  Image,
-  Keyboard,
-  Modal,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    FlatList,
+    Image,
+    Platform,
+    Pressable,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppIcon } from '@/components/AppIcon';
-import { Button } from '@/components/Button';
-import { EmptyState } from '@/components/EmptyState';
-import { useInventory } from '@/context/InventoryContext';
-import { useTheme } from '@/context/ThemeContext';
-import { useToast } from '@/context/ToastContext';
-import { useResponsive } from '@/hooks/useResponsive';
-import type { Item, ItemCategory, ItemStatus } from '@/types/inventory';
-import type { Theme } from '@/theme';
-import { formatMoney, formatMoneyWithSign } from '@/utils/currency';
 
 interface Haul {
   date: string;
@@ -50,6 +49,7 @@ const CATEGORY_GROUPS: { key: string; label: string; cats: ItemCategory[] }[] = 
   { key: 'shoes-bags', label: 'Shoes & Bags', cats: ['shoes', 'bags'] },
   { key: 'accessories', label: 'Accessories', cats: ['accessories'] },
   { key: 'furniture', label: 'Furniture', cats: ['furniture'] },
+  { key: 'homewares', label: 'Homewares', cats: ['homewares'] },
   { key: 'other', label: 'Other', cats: ['other'] },
 ];
 
@@ -137,6 +137,22 @@ const SYNONYM_TO_CAT: Record<string, ItemCategory> = {
   sunglasses: 'accessories', glasses: 'accessories', eyewear: 'accessories',
   jewelry: 'accessories', jewellery: 'accessories',
   watch: 'accessories', watches: 'accessories', wristwatch: 'accessories', chronograph: 'accessories',
+  // homewares (pottery, glass, decor smalls, lamps, mirrors, rugs, antique metals, clocks)
+  pottery: 'homewares', ceramic: 'homewares', ceramics: 'homewares',
+  stoneware: 'homewares', porcelain: 'homewares', earthenware: 'homewares',
+  mug: 'homewares', mugs: 'homewares', vase: 'homewares', vases: 'homewares',
+  bowl: 'homewares', bowls: 'homewares', plate: 'homewares', plates: 'homewares',
+  dish: 'homewares', dishes: 'homewares', dinnerware: 'homewares', tableware: 'homewares',
+  pyrex: 'homewares', fiestaware: 'homewares', wedgwood: 'homewares', roseville: 'homewares',
+  glass: 'homewares', glassware: 'homewares', murano: 'homewares', tiffany: 'homewares',
+  lamp: 'homewares', lamps: 'homewares', sconce: 'homewares', sconces: 'homewares', chandelier: 'homewares',
+  mirror: 'homewares', mirrors: 'homewares',
+  rug: 'homewares', rugs: 'homewares',
+  sculpture: 'homewares', sculptures: 'homewares', figurine: 'homewares', figurines: 'homewares',
+  candleholder: 'homewares', candlestick: 'homewares', candlesticks: 'homewares',
+  silver: 'homewares', sterling: 'homewares', pewter: 'homewares',
+  brass: 'homewares', copper: 'homewares', bronze: 'homewares',
+  clock: 'homewares', clocks: 'homewares',
 };
 
 const FLAGGED_TOKENS = new Set(['flag', 'flagged', 'redflag', 'redflagged']);
@@ -1008,62 +1024,57 @@ export default function InventoryScreen() {
         />
       )}
 
-      <Modal
+      <BottomSheetModal
         visible={storePickerVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setStorePickerVisible(false)}
+        onDismiss={() => setStorePickerVisible(false)}
       >
-        <View style={styles.storePickerOverlay}>
-          <Pressable style={styles.storePickerBackdrop} onPress={() => setStorePickerVisible(false)} />
-          <Pressable style={styles.storePickerSheet} onPress={() => Keyboard.dismiss()}>
-            <Text style={styles.storePickerTitle}>Where'd you thrift?</Text>
-            <View style={styles.storePickerChips}>
-              <Pressable
-                style={[styles.storePickerChip, selectedStore === '_none' && styles.storePickerChipActive]}
-                onPress={() => { setSelectedStore('_none'); setCustomStore(''); }}
-              >
-                <Text style={[styles.storePickerChipText, selectedStore === '_none' && styles.storePickerChipTextActive]}>Not set</Text>
-              </Pressable>
-              {STORE_PRESETS.map((s) => (
-                <Pressable
-                  key={s}
-                  style={[styles.storePickerChip, selectedStore === s && styles.storePickerChipActive]}
-                  onPress={() => { setSelectedStore(s); setCustomStore(''); }}
-                >
-                  <Text style={[styles.storePickerChipText, selectedStore === s && styles.storePickerChipTextActive]}>{s}</Text>
-                </Pressable>
-              ))}
-              <Pressable
-                style={[styles.storePickerChip, selectedStore === '_custom' && styles.storePickerChipActive]}
-                onPress={() => { setSelectedStore('_custom'); setTimeout(() => customStoreRef.current?.focus(), 100); }}
-              >
-                <Text style={[styles.storePickerChipText, selectedStore === '_custom' && styles.storePickerChipTextActive]}>Other</Text>
-              </Pressable>
-            </View>
-            {selectedStore === '_custom' && (
-              <TextInput
-                ref={customStoreRef}
-                style={styles.storePickerInput}
-                placeholder="Type store name..."
-                placeholderTextColor={theme.colors.mauve}
-                value={customStore}
-                onChangeText={setCustomStore}
-                autoFocus
-              />
-            )}
+        <Text style={styles.storePickerTitle}>Where'd you thrift?</Text>
+        <View style={styles.storePickerChips}>
+          <Pressable
+            style={[styles.storePickerChip, selectedStore === '_none' && styles.storePickerChipActive]}
+            onPress={() => { setSelectedStore('_none'); setCustomStore(''); }}
+          >
+            <Text style={[styles.storePickerChipText, selectedStore === '_none' && styles.storePickerChipTextActive]}>Not set</Text>
+          </Pressable>
+          {STORE_PRESETS.map((s) => (
             <Pressable
-              style={({ pressed }) => [
-                styles.storePickerConfirm,
-                pressed && { opacity: 0.8 },
-              ]}
-              onPress={handleStorePickerConfirm}
+              key={s}
+              style={[styles.storePickerChip, selectedStore === s && styles.storePickerChipActive]}
+              onPress={() => { setSelectedStore(s); setCustomStore(''); }}
             >
-              <Text style={styles.storePickerConfirmText}>Add to Haul</Text>
+              <Text style={[styles.storePickerChipText, selectedStore === s && styles.storePickerChipTextActive]}>{s}</Text>
             </Pressable>
+          ))}
+          <Pressable
+            style={[styles.storePickerChip, selectedStore === '_custom' && styles.storePickerChipActive]}
+            onPress={() => { setSelectedStore('_custom'); setTimeout(() => customStoreRef.current?.focus(), 100); }}
+          >
+            <Text style={[styles.storePickerChipText, selectedStore === '_custom' && styles.storePickerChipTextActive]}>Other</Text>
           </Pressable>
         </View>
-      </Modal>
+        {selectedStore === '_custom' && (
+          <TextInput
+            ref={customStoreRef}
+            style={styles.storePickerInput}
+            placeholder="Type store name..."
+            placeholderTextColor={theme.colors.mauve}
+            value={customStore}
+            onChangeText={setCustomStore}
+            autoFocus
+            returnKeyType="done"
+            onSubmitEditing={handleStorePickerConfirm}
+          />
+        )}
+        <Pressable
+          style={({ pressed }) => [
+            styles.storePickerConfirm,
+            pressed && { opacity: theme.pressedOpacity.primary },
+          ]}
+          onPress={handleStorePickerConfirm}
+        >
+          <Text style={styles.storePickerConfirmText}>Add to Haul</Text>
+        </Pressable>
+      </BottomSheetModal>
     </View>
   );
 }
@@ -1215,26 +1226,6 @@ function createStyles(theme: Theme, hPad: number, headerHPad: number, numColumns
   },
   haulsOnlySection: {
     flex: 1,
-  },
-  storePickerOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  storePickerBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: theme.colors.overlayHeavy,
-  },
-  storePickerSheet: {
-    backgroundColor: theme.colors.cream,
-    borderRadius: theme.radius.xl,
-    paddingHorizontal: theme.spacing.xxl,
-    paddingTop: theme.spacing.xxl,
-    paddingBottom: theme.spacing.xl,
-    marginHorizontal: theme.spacing.xl,
-    width: '90%',
-    maxWidth: 400,
-    ...(theme.shadows.md ?? {}),
   },
   storePickerTitle: {
     ...theme.typography.h2,
