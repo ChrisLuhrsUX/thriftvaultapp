@@ -13,7 +13,7 @@ Bookmark these. Daily-checklist items below assume you can pull them up in <30 s
 | RevenueCat | app.revenuecat.com | Trial starts, paid conversions, refunds, churn |
 | Gemini API | aistudio.google.com → API quota | Daily request count vs 1500 free-tier ceiling |
 | Anthropic console | console.anthropic.com | Claude fallback burn (only fires when Gemini fails) |
-| Email | thriftvaultapp@gmail.com | User support, App Review feedback |
+| Email | contact@thriftvaultapp.com | User support, App Review feedback |
 | GitHub | github.com/ChrisLuhrsUX/thriftvaultapp | Code, issues, GH Pages legal docs |
 
 ## Phase 1, Launch day → end of week 1 (daily, 20–40 min)

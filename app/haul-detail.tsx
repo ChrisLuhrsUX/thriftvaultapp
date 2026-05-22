@@ -8,11 +8,11 @@ import type { Theme } from '@/theme';
 import type { Item } from '@/types/inventory';
 import { formatMoney, formatMoneyWithSign } from '@/utils/currency';
 import * as Haptics from 'expo-haptics';
+import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
     Alert,
-    Image,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -308,7 +308,13 @@ export default function HaulDetailScreen() {
             >
               <View style={styles.itemRowImageWrap}>
                 <HaulItemStatusBadge item={item} styles={styles} hide />
-                <Image source={{ uri: item.img }} style={styles.itemRowImage} resizeMode="cover" />
+                <Image
+                  source={{ uri: item.img }}
+                  style={styles.itemRowImage}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  recyclingKey={String(item.id)}
+                />
               </View>
               <View style={styles.itemRowBody}>
                 <Text style={styles.itemRowName} numberOfLines={2}>
@@ -345,7 +351,13 @@ export default function HaulDetailScreen() {
                 >
                   <View style={[styles.collageImageBlock, { width: cellSize, height: cellSize }]}>
                     <HaulItemStatusBadge item={item} styles={styles} />
-                    <Image source={{ uri: item.img }} style={styles.collageImg} resizeMode="cover" />
+                    <Image
+                      source={{ uri: item.img }}
+                      style={styles.collageImg}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                      recyclingKey={String(item.id)}
+                    />
                   </View>
                   <View style={styles.collageFooter}>
                     <Text style={styles.collageFooterName} numberOfLines={2}>

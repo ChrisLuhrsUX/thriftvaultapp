@@ -12,12 +12,12 @@ import { formatMoney, formatMoneyWithSign } from '@/utils/currency';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
+import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
     FlatList,
-    Image,
     Platform,
     Pressable,
     StyleSheet,
@@ -302,7 +302,13 @@ const HaulCard = React.memo(function HaulCard({
             <AppIcon name="images-outline" size={32} color={theme.colors.mauve} />
           </View>
         ) : count === 1 && thumbItems[0].img ? (
-          <Image source={{ uri: thumbItems[0].img }} style={styles.haulCardImg} resizeMode="cover" />
+          <Image
+            source={{ uri: thumbItems[0].img }}
+            style={styles.haulCardImg}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            recyclingKey={String(thumbItems[0].id)}
+          />
         ) : (
           <View style={styles.haulCardGridOuter}>
             <View style={styles.haulCardGrid}>
@@ -311,7 +317,9 @@ const HaulCard = React.memo(function HaulCard({
                   key={item.id}
                   source={{ uri: item.img }}
                   style={count === 2 ? styles.haulCardGridCell2 : styles.haulCardGridCell4}
-                  resizeMode="cover"
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  recyclingKey={String(item.id)}
                 />
               ))}
             </View>
@@ -391,7 +399,13 @@ const ItemCard = React.memo(function ItemCard({
     >
       <View style={styles.cardImageBlock}>
         {item.img ? (
-          <Image source={{ uri: item.img }} style={styles.cardImg} resizeMode="cover" />
+          <Image
+            source={{ uri: item.img }}
+            style={styles.cardImg}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            recyclingKey={String(item.id)}
+          />
         ) : (
           <View style={styles.cardImgPlaceholder}>
             <AppIcon name="camera-outline" size={28} color={theme.colors.mauve} />
@@ -450,6 +464,7 @@ export default function InventoryScreen() {
   const { showToast } = useToast();
   const { gridColumns, hPad, headerHPad, contentMaxWidth, isTablet } = useResponsive();
   const [view, setView] = useState<VaultView>('flips');
+  const [hasViewedHauls, setHasViewedHauls] = useState(false);
   const [search, setSearch] = useState('');
   const [haulSearch, setHaulSearch] = useState('');
   const [filter, setFilter] = useState('all');
@@ -499,6 +514,13 @@ export default function InventoryScreen() {
   const handleHaulPress = useCallback(
     (date: string) => router.push({ pathname: '/haul-detail', params: { date: encodeURIComponent(date) } }),
     [router]
+  );
+
+  const renderHaul = useCallback(
+    ({ item }: { item: Haul }) => (
+      <HaulCard haul={item} onPress={handleHaulPress} styles={styles} theme={theme} />
+    ),
+    [handleHaulPress, styles, theme]
   );
 
   const handleManualAdd = useCallback(() => {
@@ -809,7 +831,7 @@ export default function InventoryScreen() {
         </Pressable>
         <Pressable
           style={[styles.switcherTab, view === 'hauls' && styles.switcherTabActive]}
-          onPress={() => { Haptics.selectionAsync(); setView('hauls'); }}
+          onPress={() => { Haptics.selectionAsync(); setHasViewedHauls(true); setView('hauls'); }}
           accessibilityLabel="Hauls"
           accessibilityRole="tab"
           accessibilityState={{ selected: view === 'hauls' }}
@@ -839,92 +861,7 @@ export default function InventoryScreen() {
       <View style={centeredContent}>
         {topHeader}
       </View>
-      {view === 'hauls' ? (
-        <FlatList
-          data={filteredHauls}
-          key={`hauls-${numColumns}`}
-          numColumns={numColumns}
-          keyExtractor={(haul) => `haul-${haul.date}`}
-          style={flatListStyle}
-          keyboardDismissMode="on-drag"
-          keyboardShouldPersistTaps="handled"
-          initialNumToRender={12}
-          windowSize={5}
-          removeClippedSubviews
-          contentContainerStyle={styles.haulsGridContent}
-          columnWrapperStyle={styles.haulsGridRow}
-          ListHeaderComponent={
-            <View style={styles.listHeaderWrap}>
-              <View style={styles.searchRow}>
-                <AppIcon name="search" size={20} color={theme.colors.mauve} />
-                <TextInput
-                  style={styles.searchInput}
-                  placeholder="Search by date, store, or category..."
-                  placeholderTextColor={theme.colors.mauve}
-                  value={haulSearch}
-                  onChangeText={setHaulSearch}
-                />
-                {haulSearch.length > 0 && (
-                  <Pressable
-                    onPress={() => setHaulSearch('')}
-                    style={({ pressed }) => [styles.searchClear, pressed && styles.searchClearPressed]}
-                    hitSlop={8}
-                    accessibilityLabel="Clear search"
-                    accessibilityRole="button"
-                  >
-                    <AppIcon name="close-circle" size={20} color={theme.colors.mauve} />
-                  </Pressable>
-                )}
-              </View>
-              {haulSearch.trim().length > 0 && (
-                <Text style={styles.searchResultCount}>
-                  {filteredHauls.length} {filteredHauls.length === 1 ? 'result' : 'results'}
-                </Text>
-              )}
-              <Button
-                label="New Haul"
-                icon="images-outline"
-                onPress={handleNewHaul}
-                accessibilityLabel="Create new haul"
-                style={{ marginHorizontal: hPad, marginBottom: theme.spacing.md }}
-              />
-            </View>
-          }
-          ListEmptyComponent={
-            hauls.length === 0 ? (
-              <EmptyState
-                icon="bag-handle-outline"
-                title="Your haul history lives here"
-                body="Log items from your last thrift run to track spending and profits by trip."
-                action={{
-                  label: 'New Haul',
-                  icon: 'images-outline',
-                  onPress: handleNewHaul,
-                }}
-              />
-            ) : (
-              <EmptyState
-                icon="search-outline"
-                title="No hauls match your search"
-                body="Try a different word, or clear the search to see every trip."
-                action={{
-                  label: 'Clear search',
-                  onPress: () => setSearch(''),
-                  variant: 'ghost',
-                }}
-              />
-            )
-          }
-          renderItem={({ item: haul }) => (
-            <HaulCard
-              haul={haul}
-              onPress={handleHaulPress}
-              styles={styles}
-              theme={theme}
-            />
-          )}
-        />
-      ) : (
+      <View style={[{ flex: 1 }, view === 'hauls' && { display: 'none' as const }]}>
         <FlatList
           data={filtered}
           key={`items-${view}-${numColumns}`}
@@ -1022,6 +959,89 @@ export default function InventoryScreen() {
             />
           )}
         />
+      </View>
+      {hasViewedHauls && (
+        <View style={[{ flex: 1 }, view !== 'hauls' && { display: 'none' as const }]}>
+          <FlatList
+            data={filteredHauls}
+            key={`hauls-${numColumns}`}
+            numColumns={numColumns}
+            keyExtractor={(haul) => `haul-${haul.date}`}
+            style={flatListStyle}
+            keyboardDismissMode="on-drag"
+            keyboardShouldPersistTaps="handled"
+            initialNumToRender={4}
+            maxToRenderPerBatch={4}
+            updateCellsBatchingPeriod={50}
+            windowSize={5}
+            removeClippedSubviews
+            contentContainerStyle={styles.haulsGridContent}
+            columnWrapperStyle={styles.haulsGridRow}
+            ListHeaderComponent={
+              <View style={styles.listHeaderWrap}>
+                <View style={styles.searchRow}>
+                  <AppIcon name="search" size={20} color={theme.colors.mauve} />
+                  <TextInput
+                    style={styles.searchInput}
+                    placeholder="Search by date, store, or category..."
+                    placeholderTextColor={theme.colors.mauve}
+                    value={haulSearch}
+                    onChangeText={setHaulSearch}
+                  />
+                  {haulSearch.length > 0 && (
+                    <Pressable
+                      onPress={() => setHaulSearch('')}
+                      style={({ pressed }) => [styles.searchClear, pressed && styles.searchClearPressed]}
+                      hitSlop={8}
+                      accessibilityLabel="Clear search"
+                      accessibilityRole="button"
+                    >
+                      <AppIcon name="close-circle" size={20} color={theme.colors.mauve} />
+                    </Pressable>
+                  )}
+                </View>
+                {haulSearch.trim().length > 0 && (
+                  <Text style={styles.searchResultCount}>
+                    {filteredHauls.length} {filteredHauls.length === 1 ? 'result' : 'results'}
+                  </Text>
+                )}
+                <Button
+                  label="New Haul"
+                  icon="images-outline"
+                  onPress={handleNewHaul}
+                  accessibilityLabel="Create new haul"
+                  style={{ marginHorizontal: hPad, marginBottom: theme.spacing.md }}
+                />
+              </View>
+            }
+            ListEmptyComponent={
+              hauls.length === 0 ? (
+                <EmptyState
+                  icon="bag-handle-outline"
+                  title="Your haul history lives here"
+                  body="Log items from your last thrift run to track spending and profits by trip."
+                  action={{
+                    label: 'New Haul',
+                    icon: 'images-outline',
+                    onPress: handleNewHaul,
+                  }}
+                />
+              ) : (
+                <EmptyState
+                  icon="search-outline"
+                  title="No hauls match your search"
+                  body="Try a different word, or clear the search to see every trip."
+                  action={{
+                    label: 'Clear search',
+                    onPress: () => setSearch(''),
+                    variant: 'ghost',
+                  }}
+                />
+              )
+            }
+            renderItem={renderHaul}
+          />
+        </View>
       )}
 
       <BottomSheetModal

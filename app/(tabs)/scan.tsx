@@ -8,7 +8,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useToast } from '@/context/ToastContext';
 import { usePurchases } from '@/hooks/usePurchases';
 import { useResponsive } from '@/hooks/useResponsive';
-import { classifyRedFlags, isOverloadError, refreshUpcycleIdeas, rescanAsHandmade, scanWithGemini } from '@/services/gemini';
+import { getRedFlagPresentation, isOverloadError, refreshUpcycleIdeas, rescanAsHandmade, scanWithGemini } from '@/services/gemini';
 import type { Theme } from '@/theme';
 import type { Item, ItemScanSnapshot, ScanScenario } from '@/types/inventory';
 import { getConfidenceColor, getConfidencePresentation } from '@/utils/confidencePresentation';
@@ -19,29 +19,28 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Clipboard from 'expo-clipboard';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
+import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    AppState,
-    Easing,
-    FlatList,
-    Image,
-    ImageBackground,
-    Linking,
-    Modal,
-    PanResponder,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    useWindowDimensions,
-    View,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  AppState,
+  Easing,
+  FlatList,
+  Linking,
+  Modal,
+  PanResponder,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -221,13 +220,11 @@ function ScanResultCard({
 
   const hasRedFlags = !!(scenario.redFlags && scenario.redFlags.length > 0);
   const redFlagBannerActive = hasRedFlags && !redFlagDismissed;
-  const redFlagsKind = useMemo(() => classifyRedFlags(scenario.redFlags), [scenario.redFlags]);
-  const isVerificationFlags = redFlagsKind === 'verification';
+  const redFlagPresentation = useMemo(() => getRedFlagPresentation(scenario.redFlags), [scenario.redFlags]);
+  const isVerificationFlags = redFlagPresentation.kind === 'verification';
   const redFlagAccent = isVerificationFlags ? theme.colors.vintageBlueDark : theme.colors.loss;
-  const redFlagHeaderLabel = isVerificationFlags ? 'Worth verifying' : 'Red Flags';
-  const redFlagSubtitleLabel = isVerificationFlags
-    ? 'Inspect in person before paying high prices.'
-    : 'This item or photo may be fake or AI-generated.';
+  const redFlagHeaderLabel = redFlagPresentation.header;
+  const redFlagSubtitleLabel = redFlagPresentation.subtext;
   const [editingName, setEditingName] = useState(false);
   const [editedName, setEditedName] = useState(scenario.name);
   const [upcycleExpanded, setUpcycleExpanded] = useState(false);
@@ -336,12 +333,12 @@ function ScanResultCard({
                 </>
               ) : (
                 <>
-                  <Text style={styles.redFlagPromptText}>Look fake to you?</Text>
+                  <Text style={styles.redFlagPromptText}>{redFlagPresentation.promptText}</Text>
                   <Pressable
                     style={({ pressed }) => [styles.redFlagYes, pressed && { opacity: theme.pressedOpacity.primary }]}
                     onPress={onConfirmRedFlag}
                     hitSlop={12}
-                    accessibilityLabel="Yes, this looks fake"
+                    accessibilityLabel={redFlagPresentation.yesAccessibilityLabel}
                     accessibilityRole="button"
                   >
                     <Text style={styles.redFlagYesText}>Yes</Text>
@@ -350,7 +347,7 @@ function ScanResultCard({
                     style={({ pressed }) => [styles.redFlagNo, pressed && { opacity: theme.pressedOpacity.subtle }]}
                     onPress={onMarkRedFlagFalseAlarm}
                     hitSlop={12}
-                    accessibilityLabel="No, false alarm"
+                    accessibilityLabel={redFlagPresentation.noAccessibilityLabel}
                     accessibilityRole="button"
                   >
                     <Text style={styles.redFlagNoText}>No</Text>
@@ -1379,6 +1376,7 @@ export default function ScanScreen() {
       showToast(`Maximum ${MAX_STAGED_PHOTOS} photos per scan`);
       return;
     }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
       const remaining = MAX_STAGED_PHOTOS - stagedPhotos.length;
       const pickResult = await ImagePicker.launchImageLibraryAsync({
@@ -1593,6 +1591,11 @@ export default function ScanScreen() {
     const activeSnapId = activeSessionSnapshotId && itemSnapshots.some(s => s.id === activeSessionSnapshotId)
       ? activeSessionSnapshotId
       : itemSnapshots[0]?.id;
+    // sessionSnapshots is newest-first (handleScanStaged + rescans prepend), so the
+    // oldest entry is the original scan. For saved-for-later items openSavedItem
+    // pins that snapshot's createdAt to savedAt, so item.date reflects the original
+    // scan and doesn't drift forward when the user later commits to flips/closet.
+    const originalScanAt = itemSnapshots[itemSnapshots.length - 1]?.createdAt ?? Date.now();
     const newItem: Item = {
       id,
       name: result.name,
@@ -1600,7 +1603,7 @@ export default function ScanScreen() {
       paid,
       resale,
       status: 'unlisted',
-      date: new Date().toLocaleDateString('en-US', {
+      date: new Date(originalScanAt).toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
         year: 'numeric',
@@ -1949,7 +1952,11 @@ export default function ScanScreen() {
     setPromptWrongScanDismissed(saved.promptWrongScanDismissed === true);
     setPromptRedFlagDismissed(saved.promptRedFlagDismissed === true);
     setRedFlagDismissed(saved.redFlagDismissed === true);
-    const snap = buildSessionSnapshot(saved, restoredPhotos);
+    // Pin the restored snapshot's createdAt to the original savedAt so the scan
+    // timestamp survives the save-for-later round-trip. Without this, createItemFromScan
+    // would later see a "now" timestamp and bump item.date forward.
+    const baseSnap = buildSessionSnapshot(saved, restoredPhotos);
+    const snap = { ...baseSnap, createdAt: saved.savedAt };
     setSessionSnapshots([snap]);
     setActiveSessionSnapshotId(snap.id);
   }, [persistSavedForLater]);
@@ -2073,7 +2080,8 @@ export default function ScanScreen() {
                   <Image
                     source={placeholderImageUri ? { uri: placeholderImageUri } : SCAN_BG_SOURCE}
                     style={styles.cameraBgImage}
-                    resizeMode="contain"
+                    contentFit="contain"
+                    cachePolicy="memory-disk"
                   />
                   {!result && <View style={styles.cameraOverlay} />}
                   {!result && (scanning ? (
@@ -2120,11 +2128,13 @@ export default function ScanScreen() {
                   ))}
                 </View>
               ) : (
-                <ImageBackground
-                  source={placeholderImageUri ? { uri: placeholderImageUri } : SCAN_BG_SOURCE}
-                  style={styles.cameraBg}
-                  imageStyle={styles.cameraBgImageMobile}
-                >
+                <View style={styles.cameraBg}>
+                  <Image
+                    source={placeholderImageUri ? { uri: placeholderImageUri } : SCAN_BG_SOURCE}
+                    style={styles.cameraBgImage}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                  />
                   {!result && <View style={styles.cameraOverlay} />}
                   {!result && (scanning ? (
                     <View style={styles.searchingWrap}>
@@ -2182,7 +2192,7 @@ export default function ScanScreen() {
                       </View>
                     </View>
                   ))}
-                </ImageBackground>
+                </View>
               )}
             </Pressable>
           )}
@@ -2190,7 +2200,7 @@ export default function ScanScreen() {
             <View style={styles.stagedStripOverlay}>
               {stagedPhotos.map((uri, i) => (
                 <View key={`${uri}-${i}`} style={styles.stagedThumb}>
-                  <Image source={{ uri }} style={styles.stagedThumbImg} resizeMode="cover" />
+                  <Image source={{ uri }} style={styles.stagedThumbImg} contentFit="cover" cachePolicy="memory-disk" />
                   {!result && (
                     <Pressable
                       style={styles.stagedThumbRemove}
@@ -2294,7 +2304,13 @@ export default function ScanScreen() {
                   >
                     <View style={styles.savedImgWrap}>
                       {item.photoUri ? (
-                        <Image source={{ uri: item.photoUri }} style={styles.recentImg} resizeMode="cover" />
+                        <Image
+                          source={{ uri: item.photoUri }}
+                          style={styles.recentImg}
+                          contentFit="cover"
+                          cachePolicy="memory-disk"
+                          recyclingKey={String(item.savedAt)}
+                        />
                       ) : (
                         <View style={styles.savedPlaceholder} />
                       )}
@@ -2336,7 +2352,13 @@ export default function ScanScreen() {
                   >
                     <View style={styles.recentImgWrap}>
                       {item.img ? (
-                        <Image source={{ uri: item.img }} style={styles.recentImg} resizeMode="cover" />
+                        <Image
+                          source={{ uri: item.img }}
+                          style={styles.recentImg}
+                          contentFit="cover"
+                          cachePolicy="memory-disk"
+                          recyclingKey={String(item.id)}
+                        />
                       ) : (
                         <View style={styles.recentImgPlaceholder}>
                           <AppIcon name="camera-outline" size={22} color={theme.colors.mauve} />
@@ -2435,7 +2457,7 @@ export default function ScanScreen() {
                     accessibilityState={{ disabled: blocked }}
                     disabled={blocked}
                   >
-                    <Image source={{ uri: candidate.img }} style={styles.duplicateThumb} resizeMode="cover" />
+                    <Image source={{ uri: candidate.img }} style={styles.duplicateThumb} contentFit="cover" cachePolicy="memory-disk" />
                     <View style={styles.duplicateMeta}>
                       <Text numberOfLines={1} style={styles.duplicateName}>{candidate.name}</Text>
                       <Text style={styles.duplicateInfo}>
@@ -2478,7 +2500,7 @@ export default function ScanScreen() {
           >
             {(stagedPhotos.length > 0 ? stagedPhotos : placeholderImageUri ? [placeholderImageUri] : []).map((uri, i) => (
               <Pressable key={`${uri}-${i}`} style={[styles.photoViewerPage, { width: screenWidth }]} onPress={() => setPhotoViewerVisible(false)}>
-                <Image source={{ uri }} style={styles.photoViewerImg} resizeMode="contain" />
+                <Image source={{ uri }} style={styles.photoViewerImg} contentFit="contain" cachePolicy="memory-disk" />
               </Pressable>
             ))}
           </ScrollView>
@@ -2530,7 +2552,7 @@ export default function ScanScreen() {
                     >
                       <View style={styles.historyRowThumb}>
                         {snapshot.sourceImageUri ? (
-                          <Image source={{ uri: snapshot.sourceImageUri }} style={styles.historyRowThumbImg} resizeMode="cover" />
+                          <Image source={{ uri: snapshot.sourceImageUri }} style={styles.historyRowThumbImg} contentFit="cover" cachePolicy="memory-disk" />
                         ) : (
                           <AppIcon name="camera-outline" size={20} color={theme.colors.mauve} />
                         )}
@@ -2744,7 +2766,6 @@ function createStyles(
     width: '100%',
     height: '100%',
   },
-  cameraBgImageMobile: {},
   cameraOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: theme.colors.overlay,

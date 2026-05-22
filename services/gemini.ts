@@ -55,6 +55,13 @@ const WATCH_NAME_KEYWORD_RX = /\b(watch|wristwatch|chronograph|chrono|smartwatch
 // original construction, bypass particleboard clamp when these names appear.
 const MCM_BRAND_RX = /\b(eames|knoll|herman\s+miller|wegner|saarinen|cassina|vitra|nakashima|jacobsen|breuer|le\s+corbusier|mies\s+van\s+der\s+rohe|nelson|florence\s+knoll|b&b\s+italia|poltrona\s+frau|minotti)\b/i;
 
+// "MCM-style" indicators in name/sub. The MCM ATTRIBUTION HARD RULE directs the model
+// to use this language when no maker label is visible, distinct from MCM_BRAND_RX which
+// detects authenticated maker names backed by a visible label/sticker/stamp. Matching
+// this regex (without also matching MCM_BRAND_RX) triggers the unattributed-MCM cap
+// clamp in runScanPipeline ($300 unrestored / $450 with refurb).
+const MCM_STYLE_RX = /\b(mcm[\s-]?style|mid[\s-]?century\s+(style|modern|inspired|replica)|eames[\s-]?style|in\s+the\s+(manner|style)\s+of|danish\s+modern|knoll[\s-]?style|saarinen[\s-]?style|wegner[\s-]?style|herman\s+miller[\s-]?style|nelson[\s-]?style|tulip[\s-]?style|shell[\s-]?style|womb[\s-]?style|barcelona[\s-]?style|jacobsen[\s-]?style)\b/i;
+
 // Bag and sneaker authentication gates, same shape as the jewelry hallmark gate.
 const LUXURY_BAG_BRAND_RX = /\b(louis\s+vuitton|\blv\b|chanel|herm[eè]s|gucci|prada|dior|fendi|goyard|balenciaga|saint\s+laurent|ysl|celine|bottega|loewe|valentino|givenchy|burberry)\b/i;
 const BAG_AUTH_STAMP_RX = /\b(date\s+code|heat[\s-]?stamp|blind\s+stamp|serial(\s+(number|sticker))?|creed(\s+patch)?|authentication\s+card|stitch\s+count|interior\s+stamp|made\s+in\s+(italy|france|spain)|hallmark|maker'?s?\s+mark|stamp(ed)?|signed|signature|engraved|plaque|leather\s+tab)\b/i;
@@ -92,34 +99,97 @@ const BASIC_DRESS_FABRIC_RX = /\b(flannel|cotton|twill|chambray|jersey|linen|pop
 const PREMIUM_DRESS_FABRIC_RX = /\b(silk|satin|velvet|lace|leather|wool|cashmere|sequin(ed|s)?|beaded|embroider(ed|y)|brocade|jacquard|tulle|organza|chiffon)\b/i;
 const COMPLEX_DRESS_CONSTRUCTION_RX = /\b(boned|fully[\s-]?lined|multi[\s-]?fabric|french\s+seams|architectural|corset(ed)?|bustier|structured\s+bodice)\b/i;
 
-// Furniture red flags that are material/condition verification cautions, not counterfeit
-// tells. Prefix-matched against the exact flag strings emitted by the prompt at the
-// FURNITURE RED FLAGS block. If every flag in the array starts with one of these, the UI
-// renders the banner with softer "Worth verifying" copy instead of "may be fake or AI-
-// generated". Any counterfeit-style flag (MCM KNOCKOFF, bag/sneaker knockoff, jewelry
-// masquerade, stock-photo sentinel) mixed in falls back to 'counterfeit' framing.
-const RED_FLAG_VERIFICATION_PREFIXES = [
-  'Verify solid wood vs printed-veneer',
-  'Smell-verify',
-  'Inspect seams and joints',
-  'Structural damage visible',
-  // HOMEWARES verification flags (teal "Worth verifying" banner, not red).
-  'Inspect rim and foot',
-  'Inspect for crazing',
-  "Verify maker's mark on base",
-  'Verify hallmark stamp',
-  'Verify movement type',
-  // Handmade WIP (work-in-progress) verification flag.
-  'Finish construction before listing',
+// Red flag prefixes that signal a real-physical-item counterfeit (mass-produced replica,
+// not an AI-generated listing photo). Any flag starting with one of these routes the UI
+// to the "Possible knockoff" red banner with an "Authentic to you?"-style Yes/No prompt.
+const RED_FLAG_KNOCKOFF_PREFIXES = [
+  // Furniture
+  'Verify maker stamp or label', // MCM KNOCKOFF
+  // Jewelry
+  'No karat stamp visible', // GOLD MASQUERADE
+  'No 925 or sterling stamp visible', // STERLING MASQUERADE
+  'Without a grading cert', // DIAMOND MASQUERADE
+  'Iconic designer shape but', // DESIGNER KNOCKOFF
+  // Bags / Sneakers
+  'Iconic luxury bag shape but', // LUXURY BAG KNOCKOFF
+  'Designer-bag shape but', // DESIGNER BAG KNOCKOFF
+  'Monogram pattern breaks at seams', // SUPERFAKE SEAM TELL
+  'Collab-specific styling but', // HYPED SNEAKER COLLAB KNOCKOFF
+  // Garment AI / dropship: the printed graphic itself is dropship / AI-printed, but the
+  // garment is a real physical mass-produced item, so this is knockoff-class, not
+  // AI-listing-class. AI-listing is reserved for the stock-photo sentinel only (the
+  // entire photo is AI-generated, item may not exist).
+  'All-over sublimation print', // ALL-OVER DIGITAL PRINT
+  'Artwork on this garment shows signs of AI generation', // AI-GENERATED ARTWORK
 ];
 
-export function classifyRedFlags(flags: string[] | undefined): 'verification' | 'counterfeit' {
-  if (!flags || flags.length === 0) return 'counterfeit';
-  const realFlags = flags.filter((f) => f !== 'stock-photo');
-  if (realFlags.length === 0) return 'counterfeit';
-  return realFlags.every((f) => RED_FLAG_VERIFICATION_PREFIXES.some((p) => f.startsWith(p)))
-    ? 'verification'
-    : 'counterfeit';
+export type RedFlagKind = 'verification' | 'knockoff' | 'ai-listing';
+
+// Three-way classifier:
+//   verification → teal "Worth verifying" banner, single "Got it" dismiss. Default for
+//                  condition cautions, refurb notes, hallmark-verify prompts, and any
+//                  unrecognized string the model coins outside the named knockoff set.
+//   knockoff     → red "Possible knockoff" banner, "Possible knockoff?" Yes/No prompt.
+//                  Real physical mass-produced replica (MCM, luxury bag, sneaker collab,
+//                  dropship sublimation print, AI-printed graphic on a real garment).
+//   ai-listing   → red "Possible AI-generated photo" banner, "AI-generated photo?" Yes/No
+//                  prompt. Triggered by the stock-photo sentinel only — the entire listing
+//                  photo is AI-generated, the item may not exist as photographed. More
+//                  severe risk than knockoff, so mixed (stock-photo + knockoff prefix)
+//                  defaults to ai-listing.
+export function classifyRedFlags(flags: string[] | undefined): RedFlagKind {
+  if (!flags || flags.length === 0) return 'verification';
+  if (flags.includes('stock-photo')) return 'ai-listing';
+  if (flags.some((f) => RED_FLAG_KNOCKOFF_PREFIXES.some((p) => f.startsWith(p)))) {
+    return 'knockoff';
+  }
+  return 'verification';
+}
+
+export type RedFlagPresentation = {
+  kind: RedFlagKind;
+  header: string;
+  subtext: string;
+  promptText: string; // empty for verification
+  yesAccessibilityLabel: string; // empty for verification
+  noAccessibilityLabel: string; // empty for verification
+};
+
+// Centralizes banner copy so detail.tsx and scan.tsx render the same strings. Add new
+// flag-driven copy variants here; consumers branch on `kind` for the structural split
+// (one-button "Got it" vs prompt + Yes/No).
+export function getRedFlagPresentation(flags: string[] | undefined): RedFlagPresentation {
+  const kind = classifyRedFlags(flags);
+  switch (kind) {
+    case 'knockoff':
+      return {
+        kind,
+        header: 'Possible knockoff',
+        subtext: 'Replicas of this design are mass-produced. Verify the maker stamp or label before paying authenticated prices.',
+        promptText: 'Possible knockoff?',
+        yesAccessibilityLabel: 'Yes, this looks like a knockoff',
+        noAccessibilityLabel: 'No, looks authentic',
+      };
+    case 'ai-listing':
+      return {
+        kind,
+        header: 'Possible AI-generated photo',
+        subtext: 'This image shows signs of AI generation. The item may not exist as photographed.',
+        promptText: 'AI-generated photo?',
+        yesAccessibilityLabel: 'Yes, this photo looks AI-generated',
+        noAccessibilityLabel: 'No, photo looks real',
+      };
+    case 'verification':
+    default:
+      return {
+        kind: 'verification',
+        header: 'Worth verifying',
+        subtext: 'Inspect in person before paying high prices.',
+        promptText: '',
+        yesAccessibilityLabel: '',
+        noAccessibilityLabel: '',
+      };
+  }
 }
 
 function detectCustomFromText(...fields: unknown[]): boolean {
@@ -284,6 +354,11 @@ Guidelines:
     – Modern band tee (Metallica, Nirvana, AC/DC, Pink Floyd) with side seams + double-stitched hems → NOT vintage tier; this is a modern repro at $15–$35
     – Modern Disney character tee (side seams, current Hanes/Gildan tag) → NOT vintage Disney tier; this is a current-production tee $8–$20
     – "Vintage-style" distressed graphic tee from Brandy Melville / Urban Outfitters / Forever 21 → NOT actual vintage; tag will read modern brand
+  • FURNITURE PAIRED SETS, do NOT name companion items that aren't visibly photographed:
+    – Eames Lounge Chair (670) silhouette WITHOUT ottoman (671) in any photo → name "Eames Style Lounge Chair" only, NOT "Eames Style Lounge Chair and Ottoman". The 670/671 pairing is the most common companion hallucination because the chair-and-ottoman set is iconic, but the pieces are routinely sold separately on resale. Adding "and Ottoman" / "with matching ottoman" / "and footstool" to a chair-only scan doubles the implied bundle price.
+    – Chaise / sectional / dining set WITHOUT companion pieces in photos → name the photographed piece only ("Chaise Lounge", not "Chaise Lounge with Ottoman"; "Dining Table" not "Dining Table and Six Chairs")
+    – Sofa + matching loveseat / armchair set: name only the piece(s) actually photographed, never both
+    – Bedroom set: dresser, mirror, nightstand → photograph dictates the name; do not add "with matching dresser" / "and nightstand set" unless all pieces appear
   • SUNGLASSES look-alikes, designer eyewear is heavily counterfeited:
     – Black acetate Wayfarer-style frames → NOT Ray-Ban without "RB" lens etching + "Ray-Ban" temple text
     – Aviator metal frames → NOT Ray-Ban without "RB" lens etching + Ray-Ban hinge stamp
@@ -429,11 +504,13 @@ Guidelines:
 
     FURNITURE COMPARTMENT NAMING, HARD RULE: When the piece has compartments, name each by type AND position. Compartment types: drawer = closed pull-out with hardware (knob, handle, pull); shelf = open horizontal surface with no door or front panel; cubby = open recessed compartment, three walls + floor, no front panel; magazine rack / open slot = open angled or vertical slot designed for magazines, newspapers, or storage of slim objects, often with a slanted side; door cabinet = compartment enclosed by a hinged door. Position: top, middle, bottom, or left/right for side-by-side. Do not lump multiple compartments under a single label. Example correct: "End Table with Magazine Rack Slot, Open Middle Shelf, and Bottom Drawer". Example incorrect: "End Table with Drawer and Shelf" (omits the magazine rack slot and the position of each compartment).
 
-    MCM ATTRIBUTION, HARD RULE: Eames / Knoll / Wegner / Saarinen / Herman Miller / Vitra / Cassina / Nakashima / Jacobsen / Breuer / Le Corbusier / Mies van der Rohe / Nelson attribution requires a visible maker label, sticker, stamp, paper tag, or burn-in mark. Without it, do NOT include the designer name in "name". Describe as "MCM-style", "mid-century", "Danish modern", or "in the manner of [era]" and price as unattributed MCM tier ($80–$300). Silhouette resemblance is NOT identification, knockoffs of Eames Shell Chair, Wegner Wishbone, and Saarinen Tulip Table are mass-produced and common in thrift. Same trap pattern as the COMMON HALLUCINATION TRAPS list for clothing.
+    VISIBLE-ONLY NAMING, HARD RULE: include only the furniture pieces visibly photographed in "name". Do NOT infer companion items (ottoman, footstool, matching cushions, side table, dining chairs paired with a table, sectional with ottoman) just because the piece commonly comes as a set or because the chair is "famously paired" with an ottoman in the original design. Each photographed piece is named individually; unphotographed companions are NOT added to the name or to the price band. If a chair appears alone, name it "Lounge Chair" not "Lounge Chair and Ottoman" even when the design is iconic for its pairing.
+
+    MCM ATTRIBUTION, HARD RULE: Eames / Knoll / Wegner / Saarinen / Herman Miller / Vitra / Cassina / Nakashima / Jacobsen / Breuer / Le Corbusier / Mies van der Rohe / Nelson attribution requires a visible maker label, sticker, stamp, paper tag, or burn-in mark. Without it, do NOT include the designer name in "name". Describe as "MCM-style", "mid-century", "Danish modern", or "in the manner of [era]" and price as unattributed MCM tier ($80–$300). Silhouette resemblance is NOT identification, knockoffs of Eames Shell Chair, Wegner Wishbone, and Saarinen Tulip Table are mass-produced and common in thrift. Same trap pattern as the COMMON HALLUCINATION TRAPS list for clothing. Refurb labor (reupholster, refinish, chrome polish, recane) on unattributed MCM stays WITHIN the band's hard ceiling: top of the unattributed MCM band is $300 unrestored / $450 with full refurb premium. Do NOT stack refurb premium above $450 for unattributed MCM regardless of labor density (full reupholstery in new leather + refinished shell + polished chrome together still cap at $450). Authenticated MCM (visible Herman Miller / Vitra / Knoll label) prices at the authentic tier per its own ceiling.
 
     Q2 2026 FURNITURE SPIKES (refresh quarterly): boucle and sherpa reupholstery; limewash and whitewash refinish; cane and rattan accent pieces (chairs, headboards, peacock chairs); postmodern Memphis revival; Italian designer (Cassina, B&B Italia, Poltrona Frau, Minotti) on resale; Japandi minimalism; vintage Persian/Moroccan/Turkish/Oushak rugs; antique wooden ladders; architectural salvage (corbels, mantles, doors); brass and lucite accents. Apply +20–40% over base tier when item clearly fits a spike.
 
-    FURNITURE isCustom: refinished, restained, repainted, limewashed, whitewashed, reupholstered, recaned, or repurposed (dresser → bathroom vanity, ladder → blanket rack, drawer → wall shelf, door → headboard) qualifies as isCustom. Pricing: brand/era tier as base + 30–50% labor premium for skilled work. Do NOT exceed the subcategory ceiling for the base piece, refinished IKEA stays under $120 regardless of effort. Refinishing only meaningfully boosts pieces with quality bones (solid wood, MCM lines, antique structure). Refinish on particleboard adds $0, call out as red flag if the user invested labor in particleboard.
+    FURNITURE isCustom: refinished, restained, repainted, limewashed, whitewashed, reupholstered, recaned, or repurposed (dresser → bathroom vanity, ladder → blanket rack, drawer → wall shelf, door → headboard) qualifies as isCustom. Pricing: brand/era tier as base, refurb labor adds up to a 30–50% premium WITHIN the tier's hard ceiling (not stacked on top). The per-tier price ceiling is a hard upper bound; refurb cannot push the price above it. Worked example: unattributed MCM band is $80–$300 unrestored; full refurb (reupholster + refinish + chrome polish stacked) expands the band to $80–$450 hard ceiling, NOT $300 × 1.5 → unbounded growth. Do NOT exceed the subcategory ceiling for the base piece: refinished IKEA stays under $120 regardless of effort; refinished unattributed MCM caps at $450 regardless of labor density. Refinishing only meaningfully boosts pieces with quality bones (solid wood, MCM lines, antique structure). Refinish on particleboard adds $0, call out as red flag if the user invested labor in particleboard.
 
   ► IF category = "homewares" → HOMEWARES PRICING (use this path; IGNORE the clothing factory tiers and handmade labor formulas above. Homewares cover pottery, ceramics, art glass, dinnerware, decor smalls, lighting, mirrors, rugs, antique metals, and clocks. Etsy is the primary marketplace anchor for this category, not eBay/Depop/Poshmark; price for the Etsy/Chairish/1stDibs buyer pool who pays for curation, NOT the eBay deal-hunter):
     Detection: category = "homewares". Subtype routes by name/sub keywords (mug, vase, bowl, plate, pottery, ceramic, glass, lamp, mirror, rug, sterling, brass, copper, clock, etc.).
@@ -664,6 +741,16 @@ Guidelines:
   When in doubt about whether a PRINT ON THE GARMENT is AI-generated (AI-GENERATED ARTWORK branch only), ERR ON THE SIDE OF FLAGGING, but ONLY after the PRECONDITION above is satisfied (an actual applied graphic design exists on the garment) AND at least one concrete tell is visible. Plain garments, distressed/ripped/bleached fabric, classic textile repeats, construction details, and brand labels are NEVER flagged under this branch regardless of any "feeling" about the image. The err-toward-flagging is a tiebreaker between two real readings of a real design, not a license to invent artwork that isn't there. This erring applies ONLY to the artwork branch, it does NOT apply to ALL-OVER DIGITAL PRINT (require pictorial content) or AI-GENERATED PHOTO (require specific camera artifacts).
 
   FURNITURE RED FLAGS, apply ONLY when category = "furniture". Evaluate every flag below against the COVER PHOTO (the finished item being sold), NOT against any "before" or in-progress photos in a multi-photo refurb pair. A weathered/raw before-state photo is evidence of LABOR (the user invested work to refinish), NOT evidence of hidden defects in the finished cover piece. Do NOT speculate about defects that "might be hiding" under paint, refinish, or new upholstery, flag ONLY when the relevant tell is visibly present on the COVER.
+  FURNITURE EXCLUSIONS, evaluate before any specific flag below. The following are CONDITION NOTES that belong in the sub field, NOT red flags. Do NOT coin a new flag category for any of these, and do NOT add them as redFlags entries:
+    • Normal surface wear, scratches, scuffs, scrapes, dings, dents from age or use
+    • Finish loss at edges, corners, or high-touch areas, worn paint, faded stain
+    • Patina, oxidation, age-darkening on metal, brass, leather, or wood
+    • Light cosmetic wear that a refinish would remedy, minor refinishable marks
+    • Drawer-front nicks, top-surface ring marks, side-panel rub marks
+    • Slight wobble that levelers fix, minor caster wear, light scuffs on casters
+    • A cover photo that simply looks "old", "vintage", or "lived-in" without one of the five specific defect tells named below
+  Mention these in the condition portion of sub (e.g. "good used condition with light surface wear and finish loss at corners"). Lowering the price for visible wear belongs in CONDITION ADJUSTMENT, not in a red flag, used items showing wear is the baseline expectation for a resale app.
+  EXHAUSTIVE LIST: the five furniture red flag categories below (PARTICLEBOARD MASQUERADE, MCM KNOCKOFF, HIDDEN ODOR, BEDBUG INDICATORS, STRUCTURAL DAMAGE) are the ONLY furniture-applicable red flag categories. Do NOT invent new categories or coin new flag strings outside these five. If no listed category applies, leave redFlags as [].
   PARTICLEBOARD MASQUERADE: SUBSTRATE PROOF GATE, evaluate first. If beforeAfterDetected = true AND any additional photo (not the cover) shows the same piece with raw wood grain visible, sanded surfaces with grain direction, unfinished drawer interiors, exposed end-grain, unpainted unrefinished sections, or dovetail/mortise joinery, that is definitive proof the substrate is solid wood. Do NOT fire this flag regardless of the cover photo's finish, speculative warnings on legitimate refinish work erode trust. MODERN REPRO EXEMPTION, also evaluate first: if the cover photo shows a modern multi-function record-player cabinet (CD player slot, cassette deck, AUX/USB/Bluetooth ports, plastic platter under records, integrated mesh-grille speakers as part of cabinet, decorative-only "vintage radio dial" face, ~14–24" cabinet footprint, Crosley/Victrola/Innovative Technology/Wockoder styling), do NOT fire this flag, the modern repro tier already prices for MDF/veneer construction ($30–$75 used) and the warning is redundant. Otherwise: the COVER piece shows particleboard, MDF, or pressed wood with printed wood-grain paper veneer imitating solid wood. Tells (must be visibly present in the cover photo): visible particle texture or peeling paper at edges, swelling around water exposure, weight far less than expected for size, mass-market dorm/IKEA brand context. Do NOT flag painted refurb pieces, MCM-style flips, or refinished antique wood just because "it could be hiding particleboard underneath", paint over solid wood is the most common refurb finish, and speculating about what's under the paint produces false positives. Do NOT flag dovetail-jointed antique chests, traditional drawer construction, or pieces with visible wood grain at unpainted areas (drawer interiors, undersides). → Flag: "Verify solid wood vs printed-veneer particleboard before paying solid-wood prices, particleboard rarely resells above $80 regardless of look."
   MCM KNOCKOFF: the silhouette resembles a famous MCM design (Eames Shell, Wegner Wishbone, Saarinen Tulip, Barcelona Chair, Eames Lounge) but no maker label, sticker, or stamp is visible in the photo. → Flag: "Verify maker stamp or label (typically underside of seat or inside drawer) before paying authenticated-MCM prices, knockoffs are mass-produced and common."
   HIDDEN ODOR: ONLY for visibly UPHOLSTERED furniture in the COVER photo (fabric or leather sofas, fabric chairs, padded headboards, mattresses, ottomans with fabric tops, fabric sectionals). Do NOT flag hard-surface pieces, wood dressers, painted/repainted/restained/limewashed/whitewashed wood, refinished antique chests, repurposed cabinets, wicker, rattan, cane, metal, glass, lacquer, lucite, fully refinished surfaces, or any refurb piece where the user has done refinish/repaint labor visible in the cover. A freshly painted or refinished surface is by definition NOT a smoke/pet/mildew vector, paint encapsulates and refinish strips the prior finish. Hard surfaces don't trap odor the way fabric does. → Flag: "Smell-verify in person, upholstery odor (smoke, pet, mildew) isn't photogenic but tanks resale."
@@ -671,6 +758,7 @@ Guidelines:
   STRUCTURAL DAMAGE: ONLY when damage is unambiguously visible in the photo, a snapped/missing leg, a clearly cracked or split frame, a torn-through seat with springs poking out, dark water staining/swelling/bubbling on a wood surface, visible mold, a drawer hanging off-track, or a clearly broken joint. Do NOT flag for normal patina, light surface wear, intact wicker/cane that simply looks vintage, or pieces that appear sound. When in doubt, do NOT flag, false damage warnings erode trust. → Flag: "Structural damage visible, verify the piece is sittable/usable; refinishing won't compensate if the bones are compromised."
 
   HOMEWARES RED FLAGS, apply ONLY when category = "homewares". Evaluate against the COVER PHOTO. Frame as verification, not accusation, the goal is to help the buyer verify before purchasing. Do NOT flag a piece simply for being unsigned, most decor smalls are legitimately unsigned and route to the unsigned tier; only flag when the NAME or DESCRIPTION claims a maker, era, or material that needs evidence on the piece.
+  EXHAUSTIVE LIST: the five homewares red flag categories below (UNSIGNED GRAIL CLAIM, UNSIGNED ART-GLASS CLAIM, VISIBLE CONDITION DEGRADATION, HALLMARK MISSING, QUARTZ-IN-VINTAGE-CASE CLOCK) are the ONLY homewares-applicable red flag categories. Do NOT invent new categories or coin new flag strings outside these five. Generic surface wear, light scratches, age patina, or "looks used" without a chip, crack, repair, or crazing visible is a condition note for the sub field, not a red flag. If no listed category applies, leave redFlags as [].
   UNSIGNED GRAIL CLAIM: the name or description references a mid-grail or top-grail potter (Karen Karnes, Warren MacKenzie, Lucie Rie, Hans Coper, Peter Voulkos, Beatrice Wood, Toshiko Takaezu, Bernard Leach, Shoji Hamada, George Ohr, Magdalene Odundo, Edmund de Waal, named studio) but no signature, chop mark, impressed cipher, or maker's stamp is visible on the base or foot in the photo. → Flag: "Verify maker's mark on base before paying grail prices, unsigned silhouette resemblance is the most common misidentification."
   UNSIGNED ART-GLASS CLAIM: the name or description references a named glass maker (Murano, Venini, Seguso, Barovier & Toso, Carlo Moretti, Salviati, Lalique, Loetz, Daum, Gallé, Tiffany glass, Steuben) but no engraved master signature, intact factory paper label, signed cane technique, or consortium label is visible on the base. → Flag: "Verify maker's mark on base before paying signed-art-glass prices, 'Murano-style' and 'Tiffany-style' reproductions are widespread."
   VISIBLE CONDITION DEGRADATION: hairline crack, chip on rim or foot, repaired break, visible crazing on dinnerware (Pyrex, Fiestaware, Wedgwood, modern branded), heavy glaze loss, or utensil-mark abrasion is clearly visible in the cover photo. Crazing on art pottery is NOT a defect (acceptable patina); crazing on dinnerware IS a defect. → Flag: "Inspect rim and foot for chips; crazing and hairline cracks tank ceramic resale 20–60%."
@@ -1254,6 +1342,22 @@ When uncertain about a single photo, default to (a). But if shared fabric identi
       resaleHigh = 80;
       resaleLow = Math.min(resaleLow > 0 ? resaleLow : 20, 40);
     }
+    // MCM-style without authenticated maker. The prompt directs unlabeled Eames /
+    // mid-century / Danish-modern replicas to the $80-$300 band with a 30-50% refurb
+    // premium that stays WITHIN the band (top $450). In practice the model lets
+    // refurb labor stack past the cap when reupholster + refinish + chrome polish
+    // read as "premium restoration." Clamp enforces the ceiling: $300 unrestored /
+    // $450 with refurb. Skip when an authentic MCM brand name is present
+    // (MCM_BRAND_RX), trusting the model's label-confirmed attribution.
+    const isMCMStyle = MCM_STYLE_RX.test(furnitureText) && !MCM_BRAND_RX.test(furnitureText);
+    if (isMCMStyle) {
+      const cap = isCustomScan ? 450 : 300;
+      if (resaleHigh > cap) {
+        const scale = cap / resaleHigh;
+        resaleHigh = cap;
+        resaleLow = Math.max(80, Math.round(resaleLow * scale));
+      }
+    }
   }
 
   // Jewelry-specific clamps. Mirrors the particleboard pattern. Skipped on
@@ -1378,6 +1482,18 @@ When uncertain about a single photo, default to (a). But if shared fabric identi
       cleanedName = stripped.trim();
       safety++;
     }
+  }
+
+  // Furniture companion-item hallucination strip. Belt-and-suspenders for the
+  // VISIBLE-ONLY NAMING prompt rule; catches "and Ottoman" / "with footstool"
+  // trailing on chair-only scans where the model inferred the famous 670/671
+  // pairing. Conservative trailing match only, won't strip legitimately bundled
+  // scans where companion items appear elsewhere in the title.
+  if (parsed.category === 'furniture') {
+    cleanedName = cleanedName.replace(
+      /\s+(?:and|with|\+|&)\s+(?:ottoman|footstool|footrest|cushion(?:s)?|side\s+table|coffee\s+table|matching\s+(?:\w+\s+)?(?:piece|set|chair|table|stool|ottoman))$/i,
+      ''
+    ).trim();
   }
 
   return {

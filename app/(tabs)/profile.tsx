@@ -103,7 +103,7 @@ if (id === 'subscription') {
       return;
     }
     if (id === 'feedback') {
-      Linking.openURL('mailto:thriftvaultapp@gmail.com?subject=ThriftVault%20Feedback').catch(() => {});
+      Linking.openURL('mailto:contact@thriftvaultapp.com?subject=ThriftVault%20Feedback').catch(() => {});
       return;
     }
     if (id === 'manage') {

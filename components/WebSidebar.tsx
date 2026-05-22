@@ -1,8 +1,9 @@
 import { AppIcon } from '@/components/AppIcon';
 import { useTheme } from '@/context/ThemeContext';
+import { Image } from 'expo-image';
 import { usePathname, useRouter } from 'expo-router';
 import React, { useMemo } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 export const SIDEBAR_WIDTH = 220;
 
@@ -82,7 +83,7 @@ export function WebSidebar() {
         <Image
           source={require('@/assets/logo/thriftvault_logo.jpg')}
           style={styles.logo}
-          resizeMode="cover"
+          contentFit="cover"
         />
         <Text style={styles.appName}>ThriftVault</Text>
       </View>

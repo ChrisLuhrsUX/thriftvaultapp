@@ -7,7 +7,7 @@ import { useInventory } from '@/context/InventoryContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useToast } from '@/context/ToastContext';
 import { useResponsive } from '@/hooks/useResponsive';
-import { classifyRedFlags, refreshUpcycleIdeas, rescanAsHandmade, scanWithGemini } from '@/services/gemini';
+import { getRedFlagPresentation, refreshUpcycleIdeas, rescanAsHandmade, scanWithGemini } from '@/services/gemini';
 import type { Theme } from '@/theme';
 import { ITEM_CATEGORIES, type Item, type ItemScanSnapshot, type ItemStatus, type Platform as PlatformType, type ScanScenario } from '@/types/inventory';
 import { getConfidenceColor } from '@/utils/confidencePresentation';
@@ -16,6 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
+import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -25,7 +26,6 @@ import {
     Alert,
     Animated,
     Easing,
-    Image,
     InputAccessoryView,
     Keyboard,
     KeyboardAvoidingView,
@@ -778,13 +778,11 @@ export default function DetailScreen() {
   const photos = getItemPhotos(item);
   const snapshots = item.scanSnapshots ?? [];
   const activeSnapshot = getActiveSnapshot(item);
-  const redFlagsKind = classifyRedFlags(activeSnapshot?.redFlags);
-  const isVerificationFlags = redFlagsKind === 'verification';
+  const redFlagPresentation = getRedFlagPresentation(activeSnapshot?.redFlags);
+  const isVerificationFlags = redFlagPresentation.kind === 'verification';
   const redFlagAccent = isVerificationFlags ? theme.colors.vintageBlueDark : theme.colors.loss;
-  const redFlagHeaderLabel = isVerificationFlags ? 'Worth verifying' : 'Red Flags';
-  const redFlagSubtitleLabel = isVerificationFlags
-    ? 'Inspect in person before paying high prices.'
-    : 'This item or photo may be fake or AI-generated.';
+  const redFlagHeaderLabel = redFlagPresentation.header;
+  const redFlagSubtitleLabel = redFlagPresentation.subtext;
 
   const isCloset = item.intent === 'closet';
   const paidNum = Number(item.paid) || 0;
@@ -885,7 +883,7 @@ export default function DetailScreen() {
                         onPress={() => { setPhotoIndex(i); imageFullScreenTranslateY.setValue(0); setImageFullScreenVisible(true); }}
                         accessibilityLabel="View image full screen"
                       >
-                        <Image source={{ uri }} style={styles.img} resizeMode="cover" />
+                        <Image source={{ uri }} style={styles.img} contentFit="cover" cachePolicy="memory-disk" />
                       </Pressable>
                     </View>
                   )) : (
@@ -1186,7 +1184,7 @@ export default function DetailScreen() {
                           </>
                         ) : (
                           <>
-                            <Text style={styles.insightsRedFlagPromptText}>Look fake to you?</Text>
+                            <Text style={styles.insightsRedFlagPromptText}>{redFlagPresentation.promptText}</Text>
                             <InlinePromptButton
                               label="Yes"
                               variant="danger"
@@ -1195,7 +1193,7 @@ export default function DetailScreen() {
                                 setRedFlagPromptDismissed(true);
                                 AsyncStorage.setItem(`tv_prompt_dismissed_${id}`, JSON.stringify({ handmade: customDismissed, wrongScan: wrongScanDismissed, redFlagPrompt: true, redFlagBanner: redFlagDismissed }));
                               }}
-                              accessibilityLabel="Yes, this looks fake"
+                              accessibilityLabel={redFlagPresentation.yesAccessibilityLabel}
                             />
                             <InlinePromptButton
                               label="No"
@@ -1206,7 +1204,7 @@ export default function DetailScreen() {
                                 setRedFlagDismissed(true);
                                 AsyncStorage.setItem(`tv_prompt_dismissed_${id}`, JSON.stringify({ handmade: customDismissed, wrongScan: wrongScanDismissed, redFlagPrompt: true, redFlagBanner: true }));
                               }}
-                              accessibilityLabel="No, false alarm"
+                              accessibilityLabel={redFlagPresentation.noAccessibilityLabel}
                             />
                           </>
                         )}
@@ -1680,7 +1678,7 @@ export default function DetailScreen() {
                   >
                     <View style={styles.historyRowThumb}>
                       {snapshot.sourceImageUri ? (
-                        <Image source={{ uri: snapshot.sourceImageUri }} style={styles.historyRowThumbImg} resizeMode="cover" />
+                        <Image source={{ uri: snapshot.sourceImageUri }} style={styles.historyRowThumbImg} contentFit="cover" cachePolicy="memory-disk" />
                       ) : (
                         <AppIcon name="camera-outline" size={20} color={theme.colors.mauve} />
                       )}
@@ -1708,6 +1706,11 @@ export default function DetailScreen() {
                         {snapshot.isCustom ? (
                           <View style={styles.historyIsCustomPill}>
                             <Text style={styles.historyIsCustomPillText}>Handmade</Text>
+                          </View>
+                        ) : null}
+                        {snapshot.beforeAfterDetected ? (
+                          <View style={styles.historyIsCustomPill}>
+                            <Text style={styles.historyIsCustomPillText}>Before / After</Text>
                           </View>
                         ) : null}
                       </View>
@@ -1758,7 +1761,7 @@ export default function DetailScreen() {
                   style={[styles.imageFullScreenContent, { width: screenWidth }]}
                   onPress={() => setFullscreenChromeVisible((v) => !v)}
                 >
-                  <Image source={{ uri }} style={styles.imageFullScreenImg} resizeMode="contain" />
+                  <Image source={{ uri }} style={styles.imageFullScreenImg} contentFit="contain" cachePolicy="memory-disk" />
                 </Pressable>
               ))}
             </ScrollView>
