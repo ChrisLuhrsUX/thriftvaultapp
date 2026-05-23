@@ -140,7 +140,7 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
               <View style={styles.scanButton}>
                 <AppIcon name="camera" size={isTablet ? 36 : 32} color={theme.colors.onPrimary} />
               </View>
-              <Text style={[styles.label, styles.scanLabel, { color: theme.colors.vintageBlueDark }]}>
+              <Text style={[styles.label, styles.scanLabel, { color: theme.colors.vintageBlueDark }]} maxFontSizeMultiplier={1.3}>
                 {label}
               </Text>
             </Pressable>
@@ -164,7 +164,7 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
               size={isTablet ? 28 : 24}
               color={color}
             />
-            <Text style={[styles.label, { color }]}>{label}</Text>
+            <Text style={[styles.label, { color }]} maxFontSizeMultiplier={1.3}>{label}</Text>
           </Pressable>
         );
       })}

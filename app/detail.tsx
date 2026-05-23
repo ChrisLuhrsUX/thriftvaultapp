@@ -938,7 +938,7 @@ export default function DetailScreen() {
           accessibilityRole="button"
         >
           <AppIcon name="images-outline" size={14} color={theme.colors.vintageBlueDark} />
-          <Text style={styles.addPhotoLinkText}>Add photos</Text>
+          <Text style={styles.addPhotoLinkText} maxFontSizeMultiplier={1.3}>Add photos</Text>
         </Pressable>
 
         {isCloset ? (
@@ -1366,7 +1366,7 @@ export default function DetailScreen() {
                   accessibilityRole="button"
                   accessibilityState={{ selected: item.cat === c }}
                 >
-                  <Text style={[styles.platformChipText, item.cat === c && styles.platformChipTextActive]}>
+                  <Text style={[styles.platformChipText, item.cat === c && styles.platformChipTextActive]} maxFontSizeMultiplier={1.3}>
                     {c.charAt(0).toUpperCase() + c.slice(1)}
                   </Text>
                 </Pressable>
@@ -1399,7 +1399,7 @@ export default function DetailScreen() {
                       accessibilityRole="button"
                       accessibilityState={{ selected: item.platform === p }}
                     >
-                      <Text style={[styles.platformChipText, item.platform === p && styles.platformChipTextActive]}>{p}</Text>
+                      <Text style={[styles.platformChipText, item.platform === p && styles.platformChipTextActive]} maxFontSizeMultiplier={1.3}>{p}</Text>
                     </Pressable>
                   ))}
                   <Pressable
@@ -1409,7 +1409,7 @@ export default function DetailScreen() {
                     accessibilityRole="button"
                     accessibilityState={{ selected: !KNOWN_PLATFORMS.includes(item.platform) }}
                   >
-                    <Text style={[styles.platformChipText, !KNOWN_PLATFORMS.includes(item.platform) && styles.platformChipTextActive]}>Other</Text>
+                    <Text style={[styles.platformChipText, !KNOWN_PLATFORMS.includes(item.platform) && styles.platformChipTextActive]} maxFontSizeMultiplier={1.3}>Other</Text>
                   </Pressable>
                 </ScrollView>
                 {!KNOWN_PLATFORMS.includes(item.platform) && (
@@ -1465,7 +1465,7 @@ export default function DetailScreen() {
                       accessibilityRole="button"
                       accessibilityState={{ selected: item.status === s }}
                     >
-                      <Text style={[styles.statusChipText, item.status === s && styles.statusChipTextActive]}>
+                      <Text style={[styles.statusChipText, item.status === s && styles.statusChipTextActive]} maxFontSizeMultiplier={1.3}>
                         {s === 'unlisted' ? 'Unlisted' : s === 'listed' ? 'Listed' : 'Sold'}
                       </Text>
                     </Pressable>

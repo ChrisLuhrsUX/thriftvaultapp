@@ -13,6 +13,7 @@ import {
     Modal,
     PanResponder,
     Pressable,
+    ScrollView,
     StyleSheet,
     Text,
     View,
@@ -78,8 +79,10 @@ export function PaywallModal({ visible, onClose }: PaywallModalProps) {
   const panResponder = useMemo(
     () =>
       PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: (_, g) => g.dy > 2,
+        // Let children own their own taps; only steal the gesture once a clear downward drag begins.
+        // Matches the BottomSheetModal pattern so the inner ScrollView wins vertical scrolls.
+        onStartShouldSetPanResponder: () => false,
+        onMoveShouldSetPanResponder: (_, g) => g.dy > 4 && Math.abs(g.dx) < Math.abs(g.dy),
         onPanResponderMove: (_, g) => {
           if (g.dy > 0) translateY.setValue(g.dy);
         },
@@ -154,34 +157,42 @@ export function PaywallModal({ visible, onClose }: PaywallModalProps) {
               <View style={styles.handle} />
             </View>
           )}
-          <View style={styles.header}>
-            <Text style={styles.title}>ThriftVault Pro</Text>
-            <AppIcon name="sparkles" size={22} color={theme.colors.vintageBlueDark} style={styles.titleIcon} />
-          </View>
-          <Text style={styles.sub}>
-            Your first {TRIAL_DURATION_DAYS} days are free with every Pro feature unlocked. Pick a plan to continue after your trial.
-          </Text>
+          <ScrollView
+            style={styles.scrollArea}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            bounces={true}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.header}>
+              <Text style={styles.title}>ThriftVault Pro</Text>
+              <AppIcon name="sparkles" size={22} color={theme.colors.vintageBlueDark} style={styles.titleIcon} />
+            </View>
+            <Text style={styles.sub}>
+              Your first {TRIAL_DURATION_DAYS} days are free with every Pro feature unlocked. Pick a plan to continue after your trial.
+            </Text>
 
-          <View style={styles.features}>
-            {FEATURES.map((text, i) => (
-              <View key={i} style={styles.featRow}>
-                <AppIcon name="checkmark-circle" size={20} color={theme.colors.vintageBlueDark} />
-                <Text style={styles.featText}>{text}</Text>
-              </View>
-            ))}
-          </View>
+            <View style={styles.features}>
+              {FEATURES.map((text, i) => (
+                <View key={i} style={styles.featRow}>
+                  <AppIcon name="checkmark-circle" size={20} color={theme.colors.vintageBlueDark} />
+                  <Text style={styles.featText}>{text}</Text>
+                </View>
+              ))}
+            </View>
 
-          <View style={styles.plans}>
-            {PLANS.map((plan) => (
-              <PlanCard
-                key={plan.id}
-                plan={plan}
-                selected={selectedPlan === plan.id}
-                onSelect={() => setSelectedPlan(plan.id)}
-                styles={styles}
-              />
-            ))}
-          </View>
+            <View style={styles.plans}>
+              {PLANS.map((plan) => (
+                <PlanCard
+                  key={plan.id}
+                  plan={plan}
+                  selected={selectedPlan === plan.id}
+                  onSelect={() => setSelectedPlan(plan.id)}
+                  styles={styles}
+                />
+              ))}
+            </View>
+          </ScrollView>
 
           <Button
             label="Start Free Trial"
@@ -277,7 +288,15 @@ function createStyles(theme: Theme, isDesktop: boolean) {
     paddingTop: isDesktop ? theme.spacing.xxl : theme.spacing.md,
     maxWidth: 520,
     width: isDesktop ? 520 : '100%',
+    maxHeight: '90%',
     ...(theme.shadows.md ?? {}),
+  },
+  scrollArea: {
+    flexGrow: 0,
+    flexShrink: 1,
+  },
+  scrollContent: {
+    paddingBottom: theme.spacing.md,
   },
   closeBtn: {
     alignSelf: 'flex-end',
@@ -314,7 +333,6 @@ function createStyles(theme: Theme, isDesktop: boolean) {
     marginBottom: theme.spacing.lg,
   },
   features: {
-    maxHeight: 160,
     marginBottom: theme.spacing.lg,
   },
   featRow: {

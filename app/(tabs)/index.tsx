@@ -744,6 +744,7 @@ export default function InventoryScreen() {
           placeholderTextColor={theme.colors.mauve}
           value={search}
           onChangeText={setSearch}
+          maxFontSizeMultiplier={1.3}
         />
         {search.length > 0 && (
           <Pressable
@@ -786,6 +787,7 @@ export default function InventoryScreen() {
                 styles.chipText,
                 filter === item.key && styles.chipTextActive,
               ]}
+              maxFontSizeMultiplier={1.3}
             >
               {item.label}
             </Text>
@@ -987,6 +989,7 @@ export default function InventoryScreen() {
                     placeholderTextColor={theme.colors.mauve}
                     value={haulSearch}
                     onChangeText={setHaulSearch}
+                    maxFontSizeMultiplier={1.3}
                   />
                   {haulSearch.length > 0 && (
                     <Pressable

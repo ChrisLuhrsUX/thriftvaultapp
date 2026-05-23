@@ -89,7 +89,13 @@ export default function OnboardingScreen() {
         }}
       >
         {SLIDES.map((slide, i) => (
-          <View key={i} style={[styles.slide, { width: screenWidth }]}>
+          <ScrollView
+            key={i}
+            style={{ width: screenWidth }}
+            contentContainerStyle={[styles.slide, { width: screenWidth }]}
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+          >
             <View style={styles.illo}>
               <AppIcon
                 name={i === 0 ? 'camera' : i === 1 ? 'folder-open' : 'sparkles'}
@@ -104,7 +110,7 @@ export default function OnboardingScreen() {
             </Text>
             <Text style={styles.sub}>{slide.sub}</Text>
             {slide.note && <Text style={styles.note}>{slide.note}</Text>}
-          </View>
+          </ScrollView>
         ))}
       </ScrollView>
 
@@ -152,7 +158,9 @@ function createStyles(theme: Theme, isTablet: boolean) {
   slide: {
     alignItems: 'center',
     paddingHorizontal: isTablet ? 60 : 32,
+    paddingVertical: 16,
     justifyContent: 'center',
+    flexGrow: 1,
   },
   illo: {
     justifyContent: 'center',
