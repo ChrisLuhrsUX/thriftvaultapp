@@ -95,7 +95,7 @@
 <body>
   <div class="wrap">
     <h1>Privacy Policy</h1>
-    <p class="meta">ThriftVault LLC &middot; Last updated: April 2026</p>
+    <p class="meta">ThriftVault LLC &middot; Last updated: May 2026</p>
 
     <p>
       ThriftVault is a personal flip tracker and AI scan companion for thrift resellers, operated
@@ -111,9 +111,10 @@
     <h2>2. Photos and Camera</h2>
     <p>
       ThriftVault may request access to your camera and photo library so you can attach photos to
-      the items in your vault. Photos you add are saved locally on your device. The only exception is the
-      AI scan feature, which sends a photo to Google's Gemini API for analysis (see Section 4).
-      Photos are never stored on external servers or shared for any other purpose.
+      the items in your vault. Photos you add are saved locally on your device. The only exception
+      is the AI scan feature, which sends a photo to one of our third-party AI providers (Google
+      Gemini or, as a fallback, Anthropic Claude) for analysis (see Section 4). Photos are never
+      stored on external servers or shared for any other purpose.
     </p>
 
     <h2>3. Crash Reporting</h2>
@@ -131,13 +132,17 @@
 
     <h2>4. Third-Party Services</h2>
     <p>
-      ThriftVault uses Google's Gemini API to power the AI scan feature. When you scan an item,
-      the photo is sent to Google's servers for analysis. Google may retain and process this data
-      in accordance with their API terms, which may include using it to improve their services.
-      ThriftVault does not store your photos on any external server. No other data (vault items,
-      prices, notes, personal info) is ever transmitted. See
-      <a href="https://ai.google.dev/gemini-api/terms">Google's Gemini API Terms</a>
-      for details on how Google handles data sent to the Gemini API.
+      ThriftVault uses Google's Gemini API as the primary AI scan provider and Anthropic's Claude
+      API as a fallback when Gemini is unavailable or overloaded. When you scan an item, the photo
+      is sent to whichever provider is currently serving the request, Google's servers in most
+      cases and Anthropic's servers when the fallback is triggered. Each provider may retain and
+      process the photo in accordance with their respective API terms, which may include using it
+      to improve their services. ThriftVault does not store your photos on any external server.
+      No other data (vault items, prices, notes, personal info) is ever transmitted to either
+      provider. See
+      <a href="https://ai.google.dev/gemini-api/terms">Google's Gemini API Terms</a> and
+      <a href="https://www.anthropic.com/legal/privacy">Anthropic's Privacy Policy</a>
+      for details on how each provider handles data sent to their API.
     </p>
     <p>
       ThriftVault uses RevenueCat to manage subscriptions and in-app purchases. When you
@@ -149,7 +154,8 @@
     </p>
     <p>
       There is no backend and no account system. Network requests made by the app are limited to:
-      the Gemini API (AI scans), RevenueCat (subscription management), and Sentry (crash reports).
+      the Gemini and Claude APIs (AI scans), RevenueCat (subscription management), and Sentry
+      (crash reports).
     </p>
 
     <h2>5. Data Backup and Loss</h2>
