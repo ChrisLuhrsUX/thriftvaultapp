@@ -6,11 +6,12 @@ Ordered punch list, dependencies respected. Tick top to bottom. Source of truth 
 
 - [x] **Paid Apps agreement** accepted (2026-05-22).
 - [x] **Tax form (W-9)** for ThriftVault LLC active (2026-05-22).
-- [ ] **Banking info**. App Store Connect → Agreements, Tax, and Banking → Banking. LLC business account, routing + account number.
+- [x] **Banking info** active (2026-05-23). LLC business account linked in App Store Connect → Agreements, Tax, and Banking.
 - [x] **Register bundle ID in Apple Developer** (2026-05-22). `com.thriftvault.app` with In-App Purchase + Data Protection (defaults).
 - [x] **Create app in App Store Connect** (2026-05-22). Name: "ThriftVault: Scan to Flip". Company Name: "ThriftVault LLC". SKU: `thriftvault-ios-1`. ascAppId: `6772308542`.
 - [x] **Fill `eas.json:20-22`** with `ascAppId: 6772308542` + `appleTeamId: UG3X275FNX` (2026-05-22).
 - [x] **Re-export app icon** (2026-05-22). `assets/logo/thriftvault_logo.png` is 1024×1024, 8-bit colormap (no alpha). All 4 paths in `app.json` repointed.
+- [ ] **Swap AI-generated logo for human-made mark**. The current v2 icon is AI-illustrated, which contradicts the in-app AI-photo red flag system and invites brand call-outs (TikTok/Reddit screenshot bait). Commission a human illustrator ($50-200, 1-3 day turnaround on Fiverr / 99designs / contract). After swap, redo the icon re-export above: 1024×1024 8-bit colormap, no alpha, all 4 `app.json` paths (icon / splash / Android adaptive / web favicon), and `components/WebSidebar.tsx:83`.
 
 ## After Paid Apps + Tax + Banking are live
 

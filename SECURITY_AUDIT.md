@@ -1,5 +1,7 @@
 # Security Audit, 2026-04-30
 
+*Last refreshed 2026-05-23 (post App Store Connect + ASC App ID provisioning, post Organization-enrollment approval, post brand-domain mailbox cutover).*
+
 Snapshot of safety and security findings against the ThriftVault codebase, plus the fixes applied in the same session. Pair this with [SAFETY.md](SAFETY.md) (agent guardrails + recovery playbooks). This doc is a point-in-time audit; rerun the methodology at the bottom before any major release or whenever the threat surface changes (new dependency, new key, new repo visibility).
 
 ## TL;DR
@@ -14,13 +16,16 @@ Snapshot of safety and security findings against the ThriftVault codebase, plus 
 | Medium | `Sentry.init` did not explicitly set `sendDefaultPii: false`; no breadcrumb scrubber | Fixed |
 | Medium | `package.json` `backup` script uses `git add -A` (catches anything ungitignored) | Open, pre-commit secret scan recommended |
 | Low | `EXPO_PUBLIC_SENTRY_DSN` not configured | Fixed (wired 2026-05-03) |
+| Low | `EXPO_PUBLIC_REVENUECAT_API_KEY` added to codebase, dormant until `react-native-purchases` SDK install | Open, low exposure (RC iOS keys are project-scoped) |
+| Info | `ascAppId` + `appleTeamId` now committed to `eas.json` (filled 2026-05-22) | Intentional, both are public-by-design once shipped |
+| Info | Personal Gmail `chrisluhrsdesign@gmail.com` still on every commit's author line | Open, per-repo `user.email` noreply still not configured |
 
 ## Repo state at audit time
 
 - Remote: `https://github.com/ChrisLuhrsUX/thriftvaultapp.git`
-- Visibility: **public** (verified via GitHub API, 2026-04-30)
+- Visibility: **public** (verified via GitHub API, 2026-04-30). Not re-verified at 2026-05-23 refresh because `gh` CLI is not installed locally; re-check manually before each release (see Methodology step 1 for a curl-based alternative).
 - Default branch: `main`
-- Stars / forks / PRs: 0 / 0 / 0
+- Stars / forks / PRs: 0 / 0 / 0 (at 2026-04-30 check)
 
 The public repo with zero audience is the deciding factor on most findings below, there is no community pressure to keep it public, so flipping to private resolves the historical-leak class of findings in one click. See [Recommendation: repo visibility](#recommendation-repo-visibility).
 
@@ -152,7 +157,38 @@ fi
 
 Crash reporting was inert without the DSN, visibility issue, not a security issue. **Resolved 2026-05-03:** DSN added to `.env`, Metro restarted, smoke-tested with a temporary `Sentry.captureException` row on Profile (added and removed in the same session). Native crash reporting activates after prebuild.
 
-### 9. Confirmed clean, listed for the record
+### 9. `EXPO_PUBLIC_REVENUECAT_API_KEY` reference landed in code (dormant)
+
+```19:19:hooks/usePurchases.ts
+const RC_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY ?? '';
+```
+
+Added 2026-04-21 as part of the RevenueCat code wire-up; remains inert because `react-native-purchases` is not yet installed (see `LAUNCH_BLOCKERS.md` "Code wire-up" step). Once the SDK lands and `.env` gets `EXPO_PUBLIC_REVENUECAT_API_KEY=appl_...`, the key ships in the IPA like every other `EXPO_PUBLIC_*`.
+
+**Exposure posture is materially better than the Anthropic key** (finding 3): RevenueCat iOS public keys are project- and platform-scoped in the RevenueCat dashboard. A leaked `appl_...` key can call RevenueCat for *this project* only, and only to fetch offerings / start a purchase flow that still requires the user's StoreKit prompt. It cannot bill arbitrary spend the way an Anthropic key can.
+
+**Status:** open, low priority. User actions when the SDK install happens:
+
+- [ ] Confirm the iOS app entry in RevenueCat dashboard restricts the key to bundle `com.thriftvault.app`.
+- [ ] Keep the App-Specific Shared Secret (used by RC server-side, NOT the public key) out of `.env` and out of any committed file. It belongs only in the RevenueCat dashboard.
+
+### 10. Apple identifiers committed to `eas.json` (intentional)
+
+```20:21:eas.json
+        "ascAppId": "6772308542",
+        "appleTeamId": "UG3X275FNX"
+```
+
+Filled 2026-05-22 after App Store Connect app creation + Org enrollment approval. Both are required for `eas submit --platform ios` to resolve the upload target without prompting.
+
+**Why this is informational, not a finding:**
+
+- **Apple Team ID** is embedded in every shipped iOS app's `embedded.mobileprovision` and entitlements; anyone who unpacks the IPA can read it. Apple Developer member pages also display it. Not a secret.
+- **ASC App ID** becomes the public `apps.apple.com/.../id6772308542` path on launch. Pre-launch, knowing it does not unlock anything that creating a free Apple Developer account couldn't already enumerate.
+
+Listed here so a future audit doesn't re-flag these as new leaks. The only alternative (EAS Secrets) adds operational friction for no real security gain.
+
+### 11. Confirmed clean, listed for the record
 
 These are not findings; they are paths I verified are safe so a future audit doesn't redo the same work.
 
@@ -160,7 +196,9 @@ These are not findings; they are paths I verified are safe so a future audit doe
 - No `AsyncStorage.clear()` anywhere in the codebase. Only safe per-key `removeItem` calls for `tv_pending_scan` (transient) and `tv_prompt_dismissed_${id}` (per-item flag).
 - `setInventory([])` only called from the init-when-empty path in `InventoryContext.tsx`. No bulk-clear paths.
 - `dangerouslySetInnerHTML` in `app/+html.tsx:22` injects a static CSS string with no interpolation.
-- All `Linking.openURL` calls use hardcoded URLs (privacy/terms on GH Pages, mailto, App Store). No user-input concatenation.
+- All `Linking.openURL` calls use hardcoded URLs (privacy/terms now on `thriftvaultapp.com`, mailto, App Store). No user-input concatenation. Re-verified 2026-05-23 across `app/(tabs)/profile.tsx` + `components/PaywallModal.tsx`.
+- Contact mailto migrated `thriftvaultapp@gmail.com → contact@thriftvaultapp.com` on 2026-05-21 across landing, in-app Feedback, privacy, terms, and ops table. Domain-based mailbox isolates support traffic from the Apple Developer login (`chrisluhrsdesign@gmail.com`), shrinking the spear-phishing surface on the brand-facing side.
+- Domain `thriftvaultapp.com` WHOIS intentionally shows ThriftVault LLC with no privacy proxy (registered 2026-05-09, DNS live 2026-05-11). Required by Apple for Individual → Org conversion; not a leak.
 - `Math.random()` for snapshot IDs in `app/(tabs)/scan.tsx:1293` is local-only and timestamp-prefixed; not a security path.
 - No `eval`, `new Function`, `setTimeout(string)`, or other dynamic-code paths.
 - `app.json` permission strings are accurate. `ITSAppUsesNonExemptEncryption: false` is correct for HTTPS-only with no custom crypto.
@@ -190,7 +228,7 @@ git config user.email "46426899+ChrisLuhrsUX@users.noreply.github.com"
 
 ## Action checklist
 
-Audit body unchanged from 2026-04-30; checklist refreshed 2026-05-05.
+Audit body refreshed 2026-05-23 (added findings 9 + 10 for new surface area; refreshed Confirmed-Clean re-verifications). Prior refresh 2026-05-05; original audit 2026-04-30.
 
 ### Done in this audit
 - [x] Remove `appleId` from `eas.json`
@@ -199,17 +237,25 @@ Audit body unchanged from 2026-04-30; checklist refreshed 2026-05-05.
 - [x] Add `pnpm`, `pnpx`, `yarn`, `yarn dlx` deny matchers to `.claude/settings.json` for `expo prebuild` and all destructive migration tools
 - [x] Add explicit `sendDefaultPii: false` and `beforeBreadcrumb` PII scrubber to `Sentry.init`
 
+### Done since prior refresh (2026-05-05 → 2026-05-23)
+- [x] Wire `EXPO_PUBLIC_SENTRY_DSN` (2026-05-03; native crash reporting activates after prebuild)
+- [x] Domain `thriftvaultapp.com` registered with public ThriftVault LLC WHOIS (2026-05-09 → 2026-05-11), unblocking Apple Individual → Org conversion
+- [x] Apple Developer Organization enrollment approved (2026-05-21)
+- [x] Brand contact mailto migrated to `contact@thriftvaultapp.com` (2026-05-21), isolates support traffic from Apple ID login
+- [x] App Store Connect app provisioned with bundle `com.thriftvault.app`, ascAppId `6772308542`, appleTeamId `UG3X275FNX` filled in `eas.json` (2026-05-22)
+- [x] Re-verified historical secret scan (`AIza` / `sk-ant` / `appl_`); only matches are the audit's own pre-commit regex examples and LAUNCH_BLOCKERS.md placeholder strings, no real key leaks
+
 ### Open, user action
 - [ ] Decide on repo visibility (private until launch is the recommended default)
 - [ ] Set Anthropic per-key spend cap at `console.anthropic.com`
 - [ ] Verify Gemini key has iOS bundle-ID restriction `com.thriftvault.app` in Google Cloud Console
-- [ ] (If staying public) configure per-repo `user.email` to GitHub noreply
-- [x] Wire `EXPO_PUBLIC_SENTRY_DSN` (done 2026-05-03; native crash reporting activates after prebuild)
+- [ ] (If staying public) configure per-repo `user.email` to GitHub noreply (still personal Gmail on every commit as of 2026-05-23 refresh)
 - [ ] Optional: add `.git/hooks/pre-commit` secret-scan grep, or move to Husky post-launch
+- [ ] When RevenueCat SDK is installed: confirm the iOS key in RC dashboard is bundle-restricted to `com.thriftvault.app`; keep the App-Specific Shared Secret out of `.env`
 
 ## Methodology, rerun before each major release
 
-What this audit checked. Save this list; rerun the same checks before TestFlight, before each App Store submission, and after any new dependency or new EAS Secret.
+What this audit checked. Save this list; rerun the same checks before each App Store submission (TestFlight skipped on this launch, see [LAUNCH_OPS.md](LAUNCH_OPS.md)) and after any new dependency or new EAS Secret.
 
 1. **Repo visibility check.**
    ```bash
