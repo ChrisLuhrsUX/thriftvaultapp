@@ -179,6 +179,20 @@ npx expo start
 - Then: `npx expo start --dev-client` and the dev client connects.
 - The web preview still works (some features like camera/RevenueCat are stubbed on web).
 
+### Mental model for the dev-client switch
+
+Think of the dev client as "Expo Go but custom-built for your app, with RevenueCat baked in." Everything else stays the same.
+
+1. **One-time build.** Run `eas build --profile development --platform ios`. EAS compiles on Apple's cloud Macs (~15–30 min on free tier). When done, EAS prints a QR + URL.
+2. **One-time install.** Open the URL on your iPhone in Safari and tap Install. A new app icon appears on your home screen called "ThriftVault Dev" (or similar). This is your custom Expo Go. iOS → Settings → General → VPN & Device Management → trust the developer certificate the first time.
+3. **Daily loop.** From Windows: `npx expo start --dev-client`. Open the dev client app on your phone. It auto-connects over Wi-Fi (same network as your computer). Code loads, you see your app. Edit a file in VS Code → Fast Refresh updates the phone instantly. Identical day-to-day feel to Expo Go.
+4. **When to rebuild.** JS / TSX / prompt / style edits never need a rebuild, just save the file. The only times you re-run `eas build --profile development` are:
+   - Adding a new native dependency (`npm install something-with-native-code`)
+   - Editing `app.json` `plugins` array
+   - Changing the app icon (since it's bundled natively)
+   After the rebuild finishes, reinstall via the new QR. Existing data on the phone survives the reinstall.
+5. **Same physical phone, same Wi-Fi network as your Windows machine.** That's the only setup requirement past the initial install.
+
 ## Hotfix paths
 
 Same as `LAUNCH_OPS.md`, with the technical detail:

@@ -33,6 +33,8 @@ Ordered punch list, dependencies respected. Tick top to bottom. Source of truth 
 
 You're on Windows, so no local Xcode or Mac is required. **EAS Build** runs on Apple's cloud Macs, generates the native iOS project on the build machine, signs it with your Apple Developer credentials, and gives you a QR code to install on iPhone. You will not run `npx expo prebuild` locally.
 
+> **First time reading this?** See `DEV_OPS.md` → "Mental model for the dev-client switch" for a plain-language walkthrough of what the dev client is, how it differs from Expo Go, and the day-to-day rebuild rules. The setup steps below assume you've read it.
+
 ### Dev client setup (one time, Windows + EAS)
 
 Prereqs: Apple Developer Org enrollment active (done 2026-05-21), iPhone 13 in hand, Expo account at expo.dev.
