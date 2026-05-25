@@ -55,7 +55,7 @@ function createStyles(theme: Theme, isTablet: boolean) {
       minHeight: theme.minTouchTargetSize,
     },
     scanPressed: {
-      opacity: 0.9,
+      transform: [{ scale: 0.96 }],
     },
     scanButton: {
       width: scanSize,

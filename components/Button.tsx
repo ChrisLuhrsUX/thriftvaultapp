@@ -1,4 +1,5 @@
 import { useTheme } from '@/context/ThemeContext';
+import * as Haptics from 'expo-haptics';
 import React from 'react';
 import { ActivityIndicator, Pressable, Text, type ViewStyle } from 'react-native';
 import { AppIcon } from './AppIcon';
@@ -59,7 +60,7 @@ export function Button({
         },
         style,
       ]}
-      onPress={onPress}
+      onPress={() => { Haptics.selectionAsync(); onPress(); }}
       disabled={disabled || loading}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}

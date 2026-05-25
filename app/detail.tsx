@@ -187,7 +187,7 @@ export default function DetailScreen() {
     try {
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status !== 'granted') {
-        showToast('Permission needed to save to camera roll');
+        showToast('Photo library access needed');
         return;
       }
       const cacheDir = FileSystem.cacheDirectory;
@@ -198,7 +198,7 @@ export default function DetailScreen() {
       await MediaLibrary.saveToLibraryAsync(localUri);
       showToast('Saved to camera roll');
     } catch {
-      showToast('Could not save image');
+      showToast("Couldn't save image");
     }
   }, [item?.id, item?.img, item?.photos, photoIndex, showToast]);
 
@@ -615,13 +615,13 @@ export default function DetailScreen() {
       if (useCamera) {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
         if (status !== 'granted') {
-          showToast('Camera permission is required to take photos');
+          showToast('Camera access needed');
           return;
         }
       } else {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
-          showToast('Photo library permission is required');
+          showToast('Photo library access needed');
           return;
         }
       }
@@ -646,7 +646,7 @@ export default function DetailScreen() {
         setPhotoIndex(newPhotos.length - 1);
         showToast('Photo added');
       } catch {
-        showToast('Could not add photo');
+        showToast("Couldn't add photo");
       }
     },
     [item, update, updateItem, showToast]
@@ -740,7 +740,7 @@ export default function DetailScreen() {
     } catch (e: unknown) {
       if (isUserCanceledShareError(e)) return;
       console.warn('[ThriftVault] Share failed:', e);
-      showToast('Unable to open share sheet');
+      showToast("Couldn't open share sheet");
     }
   }, [item, showToast]);
 

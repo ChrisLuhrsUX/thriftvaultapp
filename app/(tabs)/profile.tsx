@@ -9,6 +9,7 @@ import { usePurchases } from '@/hooks/usePurchases';
 import { useResponsive } from '@/hooks/useResponsive';
 import type { Theme } from '@/theme';
 import { formatMoney, formatMoneyWithSign } from '@/utils/currency';
+import * as Haptics from 'expo-haptics';
 import React, { useMemo, useState } from 'react';
 import {
     Alert,
@@ -98,7 +99,8 @@ export default function ProfileScreen() {
   }, [inventory]);
 
   const handleSetting = async (id: string) => {
-if (id === 'subscription') {
+    Haptics.selectionAsync();
+    if (id === 'subscription') {
       setPaywallVisible(true);
       return;
     }
@@ -122,7 +124,7 @@ if (id === 'subscription') {
     if (id === 'about-ai') {
       Alert.alert(
         'About AI estimates',
-        "ThriftVault's prices are AI estimates based on recent Depop, eBay, and Poshmark sold listings. They're a starting point, not a guarantee. The price range shows our confidence, wider range means more uncertainty. For high-value items, possible counterfeits, or low-data categories, verify against current sold listings before buying or selling.",
+        "Prices are AI estimates from recent sold listings on the platforms most resellers use, Depop, eBay, Poshmark for clothing, Chairish and Etsy for furniture and homewares. They're a starting point, not a guarantee. A wider price range means more uncertainty. For high-value items, suspected counterfeits, or niche categories, double-check current sold listings before buying or selling.",
         [{ text: 'Got it' }]
       );
       return;

@@ -6,6 +6,7 @@ import { useToast } from '@/context/ToastContext';
 import { usePurchases } from '@/hooks/usePurchases';
 import { useResponsive } from '@/hooks/useResponsive';
 import type { Theme } from '@/theme';
+import * as Haptics from 'expo-haptics';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     Animated,
@@ -111,7 +112,7 @@ export function PaywallModal({ visible, onClose }: PaywallModalProps) {
     setRestoring(false);
     if (result.success) {
       dismiss();
-      showToast('Purchases restored!');
+      showToast('Purchases restored');
     } else {
       showToast(result.error ?? 'Nothing to restore');
     }
@@ -138,7 +139,7 @@ export function PaywallModal({ visible, onClose }: PaywallModalProps) {
       onRequestClose={dismiss}
     >
       <View style={styles.overlay} pointerEvents="box-none">
-        <Pressable style={styles.backdrop} onPress={dismiss} accessibilityLabel="Dismiss" accessibilityRole="button" />
+        <Pressable style={styles.backdrop} onPress={() => { Haptics.selectionAsync(); dismiss(); }} accessibilityLabel="Dismiss" accessibilityRole="button" />
         <Animated.View
           style={[
             styles.sheet,
@@ -149,7 +150,7 @@ export function PaywallModal({ visible, onClose }: PaywallModalProps) {
           {...(!isDesktop ? panResponder.panHandlers : {})}
         >
           {isDesktop ? (
-            <Pressable style={styles.closeBtn} onPress={dismiss} accessibilityLabel="Close">
+            <Pressable style={styles.closeBtn} onPress={() => { Haptics.selectionAsync(); dismiss(); }} accessibilityLabel="Close">
               <AppIcon name="close" size={20} color={theme.colors.mauve} />
             </Pressable>
           ) : (
@@ -187,7 +188,7 @@ export function PaywallModal({ visible, onClose }: PaywallModalProps) {
                   key={plan.id}
                   plan={plan}
                   selected={selectedPlan === plan.id}
-                  onSelect={() => setSelectedPlan(plan.id)}
+                  onSelect={() => { Haptics.selectionAsync(); setSelectedPlan(plan.id); }}
                   styles={styles}
                 />
               ))}
@@ -213,15 +214,15 @@ export function PaywallModal({ visible, onClose }: PaywallModalProps) {
             in your Account Settings after purchase.
           </Text>
           <View style={styles.legalLinks}>
-            <Pressable onPress={() => Linking.openURL('https://thriftvaultapp.com/privacy-policy/')} accessibilityLabel="Privacy Policy" accessibilityRole="link">
+            <Pressable onPress={() => { Haptics.selectionAsync(); Linking.openURL('https://thriftvaultapp.com/privacy-policy/'); }} accessibilityLabel="Privacy Policy" accessibilityRole="link">
               <Text style={styles.legalLink}>Privacy Policy</Text>
             </Pressable>
             <Text style={styles.legalDot}> · </Text>
-            <Pressable onPress={() => Linking.openURL('https://thriftvaultapp.com/terms/')} accessibilityLabel="Terms of Use" accessibilityRole="link">
+            <Pressable onPress={() => { Haptics.selectionAsync(); Linking.openURL('https://thriftvaultapp.com/terms/'); }} accessibilityLabel="Terms of Use" accessibilityRole="link">
               <Text style={styles.legalLink}>Terms of Use</Text>
             </Pressable>
             <Text style={styles.legalDot}> · </Text>
-            <Pressable onPress={handleRestore} disabled={restoring} accessibilityLabel="Restore purchases" accessibilityRole="button">
+            <Pressable onPress={() => { Haptics.selectionAsync(); handleRestore(); }} disabled={restoring} accessibilityLabel="Restore purchases" accessibilityRole="button">
               <Text style={styles.legalLink}>{restoring ? 'Restoring…' : 'Restore Purchases'}</Text>
             </Pressable>
           </View>

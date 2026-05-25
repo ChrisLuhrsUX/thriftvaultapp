@@ -748,7 +748,7 @@ export default function InventoryScreen() {
         />
         {search.length > 0 && (
           <Pressable
-            onPress={() => setSearch('')}
+            onPress={() => { Haptics.selectionAsync(); setSearch(''); }}
             style={({ pressed }) => [styles.searchClear, pressed && styles.searchClearPressed]}
             hitSlop={8}
             accessibilityLabel="Clear search"
@@ -882,8 +882,8 @@ export default function InventoryScreen() {
             isFiltering ? (
               <EmptyState
                 icon="search-outline"
-                title="Nothing matches that filter"
-                body="Try a different word, or clear filters to see everything."
+                title="No matches"
+                body="Try a different word, or clear filters to see all your items."
                 action={{
                   label: 'Clear filters',
                   onPress: () => { setSearch(''); setFilter('all'); },
@@ -993,7 +993,7 @@ export default function InventoryScreen() {
                   />
                   {haulSearch.length > 0 && (
                     <Pressable
-                      onPress={() => setHaulSearch('')}
+                      onPress={() => { Haptics.selectionAsync(); setHaulSearch(''); }}
                       style={({ pressed }) => [styles.searchClear, pressed && styles.searchClearPressed]}
                       hitSlop={8}
                       accessibilityLabel="Clear search"
@@ -1032,8 +1032,8 @@ export default function InventoryScreen() {
               ) : (
                 <EmptyState
                   icon="search-outline"
-                  title="No hauls match your search"
-                  body="Try a different word, or clear the search to see every trip."
+                  title="No matches"
+                  body="Try a different word, or clear search to see all your hauls."
                   action={{
                     label: 'Clear search',
                     onPress: () => setSearch(''),
@@ -1055,7 +1055,7 @@ export default function InventoryScreen() {
         <View style={styles.storePickerChips}>
           <Pressable
             style={[styles.storePickerChip, selectedStore === '_none' && styles.storePickerChipActive]}
-            onPress={() => { setSelectedStore('_none'); setCustomStore(''); }}
+            onPress={() => { Haptics.selectionAsync(); setSelectedStore('_none'); setCustomStore(''); }}
           >
             <Text style={[styles.storePickerChipText, selectedStore === '_none' && styles.storePickerChipTextActive]}>Not set</Text>
           </Pressable>
@@ -1063,14 +1063,14 @@ export default function InventoryScreen() {
             <Pressable
               key={s}
               style={[styles.storePickerChip, selectedStore === s && styles.storePickerChipActive]}
-              onPress={() => { setSelectedStore(s); setCustomStore(''); }}
+              onPress={() => { Haptics.selectionAsync(); setSelectedStore(s); setCustomStore(''); }}
             >
               <Text style={[styles.storePickerChipText, selectedStore === s && styles.storePickerChipTextActive]}>{s}</Text>
             </Pressable>
           ))}
           <Pressable
             style={[styles.storePickerChip, selectedStore === '_custom' && styles.storePickerChipActive]}
-            onPress={() => { setSelectedStore('_custom'); setTimeout(() => customStoreRef.current?.focus(), 100); }}
+            onPress={() => { Haptics.selectionAsync(); setSelectedStore('_custom'); setTimeout(() => customStoreRef.current?.focus(), 100); }}
           >
             <Text style={[styles.storePickerChipText, selectedStore === '_custom' && styles.storePickerChipTextActive]}>Other</Text>
           </Pressable>

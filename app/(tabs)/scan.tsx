@@ -43,6 +43,8 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Sentry from '@sentry/react-native';
+import { Button } from '@/components/Button';
 
 const SAVED_LATER_KEY = 'tv_saved_later';
 const TV_PENDING_SCAN_KEY = 'tv_pending_scan';
@@ -58,6 +60,69 @@ type SessionSnapshot = ItemScanSnapshot & { scenario: ScanScenario };
 
 const SESSION_SNAPSHOT_CAP = 10;
 const SNAPSHOT_CAP = 5;
+
+// Failure modes the scan flow can land in. Drives the inline error card's copy +
+// icon. Kept generic on purpose; the user never needs to know which AI provider
+// or tier responded (see feedback_no_ai_provider_names memory).
+type ScanErrorKind = 'busy' | 'network' | 'unavailable' | 'parse' | 'unknown';
+
+function classifyScanError(err: unknown): ScanErrorKind {
+  const message = err instanceof Error ? err.message : String(err ?? '');
+  if (/API\s*(429|503|529)/i.test(message) || /overloaded|high\s*demand|rate[\s-]?limit/i.test(message)) {
+    return 'busy';
+  }
+  if (/network\s*request\s*failed|fetch\s*failed|networkerror|typeerror.*fetch|enotfound|econnreset|etimedout|offline/i.test(message)) {
+    return 'network';
+  }
+  if (/key\s*not\s*configured|all\s*providers|no\s*usable|parse\s*failed|invalid\s*response/i.test(message)) {
+    return 'unavailable';
+  }
+  if (/missing\s*(name|resale)|no\s*item\s*detected|unrecognized|couldn'?t\s*identify/i.test(message)) {
+    return 'parse';
+  }
+  return 'unknown';
+}
+
+interface ScanErrorCopy {
+  title: string;
+  body: string;
+  icon: 'alert-circle-outline' | 'cloud-offline-outline' | 'time-outline' | 'eye-off-outline';
+}
+
+function getScanErrorCopy(kind: ScanErrorKind): ScanErrorCopy {
+  switch (kind) {
+    case 'busy':
+      return {
+        title: 'AI is busy',
+        body: "It's seeing high traffic right now. Try again in a moment.",
+        icon: 'time-outline',
+      };
+    case 'network':
+      return {
+        title: 'Lost connection',
+        body: 'Check your signal and try again.',
+        icon: 'cloud-offline-outline',
+      };
+    case 'unavailable':
+      return {
+        title: 'Scan unavailable',
+        body: "Couldn't reach the AI. Try again in a moment.",
+        icon: 'cloud-offline-outline',
+      };
+    case 'parse':
+      return {
+        title: "Couldn't read this item",
+        body: 'Try a clearer photo or add another angle.',
+        icon: 'eye-off-outline',
+      };
+    default:
+      return {
+        title: 'Something went wrong',
+        body: 'Try again, or clear and try a new photo.',
+        icon: 'alert-circle-outline',
+      };
+  }
+}
 const MAX_STAGED_PHOTOS = 5;
 const OLD_ITEM_DAYS_THRESHOLD = 90;
 
@@ -594,9 +659,44 @@ function createScanStyles(theme: Theme, formMaxWidth?: number) {
       ...(formMaxWidth ? { maxWidth: formMaxWidth, alignSelf: 'center' as const, width: '100%' as const } : {}),
       ...(theme.shadows.sm ?? {}),
     },
+    errorCard: {
+      marginHorizontal: 20,
+      marginTop: 20,
+      padding: theme.spacing.lg,
+      borderRadius: theme.radius.md,
+      backgroundColor: theme.colors.surface,
+      borderLeftWidth: 3,
+      borderLeftColor: theme.colors.terra,
+      ...(formMaxWidth ? { maxWidth: formMaxWidth, alignSelf: 'center' as const, width: '100%' as const } : {}),
+      ...(theme.shadows.sm ?? {}),
+    },
+    errorHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: theme.spacing.sm,
+      marginBottom: theme.spacing.xs,
+    },
+    errorTitle: {
+      ...theme.typography.h2,
+      color: theme.colors.charcoal,
+      flex: 1,
+    },
+    errorBody: {
+      ...theme.typography.body,
+      color: theme.colors.mauve,
+      lineHeight: 20,
+      marginBottom: theme.spacing.lg,
+    },
+    errorActions: {
+      flexDirection: 'row' as const,
+      gap: theme.spacing.sm,
+    },
+    errorActionBtn: {
+      flex: 1,
+    },
     resultHeader: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       justifyContent: 'space-between',
       gap: 12,
     },
@@ -1009,6 +1109,7 @@ export default function ScanScreen() {
   const [scanning, setScanning] = useState(false);
   const [scanStatus, setScanStatus] = useState<string | null>(null);
   const [result, setResult] = useState<ScanScenario | null>(null);
+  const [scanError, setScanError] = useState<ScanErrorKind | null>(null);
   const [stagedPhotos, setStagedPhotos] = useState<string[]>([]);
   const [placeholderImageUri, setPlaceholderImageUri] = useState<string | null>(null);
   const [savedForLater, setSavedForLater] = useState<SavedScanItem[]>([]);
@@ -1228,6 +1329,7 @@ export default function ScanScreen() {
     abortControllerRef.current = controller;
     scanningRef.current = true;
     setResult(null);
+    setScanError(null);
     setPromptCustomDismissed(false);
     setPromptWrongScanDismissed(false);
     setPromptRedFlagDismissed(false);
@@ -1246,16 +1348,15 @@ export default function ScanScreen() {
     } catch (error) {
       if ((error as Error)?.name === 'AbortError') return;
       // We backgrounded mid-scan, failure is almost always iOS suspending the
-      // network. Suppress the toast; the finally block (or AppState 'active'
+      // network. Suppress the error UI; the finally block (or AppState 'active'
       // handler) will fire a seamless retry without resetting the spinner.
       if (pendingRetryRef.current) return;
       if (__DEV__) console.log('[Scan] error:', error);
-      const message = error instanceof Error ? error.message : String(error ?? '');
-      if (/API (429|503|529)/i.test(message) || /overloaded|high demand/i.test(message)) {
-        showToast('AI is busy right now, try again in a moment');
-      } else {
-        showToast('Couldn\'t identify, try getting the label in frame');
-      }
+      const kind = classifyScanError(error);
+      setScanError(kind);
+      // Production telemetry: capture the full error with classification context
+      // so we can tell network noise apart from real outages in Sentry.
+      Sentry.captureException(error, { tags: { scope: 'scan', scanErrorKind: kind } });
     } finally {
       scanningRef.current = false;
       abortControllerRef.current = null;
@@ -1272,7 +1373,7 @@ export default function ScanScreen() {
       // If pendingRetryRef is still true (still backgrounded), leave scanning
       // UI up. AppState 'active' will fire the retry on resume.
     }
-  }, [stagedPhotos, showToast]);
+  }, [stagedPhotos]);
 
   // Keep a stable ref so the AppState listener always calls the latest handleScanStaged
   // without needing it in the effect's dependency array.
@@ -1359,7 +1460,9 @@ export default function ScanScreen() {
     if (!permission?.granted) {
       const { granted } = await requestPermission();
       if (granted) setCameraActive(true);
-      else showToast('Camera access is needed to scan');
+      // On denial the persistent denied UI in the cameraBox renders with an
+      // Open Settings button, no toast needed (and the toast disappears in
+      // 2.6s while the user is still figuring out what just happened).
       return;
     }
     setCameraActive(true);
@@ -1374,6 +1477,27 @@ export default function ScanScreen() {
     }
     if (stagedPhotos.length >= MAX_STAGED_PHOTOS) {
       showToast(`Maximum ${MAX_STAGED_PHOTOS} photos per scan`);
+      return;
+    }
+    // Explicit permission check before launching the picker. Without this,
+    // a denied user taps "From Library" and gets a silent `canceled: true`
+    // back from ImagePicker with no path forward. iOS only prompts once
+    // per app lifetime, so on permanent denial we route to system Settings.
+    const existing = await ImagePicker.getMediaLibraryPermissionsAsync();
+    let granted = existing.granted;
+    if (!granted && existing.canAskAgain) {
+      const requested = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      granted = requested.granted;
+    }
+    if (!granted) {
+      Alert.alert(
+        'Photo library access',
+        'ThriftVault needs access to your photo library to upload photos for scanning. You can enable it in Settings.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Open Settings', onPress: () => Linking.openSettings() },
+        ],
+      );
       return;
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -1397,7 +1521,7 @@ export default function ScanScreen() {
         setCameraReady(false);
       }
     } catch {
-      showToast('Could not open photo library');
+      showToast("Couldn't open photo library");
     }
   }, [showToast, scanning, stagedPhotos.length, isPro, cameraActive]);
 
@@ -1405,6 +1529,7 @@ export default function ScanScreen() {
     abortControllerRef.current?.abort();
     abortControllerRef.current = null;
     setResult(null);
+    setScanError(null);
     setStagedPhotos([]);
     setPlaceholderImageUri(null);
     setPromptCustomDismissed(false);
@@ -2276,7 +2401,35 @@ export default function ScanScreen() {
           />
         )}
 
-        {!result && savedForLater.length === 0 && recents.length === 0 && (
+        {!result && !scanning && scanError && (() => {
+          const copy = getScanErrorCopy(scanError);
+          return (
+            <View style={scanStyles.errorCard} accessibilityLiveRegion="polite">
+              <View style={scanStyles.errorHeader}>
+                <AppIcon name={copy.icon} size={22} color={theme.colors.terra} />
+                <Text style={scanStyles.errorTitle}>{copy.title}</Text>
+              </View>
+              <Text style={scanStyles.errorBody}>{copy.body}</Text>
+              <View style={scanStyles.errorActions}>
+                <Button
+                  label="Clear"
+                  variant="secondary"
+                  onPress={() => { Haptics.selectionAsync(); clearResultAndPhoto(); }}
+                  style={scanStyles.errorActionBtn}
+                />
+                <Button
+                  label="Try again"
+                  variant="primary"
+                  icon="refresh"
+                  onPress={() => { Haptics.selectionAsync(); handleScanStagedRef.current(); }}
+                  style={scanStyles.errorActionBtn}
+                />
+              </View>
+            </View>
+          );
+        })()}
+
+        {!result && !scanError && savedForLater.length === 0 && recents.length === 0 && (
           <EmptyState
             compact
             icon="scan-outline"
