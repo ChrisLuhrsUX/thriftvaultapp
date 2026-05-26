@@ -224,7 +224,7 @@ function classifyToken(t: string): TokenClass {
 const toastForCorrection = (c: 'lower' | 'higher'): string =>
   c === 'lower' ? 'AI lowered the price' : 'AI raised the price';
 
-const SCAN_BG_SOURCE = require('@/assets/logo/thriftvault_logo.jpg');
+const SCAN_BG_SOURCE = require('@/assets/logo/thriftvault_logo.png');
 
 function ScanResultCard({
   scenario,

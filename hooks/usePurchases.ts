@@ -5,12 +5,11 @@
  *   const { isPro, isTrialing, subscribe, restorePurchases, loading } = usePurchases();
  *
  * Setup required before this works:
- *   1. npm install react-native-purchases
- *   2. Add ["react-native-purchases", {}] to app.json plugins
- *   3. Run npx expo prebuild
- *   4. Set EXPO_PUBLIC_REVENUECAT_API_KEY in .env
- *   5. In App Store Connect: create products tv_monthly, tv_season, tv_annual
- *   6. In RevenueCat dashboard: entitlement "pro", offering "default" with those 3 products
+ *   1. npx expo install react-native-purchases (auto-linked; no app.json plugin needed)
+ *   2. Set EXPO_PUBLIC_REVENUECAT_API_KEY in .env
+ *   3. Build a dev client via EAS (Expo Go cannot bundle native modules)
+ *   4. In App Store Connect: create products monthly, three_month, yearly
+ *   5. In RevenueCat dashboard: entitlement "pro", offering "default" with those 3 packages
  */
 
 import { useCallback, useEffect, useState } from 'react';

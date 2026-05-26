@@ -23,14 +23,14 @@ export const PLANS: PlanOption[] = [
     period: '/mo',
   },
   {
-    id: 'season',
+    id: 'three_month',
     label: 'Season Pass',
     price: '$9.99',
     period: '/3 mo',
     perMonth: '$3.33/mo',
   },
   {
-    id: 'annual',
+    id: 'yearly',
     label: 'Annual',
     price: '$29.99',
     period: '/yr',
