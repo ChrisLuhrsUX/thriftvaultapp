@@ -10,6 +10,10 @@
  *   3. Build a dev client via EAS (Expo Go cannot bundle native modules)
  *   4. In App Store Connect: create products monthly, three_month, yearly
  *   5. In RevenueCat dashboard: entitlement "pro", offering "default" with those 3 packages
+ *
+ * State is held at module scope so every hook caller sees the same isPro / loading
+ * snapshot. RC is configured exactly once; the customer-info listener fires updates
+ * across every mounted component that's reading from this hook.
  */
 
 import { useCallback, useEffect, useState } from 'react';
@@ -18,18 +22,12 @@ import { Platform } from 'react-native';
 const RC_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY ?? '';
 
 export interface PurchasesState {
-  /** User has an active Pro entitlement (paid or trial via RevenueCat). */
   isPro: boolean;
-  /** Still loading entitlement status, show nothing gated yet. */
   loading: boolean;
-  /** Subscribe to a plan by RevenueCat package identifier. */
   subscribe: (packageId: string) => Promise<{ success: boolean; error?: string }>;
-  /** Restore prior purchases (required by Apple). */
   restorePurchases: () => Promise<{ success: boolean; error?: string }>;
 }
 
-// react-native-purchases is installed at prebuild time (see file header).
-// Until then, both the type reference and the dynamic import resolve to a missing module.
 // @ts-expect-error - module not installed until prebuild
 let Purchases: typeof import('react-native-purchases').default | null = null;
 
@@ -41,59 +39,84 @@ async function getRC() {
     Purchases = mod.default;
     return Purchases;
   } catch {
-    // react-native-purchases not installed yet, return null (stub mode)
     return null;
   }
 }
 
+let _isPro = false;
+let _loading = true;
+let _initPromise: Promise<void> | null = null;
+const _subscribers = new Set<() => void>();
+
+function _emit() {
+  _subscribers.forEach((fn) => fn());
+}
+
+function _setIsPro(v: boolean) {
+  if (_isPro === v) return;
+  _isPro = v;
+  _emit();
+}
+
+function _setLoading(v: boolean) {
+  if (_loading === v) return;
+  _loading = v;
+  _emit();
+}
+
+async function _init() {
+  if (Platform.OS === 'web') {
+    _setLoading(false);
+    return;
+  }
+
+  const rc = await getRC();
+  if (!rc) {
+    _setIsPro(true);
+    _setLoading(false);
+    return;
+  }
+
+  if (!RC_API_KEY) {
+    console.warn('[ThriftVault] EXPO_PUBLIC_REVENUECAT_API_KEY not set');
+    _setIsPro(true);
+    _setLoading(false);
+    return;
+  }
+
+  try {
+    rc.configure({ apiKey: RC_API_KEY });
+    const info = await rc.getCustomerInfo();
+    _setIsPro(!!info.entitlements.active['pro']);
+    _setLoading(false);
+
+    rc.addCustomerInfoUpdateListener(
+      (info: { entitlements: { active: Record<string, unknown> } }) => {
+        _setIsPro(!!info.entitlements.active['pro']);
+      }
+    );
+  } catch (e) {
+    console.error('[ThriftVault] RevenueCat init failed:', e);
+    _setIsPro(false);
+    _setLoading(false);
+  }
+}
+
+function _ensureInit() {
+  if (!_initPromise) _initPromise = _init();
+  return _initPromise;
+}
+
 export function usePurchases(): PurchasesState {
-  const [isPro, setIsPro] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [, force] = useState(0);
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function init() {
-      if (Platform.OS === 'web') {
-        setLoading(false);
-        return;
-      }
-
-      const rc = await getRC();
-      if (!rc) {
-        // SDK not installed yet, treat everyone as Pro during dev
-        if (!cancelled) {
-          setIsPro(true);
-          setLoading(false);
-        }
-        return;
-      }
-
-      if (!RC_API_KEY) {
-        console.warn('[ThriftVault] EXPO_PUBLIC_REVENUECAT_API_KEY not set');
-        if (!cancelled) { setIsPro(true); setLoading(false); }
-        return;
-      }
-
-      try {
-        rc.configure({ apiKey: RC_API_KEY });
-        const info = await rc.getCustomerInfo();
-        if (!cancelled) {
-          setIsPro(!!info.entitlements.active['pro']);
-          setLoading(false);
-        }
-
-        rc.addCustomerInfoUpdateListener((info: { entitlements: { active: Record<string, unknown> } }) => {
-          if (!cancelled) setIsPro(!!info.entitlements.active['pro']);
-        });
-      } catch (e) {
-        console.error('[ThriftVault] RevenueCat init failed:', e);
-        if (!cancelled) { setIsPro(false); setLoading(false); }
-      }
-    }
-
-    init();
-    return () => { cancelled = true; };
+    const trigger = () => force((n) => n + 1);
+    _subscribers.add(trigger);
+    _ensureInit();
+    return () => {
+      _subscribers.delete(trigger);
+    };
   }, []);
 
   const subscribe = useCallback(async (packageId: string) => {
@@ -105,12 +128,13 @@ export function usePurchases(): PurchasesState {
       const current = offerings.current;
       if (!current) return { success: false, error: 'No offerings available' };
 
-      const pkg = current.availablePackages.find((p: { identifier: string }) => p.identifier === packageId)
-        ?? current.availablePackages[0];
+      const pkg = current.availablePackages.find(
+        (p: { identifier: string }) => p.identifier === packageId
+      ) ?? current.availablePackages[0];
       if (!pkg) return { success: false, error: 'Plan not found' };
 
       const { customerInfo } = await rc.purchasePackage(pkg);
-      setIsPro(!!customerInfo.entitlements.active['pro']);
+      _setIsPro(!!customerInfo.entitlements.active['pro']);
       return { success: true };
     } catch (e: unknown) {
       const code = (e as { code?: string })?.code;
@@ -125,13 +149,12 @@ export function usePurchases(): PurchasesState {
 
     try {
       const info = await rc.restorePurchases();
-      const active = !!info.entitlements.active['pro'];
-      setIsPro(active);
+      _setIsPro(!!info.entitlements.active['pro']);
       return { success: true };
     } catch (e) {
       return { success: false, error: (e as Error)?.message ?? 'Restore failed' };
     }
   }, []);
 
-  return { isPro, loading, subscribe, restorePurchases };
+  return { isPro: _isPro, loading: _loading, subscribe, restorePurchases };
 }

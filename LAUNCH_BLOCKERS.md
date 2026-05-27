@@ -24,7 +24,7 @@ Ordered punch list, dependencies respected. Tick top to bottom. Source of truth 
 
 ## Irreversible step (Expo Go → dev client)
 
-- [ ] **First EAS dev client build**. The moment `react-native-purchases` lands in `package.json` and `app.json` plugins (Code wire-up step above), Expo Go on iPhone 13 stops working because it doesn't bundle custom native modules. Dev workflow switches to a **dev client**: your app + Metro connection in one binary, built and installed on your phone.
+- [x] **First EAS dev client build** (2026-05-27). Installed eas-cli, registered iPhone 13 UDID via `eas device:create`, generated Apple distribution cert + provisioning profile, built via `eas build --profile development --platform ios` (first attempt failed on Sentry source-map upload, fixed by adding `SENTRY_DISABLE_AUTO_UPLOAD=true` to `eas.json:development.env`; second attempt succeeded). Installed dev client via QR, trusted cert in VPN & Device Management, enabled iOS Developer Mode (required for sideloaded apps on iOS 16+), connected to Metro on port 8082 (8081 was stale). Also fixed schema warning: moved `ios.minimumOsVersion` from `app.json:ios` to `expo-build-properties.ios.deploymentTarget` (current Expo schema doesn't accept the top-level `minimumOsVersion` field).
 
 You're on Windows, so no local Xcode or Mac is required. **EAS Build** runs on Apple's cloud Macs, generates the native iOS project on the build machine, signs it with your Apple Developer credentials, and gives you a QR code to install on iPhone. You will not run `npx expo prebuild` locally.
 
@@ -53,6 +53,12 @@ Prereqs: Apple Developer Org enrollment active (done 2026-05-21), iPhone 13 in h
 - [ ] **Run sandbox purchase test**. On device: Settings → App Store → Sandbox Account → sign in with the sandbox Apple ID created in the Async section. Test full flow: trial start, upgrade, restore purchases, cancel.
 - [ ] **Screenshots** for App Store listing. **Required size:** 6.9" iPhone at 1320×2868 px (iPhone 16 Pro Max); ASC auto-scales to fill smaller sizes. **Count:** 3–5 minimum (Apple's recommended floor), 10 max. First 3 are visible on the App Store browse card, put the strongest there. **Suggested order:** (1) scan result with price + range (hero), (2) vault grid, (3) paywall with 3 plans, (4) red-flag banner on a scan, (5) profile stats. **Capture on Windows:** native iPhone 13 screenshots are 1170×2532; upscale ~1.13× in Figma to fit 1320×2868 (UI re-renders cleanly, acceptable to reviewers). **Compose in Figma:** 1320×2868 artboard per screenshot, brand `cream` / `vintageBlue` bg, device frame from the Figma Community (search "iPhone 16 Pro mockup"), Playfair Display headline above the device + DM Sans subhead. Match landing page hangtag motif for visual consistency. Export PNG. Upload via ASC → App Information → App Store → Screenshots. **Avoid:** Apple-badge imitations, competitor names, copy misrepresenting features, screenshots that show real users' data.
 - [ ] **Share-as-image card** (optional polish, gated on prebuild). `npx expo install react-native-view-shot expo-sharing`. Follow `SHARE_CARD_PLAN.md`.
+
+## Pre-production build
+
+- [ ] **Set `cli.appVersionSource` in `eas.json`**. Currently unset; non-blocking warning today but EAS will require it. Pick `remote` (EAS-managed, recommended for solo dev) or `local` (read from `app.json`).
+- [ ] **Upload `.env` keys to EAS Environment Variables (production scope)**. Local `.env` is only used for dev builds; production build pulls from the EAS server. Required keys: `EXPO_PUBLIC_GEMINI_API_KEY`, `EXPO_PUBLIC_ANTHROPIC_API_KEY`, `EXPO_PUBLIC_SENTRY_DSN`, `EXPO_PUBLIC_REVENUECAT_API_KEY`. **Critical:** swap RC key from `test_...` to production `appl_...` (per `project_rc_test_key_swap` memory) — sandbox-only key silently fails live App Store purchases.
+- [ ] **Configure Sentry source-map upload for production**. Dev builds set `SENTRY_DISABLE_AUTO_UPLOAD=true` in `eas.json:development.env` to skip upload. For production, set `SENTRY_ORG`, `SENTRY_PROJECT`, and `SENTRY_AUTH_TOKEN` (Sentry → Settings → Auth Tokens, project-scoped) as EAS Environment Variables on the production profile so JS stack traces symbolicate. Without these, native crashes still report but JS lines show as minified bytecode.
 
 ## Submit
 

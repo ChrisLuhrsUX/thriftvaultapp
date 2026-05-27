@@ -36,7 +36,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { theme, colorScheme, setColorScheme } = useTheme();
   const { inventory } = useInventory();
-  const { restorePurchases } = usePurchases();
+  const { isPro, restorePurchases } = usePurchases();
   const { formMaxWidth, headerHPad } = useResponsive();
   const { showToast } = useToast();
   const [paywallVisible, setPaywallVisible] = useState(false);
@@ -150,14 +150,18 @@ export default function ProfileScreen() {
         <View style={styles.header}>
           <Text style={styles.title} accessibilityRole="header">Profile</Text>
         </View>
-        <Button
-          label="Upgrade to Pro"
-          icon="sparkles"
-          onPress={() => setPaywallVisible(true)}
-          accessibilityLabel="Upgrade to Pro"
-          style={{ marginHorizontal: 24, marginBottom: 4 }}
-        />
-        <Text style={styles.trialNote}>{TRIAL_DURATION_DAYS}-day free trial · no commitment</Text>
+        {!isPro && (
+          <>
+            <Button
+              label="Upgrade to Pro"
+              icon="sparkles"
+              onPress={() => setPaywallVisible(true)}
+              accessibilityLabel="Upgrade to Pro"
+              style={{ marginHorizontal: 24, marginBottom: 4 }}
+            />
+            <Text style={styles.trialNote}>{TRIAL_DURATION_DAYS}-day free trial · no commitment</Text>
+          </>
+        )}
         {storeStats.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle} accessibilityRole="header">Profit by store</Text>

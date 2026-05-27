@@ -22,9 +22,12 @@ See [SAFETY.md](SAFETY.md), never-run list, confirm-before list, and recovery pl
 
 ```bash
 cd C:\Users\Chris\Downloads\ThriftVault\thriftvaultapp
-npx expo start        # dev server
-# then: w = web, a = Android emulator, scan QR = Expo Go on phone
+npx expo start --dev-client   # dev server, dev client on iPhone 13 auto-connects on same Wi-Fi
+# w = web (still works for landing-page-style preview)
+# native = open ThriftVault dev client on phone, NOT Expo Go (RC native module breaks Expo Go)
 ```
+
+**Native changes** (new native dep, `app.json` plugin edits, icon swap) require a fresh dev-client build: `eas build --profile development --platform ios` → install via QR. JS-only changes hot-reload via Metro.
 
 ## Project Structure
 

@@ -98,7 +98,7 @@ export default function OnboardingScreen() {
           >
             <View style={styles.illo}>
               <AppIcon
-                name={i === 0 ? 'camera' : i === 1 ? 'folder-open' : 'sparkles'}
+                name={i === 0 ? 'camera' : i === 1 ? 'shirt' : 'sparkles'}
                 size={isTablet ? 120 : 80}
                 color={theme.colors.vintageBlueDark}
               />
