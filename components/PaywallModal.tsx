@@ -4,6 +4,7 @@ import { DEFAULT_PLAN_ID, PLANS, TRIAL_DURATION_DAYS, type PlanOption } from '@/
 import { useTheme } from '@/context/ThemeContext';
 import { useToast } from '@/context/ToastContext';
 import { usePurchases } from '@/hooks/usePurchases';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useResponsive } from '@/hooks/useResponsive';
 import type { Theme } from '@/theme';
 import * as Haptics from 'expo-haptics';
@@ -41,6 +42,7 @@ export function PaywallModal({ visible, onClose }: PaywallModalProps) {
   const { theme } = useTheme();
   const { showToast } = useToast();
   const { isDesktop } = useResponsive();
+  const reducedMotion = useReducedMotion();
   const { subscribe, restorePurchases } = usePurchases();
   const [restoring, setRestoring] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(DEFAULT_PLAN_ID);
@@ -52,6 +54,10 @@ export function PaywallModal({ visible, onClose }: PaywallModalProps) {
   useEffect(() => {
     if (isDesktop) return;
     if (visible) {
+      if (reducedMotion) {
+        translateY.setValue(0);
+        return;
+      }
       translateY.setValue(SHEET_OFFSCREEN);
       Animated.spring(translateY, {
         toValue: 0,
@@ -60,10 +66,15 @@ export function PaywallModal({ visible, onClose }: PaywallModalProps) {
         friction: 11,
       }).start();
     }
-  }, [visible, isDesktop, translateY]);
+  }, [visible, isDesktop, translateY, reducedMotion]);
 
   const dismiss = useCallback(() => {
     if (isDesktop) {
+      onClose();
+      return;
+    }
+    if (reducedMotion) {
+      translateY.setValue(SHEET_OFFSCREEN);
       onClose();
       return;
     }
@@ -75,7 +86,7 @@ export function PaywallModal({ visible, onClose }: PaywallModalProps) {
       translateY.setValue(SHEET_OFFSCREEN);
       onClose();
     });
-  }, [isDesktop, onClose, translateY]);
+  }, [isDesktop, onClose, translateY, reducedMotion]);
 
   const panResponder = useMemo(
     () =>
@@ -141,6 +152,7 @@ export function PaywallModal({ visible, onClose }: PaywallModalProps) {
       <View style={styles.overlay} pointerEvents="box-none">
         <Pressable style={styles.backdrop} onPress={() => { Haptics.selectionAsync(); dismiss(); }} accessibilityLabel="Dismiss" accessibilityRole="button" />
         <Animated.View
+          accessibilityViewIsModal
           style={[
             styles.sheet,
             isDesktop
@@ -150,7 +162,13 @@ export function PaywallModal({ visible, onClose }: PaywallModalProps) {
           {...(!isDesktop ? panResponder.panHandlers : {})}
         >
           {isDesktop ? (
-            <Pressable style={styles.closeBtn} onPress={() => { Haptics.selectionAsync(); dismiss(); }} accessibilityLabel="Close">
+            <Pressable
+              style={styles.closeBtn}
+              onPress={() => { Haptics.selectionAsync(); dismiss(); }}
+              hitSlop={12}
+              accessibilityLabel="Close"
+              accessibilityRole="button"
+            >
               <AppIcon name="close" size={20} color={theme.colors.mauve} />
             </Pressable>
           ) : (
@@ -165,7 +183,7 @@ export function PaywallModal({ visible, onClose }: PaywallModalProps) {
             bounces={true}
             keyboardShouldPersistTaps="handled"
           >
-            <View style={styles.header}>
+            <View style={styles.header} accessible accessibilityRole="header" accessibilityLabel="ThriftVault Pro">
               <Text style={styles.title}>ThriftVault Pro</Text>
               <AppIcon name="sparkles" size={22} color={theme.colors.vintageBlueDark} style={styles.titleIcon} />
             </View>
@@ -301,8 +319,12 @@ function createStyles(theme: Theme, isDesktop: boolean) {
   },
   closeBtn: {
     alignSelf: 'flex-end',
-    padding: theme.spacing.xs,
+    padding: theme.spacing.sm,
     marginBottom: theme.spacing.sm,
+    minWidth: theme.minTouchTargetSize,
+    minHeight: theme.minTouchTargetSize,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   handleArea: {
     paddingVertical: theme.spacing.sm,

@@ -35,6 +35,9 @@ export function Toast() {
   return (
     <Animated.View
       pointerEvents="none"
+      accessible
+      accessibilityLiveRegion="polite"
+      accessibilityRole="alert"
       style={[
         styles.toast,
         { top: insets.top + 64 },

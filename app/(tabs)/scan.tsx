@@ -24,6 +24,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AccessibilityInfo,
   ActivityIndicator,
   Alert,
   Animated,
@@ -1110,6 +1111,13 @@ export default function ScanScreen() {
   const [scanStatus, setScanStatus] = useState<string | null>(null);
   const [result, setResult] = useState<ScanScenario | null>(null);
   const [scanError, setScanError] = useState<ScanErrorKind | null>(null);
+  // VoiceOver doesn't read accessibilityLiveRegion (Android-only); fire an explicit
+  // announcement when an error first appears so iOS screen reader users hear it.
+  useEffect(() => {
+    if (!scanError || Platform.OS === 'web') return;
+    const copy = getScanErrorCopy(scanError);
+    AccessibilityInfo.announceForAccessibility(`${copy.title}. ${copy.body}`);
+  }, [scanError]);
   const [stagedPhotos, setStagedPhotos] = useState<string[]>([]);
   const [placeholderImageUri, setPlaceholderImageUri] = useState<string | null>(null);
   const [savedForLater, setSavedForLater] = useState<SavedScanItem[]>([]);
@@ -1212,6 +1220,11 @@ export default function ScanScreen() {
     Haptics.selectionAsync();
     setResult(snap.scenario);
     setActiveSessionSnapshotId(snapshotId);
+    if (Platform.OS !== 'web') {
+      AccessibilityInfo.announceForAccessibility(
+        `Loaded scan: ${snap.scenario?.name ?? 'item'}${snap.confidence ? `, ${snap.confidence} confidence` : ''}`
+      );
+    }
     dismissHistorySheet();
   }, [sessionSnapshots, dismissHistorySheet]);
 
@@ -2103,7 +2116,7 @@ export default function ScanScreen() {
       >
         <View style={styles.header}>
           <View style={styles.headerTitleBlock}>
-            <Text style={styles.title}>Scan</Text>
+            <Text style={styles.title} accessibilityRole="header">Scan</Text>
             <Text style={styles.sub}>Find your next flip</Text>
           </View>
           <Text style={styles.versionTag}>ThriftVault · Launching June</Text>
@@ -2404,7 +2417,13 @@ export default function ScanScreen() {
         {!result && !scanning && scanError && (() => {
           const copy = getScanErrorCopy(scanError);
           return (
-            <View style={scanStyles.errorCard} accessibilityLiveRegion="polite">
+            <View
+              style={scanStyles.errorCard}
+              accessible
+              accessibilityLiveRegion="polite"
+              accessibilityRole="alert"
+              accessibilityLabel={`${copy.title}. ${copy.body}`}
+            >
               <View style={scanStyles.errorHeader}>
                 <AppIcon name={copy.icon} size={22} color={theme.colors.terra} />
                 <Text style={scanStyles.errorTitle}>{copy.title}</Text>
@@ -2441,7 +2460,7 @@ export default function ScanScreen() {
         {savedForLater.length > 0 && (
           <View style={styles.recentsSection}>
             <View style={styles.recentsHeader}>
-              <Text style={styles.recentsTitle}>Saved for later</Text>
+              <Text style={styles.recentsTitle} accessibilityRole="header">Saved for later</Text>
             </View>
             <FlatList
               data={savedForLater}
@@ -2488,7 +2507,7 @@ export default function ScanScreen() {
         {recents.length > 0 && (
           <View style={styles.recentsSection}>
             <View style={styles.recentsHeader}>
-              <Text style={styles.recentsTitle}>Recent finds</Text>
+              <Text style={styles.recentsTitle} accessibilityRole="header">Recent finds</Text>
             </View>
             <FlatList
               data={recents}
@@ -2682,7 +2701,7 @@ export default function ScanScreen() {
                 <View style={styles.historyHandle} />
               </View>
               <View style={styles.historyHeaderRow}>
-                <Text style={styles.historyTitle}>Scan history</Text>
+                <Text style={styles.historyTitle} accessibilityRole="header">Scan history</Text>
                 <View style={styles.historyHeaderBadge}>
                   <Text style={styles.historyHeaderBadgeText}>
                     {sessionSnapshots.length} scan{sessionSnapshots.length === 1 ? '' : 's'}

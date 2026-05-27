@@ -1,4 +1,5 @@
 import { useTheme } from '@/context/ThemeContext';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useResponsive } from '@/hooks/useResponsive';
 import type { Theme } from '@/theme';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -46,6 +47,7 @@ export function BottomSheetModal({
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const { isDesktop } = useResponsive();
+  const reducedMotion = useReducedMotion();
   const styles = useMemo(() => createStyles(theme, isDesktop), [theme, isDesktop]);
 
   const [shouldRender, setShouldRender] = useState(visible);
@@ -55,6 +57,10 @@ export function BottomSheetModal({
     if (visible) {
       setShouldRender(true);
       if (isDesktop) return;
+      if (reducedMotion) {
+        translateY.setValue(0);
+        return;
+      }
       translateY.setValue(SHEET_OFFSCREEN);
       Animated.spring(translateY, {
         toValue: 0,
@@ -70,6 +76,12 @@ export function BottomSheetModal({
       onAfterDismiss?.();
       return;
     }
+    if (reducedMotion) {
+      translateY.setValue(SHEET_OFFSCREEN);
+      setShouldRender(false);
+      onAfterDismiss?.();
+      return;
+    }
     Animated.timing(translateY, {
       toValue: SHEET_OFFSCREEN,
       duration: 240,
@@ -78,7 +90,7 @@ export function BottomSheetModal({
       setShouldRender(false);
       onAfterDismiss?.();
     });
-  }, [visible, shouldRender, isDesktop, translateY, onAfterDismiss]);
+  }, [visible, shouldRender, isDesktop, translateY, onAfterDismiss, reducedMotion]);
 
   const panResponder = useMemo(
     () =>
@@ -122,6 +134,7 @@ export function BottomSheetModal({
           accessibilityRole="button"
         />
         <Animated.View
+          accessibilityViewIsModal
           style={[
             styles.sheet,
             isDesktop

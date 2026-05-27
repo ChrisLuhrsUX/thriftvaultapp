@@ -294,8 +294,14 @@ const HaulCard = React.memo(function HaulCard({
   const thumbItems = haul.items.slice(0, 4);
   const count = thumbItems.length;
 
+  const haulLabel = `${haul.title ?? haul.date}, ${haul.items.length} find${haul.items.length !== 1 ? 's' : ''}${haul.stores.length > 0 ? `, from ${haul.stores.slice(0, 2).join(' and ')}` : ''}`;
   return (
-    <Pressable style={({ pressed }) => [styles.haulCard, pressed && styles.haulCardPressed]} onPress={() => onPress(haul.date)}>
+    <Pressable
+      style={({ pressed }) => [styles.haulCard, pressed && styles.haulCardPressed]}
+      onPress={() => onPress(haul.date)}
+      accessibilityRole="button"
+      accessibilityLabel={haulLabel}
+    >
       <View style={styles.haulCardPhoto}>
         {count === 0 ? (
           <View style={styles.haulCardPlaceholder}>
@@ -308,6 +314,7 @@ const HaulCard = React.memo(function HaulCard({
             contentFit="cover"
             cachePolicy="memory-disk"
             recyclingKey={String(thumbItems[0].id)}
+            accessible={false}
           />
         ) : (
           <View style={styles.haulCardGridOuter}>
@@ -320,6 +327,7 @@ const HaulCard = React.memo(function HaulCard({
                   contentFit="cover"
                   cachePolicy="memory-disk"
                   recyclingKey={String(item.id)}
+                  accessible={false}
                 />
               ))}
             </View>
@@ -389,6 +397,19 @@ const ItemCard = React.memo(function ItemCard({
     !isCloset && item.status === 'sold' && soldPrice != null
       ? `Sold ${formatMoney(soldPrice)}`
       : `${formatMoneyWithSign(estProfit)} profit`;
+  const a11yLabelParts: string[] = [item.name];
+  if (!isCloset) {
+    if (item.status === 'sold' && soldPrice != null) {
+      a11yLabelParts.push(`sold for ${formatMoney(soldPrice)}`);
+    } else {
+      if (resale > 0) a11yLabelParts.push(`${formatMoney(resale)} target`);
+      a11yLabelParts.push(item.status);
+    }
+  } else if (item.cat) {
+    a11yLabelParts.push(item.cat);
+  }
+  if (hasRedFlags) a11yLabelParts.push('red flag');
+  const a11yLabel = a11yLabelParts.join(', ');
   return (
     <Pressable
       style={({ pressed }) => [
@@ -396,6 +417,8 @@ const ItemCard = React.memo(function ItemCard({
         pressed && styles.cardPressed,
       ]}
       onPress={() => onPress(item.id)}
+      accessibilityRole="button"
+      accessibilityLabel={a11yLabel}
     >
       <View style={styles.cardImageBlock}>
         {item.img ? (
@@ -405,6 +428,7 @@ const ItemCard = React.memo(function ItemCard({
             contentFit="cover"
             cachePolicy="memory-disk"
             recyclingKey={String(item.id)}
+            accessible={false}
           />
         ) : (
           <View style={styles.cardImgPlaceholder}>
@@ -809,7 +833,7 @@ export default function InventoryScreen() {
   const topHeader = (
     <>
       <View style={styles.header}>
-        <Text style={styles.title}>My Vault</Text>
+        <Text style={styles.title} accessibilityRole="header">My Vault</Text>
         <Text style={styles.sub}>Your thrift inventory</Text>
       </View>
       <View style={styles.switcherRow}>
@@ -1051,11 +1075,14 @@ export default function InventoryScreen() {
         visible={storePickerVisible}
         onDismiss={() => setStorePickerVisible(false)}
       >
-        <Text style={styles.storePickerTitle}>Where'd you thrift?</Text>
+        <Text style={styles.storePickerTitle} accessibilityRole="header">Where'd you thrift?</Text>
         <View style={styles.storePickerChips}>
           <Pressable
             style={[styles.storePickerChip, selectedStore === '_none' && styles.storePickerChipActive]}
             onPress={() => { Haptics.selectionAsync(); setSelectedStore('_none'); setCustomStore(''); }}
+            accessibilityRole="button"
+            accessibilityLabel="Not set"
+            accessibilityState={{ selected: selectedStore === '_none' }}
           >
             <Text style={[styles.storePickerChipText, selectedStore === '_none' && styles.storePickerChipTextActive]}>Not set</Text>
           </Pressable>
@@ -1064,6 +1091,9 @@ export default function InventoryScreen() {
               key={s}
               style={[styles.storePickerChip, selectedStore === s && styles.storePickerChipActive]}
               onPress={() => { Haptics.selectionAsync(); setSelectedStore(s); setCustomStore(''); }}
+              accessibilityRole="button"
+              accessibilityLabel={s}
+              accessibilityState={{ selected: selectedStore === s }}
             >
               <Text style={[styles.storePickerChipText, selectedStore === s && styles.storePickerChipTextActive]}>{s}</Text>
             </Pressable>
@@ -1071,6 +1101,9 @@ export default function InventoryScreen() {
           <Pressable
             style={[styles.storePickerChip, selectedStore === '_custom' && styles.storePickerChipActive]}
             onPress={() => { Haptics.selectionAsync(); setSelectedStore('_custom'); setTimeout(() => customStoreRef.current?.focus(), 100); }}
+            accessibilityRole="button"
+            accessibilityLabel="Other store"
+            accessibilityState={{ selected: selectedStore === '_custom' }}
           >
             <Text style={[styles.storePickerChipText, selectedStore === '_custom' && styles.storePickerChipTextActive]}>Other</Text>
           </Pressable>
@@ -1086,6 +1119,7 @@ export default function InventoryScreen() {
             autoFocus
             returnKeyType="done"
             onSubmitEditing={handleStorePickerConfirm}
+            accessibilityLabel="Custom store name"
           />
         )}
         <Pressable
@@ -1094,6 +1128,8 @@ export default function InventoryScreen() {
             pressed && { opacity: theme.pressedOpacity.primary },
           ]}
           onPress={handleStorePickerConfirm}
+          accessibilityRole="button"
+          accessibilityLabel="Add to haul"
         >
           <Text style={styles.storePickerConfirmText}>Add to Haul</Text>
         </Pressable>

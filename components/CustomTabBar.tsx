@@ -100,7 +100,10 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   };
 
   return (
-    <View style={[styles.bar, { paddingBottom: insets.bottom + theme.spacing.sm }]}>
+    <View
+      style={[styles.bar, { paddingBottom: insets.bottom + theme.spacing.sm }]}
+      accessibilityRole="tablist"
+    >
       {routes.map((route, index) => {
         const isFocused = state.index === index;
         const isScan = route.name === 'scan';
@@ -134,8 +137,9 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
                 styles.scanWrap,
                 pressed && styles.scanPressed,
               ]}
-              accessibilityRole="button"
+              accessibilityRole="tab"
               accessibilityLabel="Scan"
+              accessibilityState={{ selected: isFocused }}
             >
               <View style={styles.scanButton}>
                 <AppIcon name="camera" size={isTablet ? 36 : 32} color={theme.colors.onPrimary} />
@@ -156,8 +160,9 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
               styles.tab,
               pressed && styles.tabPressed,
             ]}
-            accessibilityRole="button"
+            accessibilityRole="tab"
             accessibilityLabel={label}
+            accessibilityState={{ selected: isFocused }}
           >
             <AppIcon
               name={iconName as 'shirt' | 'person'}

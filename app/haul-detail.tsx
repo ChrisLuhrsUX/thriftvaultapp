@@ -394,6 +394,7 @@ export default function HaulDetailScreen() {
           autoCorrect
           returnKeyType="done"
           onSubmitEditing={handleApplyBulkStore}
+          accessibilityLabel="Store name for this haul"
         />
         <Pressable
           style={({ pressed }) => [styles.haulStoreClearBtn, pressed && { opacity: theme.pressedOpacity.subtle }]}
@@ -435,6 +436,7 @@ export default function HaulDetailScreen() {
           onChangeText={(t) => setTitleDraft(t.slice(0, 60))}
           placeholder="e.g. Goodwill bin run"
           placeholderTextColor={theme.colors.mauve}
+          accessibilityLabel="Haul title"
           autoCapitalize="sentences"
           autoCorrect
           maxLength={60}

@@ -148,7 +148,7 @@ export default function ProfileScreen() {
       >
         <View style={styles.contentWrapper}>
         <View style={styles.header}>
-          <Text style={styles.title}>Profile</Text>
+          <Text style={styles.title} accessibilityRole="header">Profile</Text>
         </View>
         <Button
           label="Upgrade to Pro"
@@ -160,7 +160,7 @@ export default function ProfileScreen() {
         <Text style={styles.trialNote}>{TRIAL_DURATION_DAYS}-day free trial · no commitment</Text>
         {storeStats.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Profit by store</Text>
+            <Text style={styles.sectionTitle} accessibilityRole="header">Profit by store</Text>
             {storeStats.length >= 2 && (
               <Text style={styles.storeCopy}>
                 You make more profit from <Text style={styles.storeCopyHighlight}>{storeStats[0].store}</Text> than {storeStats[1].store} – {storeStats[0].store} has better finds.
@@ -173,7 +173,12 @@ export default function ProfileScreen() {
               nestedScrollEnabled
             >
               {storeStats.map((s, idx) => (
-                <View key={s.store} style={styles.storeRow}>
+                <View
+                  key={s.store}
+                  style={styles.storeRow}
+                  accessible
+                  accessibilityLabel={`${s.store}${idx === 0 ? ', best store' : ''}, ${s.count} sold, ${formatMoney(s.totalSpent)} spent, profit ${formatMoneyWithSign(s.profit)}`}
+                >
                   <View style={styles.storeRowLeft}>
                     <View style={styles.storeNameRow}>
                       <Text style={styles.storeName}>{s.store}</Text>
@@ -195,37 +200,37 @@ export default function ProfileScreen() {
         )}
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Your Stats</Text>
-          <View style={styles.row}>
+          <Text style={styles.sectionTitle} accessibilityRole="header">Your Stats</Text>
+          <View style={styles.row} accessible accessibilityLabel={`Total Invested, ${stats.invested > 0 ? formatMoney(stats.invested) : 'none'}`}>
             <AppIcon name="wallet-outline" size={22} color={theme.colors.mauve} />
             <Text style={styles.rowLabel}>Total Invested</Text>
             <Text style={styles.rowValue}>{stats.invested > 0 ? formatMoney(stats.invested) : ','}</Text>
           </View>
-          <View style={styles.row}>
+          <View style={styles.row} accessible accessibilityLabel={`Total Profit, ${stats.soldCount > 0 ? formatMoneyWithSign(stats.totalProfit) : 'none yet'}`}>
             <AppIcon name="cash-outline" size={22} color={theme.colors.profit} />
             <Text style={styles.rowLabel}>Total Profit</Text>
             <Text style={[styles.rowValue, stats.soldCount > 0 && styles.profitGreen]}>
               {stats.soldCount > 0 ? formatMoneyWithSign(stats.totalProfit) : ','}
             </Text>
           </View>
-          <View style={styles.row}>
+          <View style={styles.row} accessible accessibilityLabel={`Best Single Flip, ${stats.soldCount > 0 ? formatMoneyWithSign(stats.bestFlip) : 'none yet'}`}>
             <AppIcon name="trending-up-outline" size={22} color={theme.colors.profit} />
             <Text style={styles.rowLabel}>Best Single Flip</Text>
             <Text style={[styles.rowValue, stats.soldCount > 0 && styles.profitGreen]}>
               {stats.soldCount > 0 ? formatMoneyWithSign(stats.bestFlip) : ','}
             </Text>
           </View>
-          <View style={styles.row}>
+          <View style={styles.row} accessible accessibilityLabel={`Total Items Tracked, ${stats.totalItems}`}>
             <AppIcon name="cube-outline" size={22} color={theme.colors.mauve} />
             <Text style={styles.rowLabel}>Total Items Tracked</Text>
             <Text style={styles.rowValue}>{stats.totalItems}</Text>
           </View>
-          <View style={styles.row}>
+          <View style={styles.row} accessible accessibilityLabel={`Items Sold, ${stats.soldCount}`}>
             <AppIcon name="checkmark-circle-outline" size={22} color={theme.colors.mauve} />
             <Text style={styles.rowLabel}>Items Sold</Text>
             <Text style={styles.rowValue}>{stats.soldCount}</Text>
           </View>
-          <View style={styles.row}>
+          <View style={styles.row} accessible accessibilityLabel={`Active Listings, ${stats.active}`}>
             <AppIcon name="storefront-outline" size={22} color={theme.colors.mauve} />
             <Text style={styles.rowLabel}>Active Listings</Text>
             <Text style={styles.rowValue}>{stats.active}</Text>
@@ -233,7 +238,7 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Settings</Text>
+          <Text style={styles.sectionTitle} accessibilityRole="header">Settings</Text>
           {/* Dark mode toggle hidden, current dark theme needs more polish before re-exposing.
               <View style={styles.appearanceRow}>
                 <View style={styles.appearanceRowLeft}>

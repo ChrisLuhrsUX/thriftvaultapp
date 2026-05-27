@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
+import { AccessibilityInfo, Platform } from 'react-native';
 
 interface ToastContextValue {
   message: string | null;
@@ -16,6 +17,12 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const showToast = useCallback((msg: string) => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     setMessage(msg);
+    // Toast view is pointerEvents="none" (intentionally non-blocking), so VoiceOver/TalkBack
+    // can't focus it. Fire an announcement so screen reader users hear the message.
+    // accessibilityLiveRegion on the Toast view itself only fires on Android.
+    if (Platform.OS !== 'web') {
+      AccessibilityInfo.announceForAccessibility(msg);
+    }
     timeoutRef.current = setTimeout(() => {
       setMessage(null);
       timeoutRef.current = null;

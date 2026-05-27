@@ -22,6 +22,7 @@ import * as MediaLibrary from 'expo-media-library';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+    AccessibilityInfo,
     ActivityIndicator,
     Alert,
     Animated,
@@ -414,6 +415,13 @@ export default function DetailScreen() {
     if (!item) return;
     updateItem(item.id, { activeScanSnapshotId: snapshotId });
     update({ activeScanSnapshotId: snapshotId });
+    const snap = item.scanSnapshots?.find((s) => s.id === snapshotId);
+    if (snap && Platform.OS !== 'web') {
+      const parts = ['Loaded scan'];
+      if (snap.profit) parts.push(snap.profit);
+      if (snap.confidence) parts.push(`${snap.confidence} confidence`);
+      AccessibilityInfo.announceForAccessibility(parts.join(', '));
+    }
     dismissHistorySheet();
   }, [item, update, updateItem, dismissHistorySheet]);
 
@@ -826,6 +834,7 @@ export default function DetailScreen() {
               autoFocus
               selectTextOnFocus
               returnKeyType="done"
+              accessibilityLabel="Item name"
             />
           ) : (
             <Pressable
@@ -980,6 +989,7 @@ export default function DetailScreen() {
                   inputAccessoryViewID={Platform.OS === 'ios' ? PRICE_INPUT_ACCESSORY_ID : undefined}
                   placeholder="0"
                   placeholderTextColor={theme.colors.mauve}
+                  accessibilityLabel="Cost paid, in dollars"
                 />
               </View>
               <Text style={styles.profitStripLabel}>Cost</Text>
@@ -1017,6 +1027,7 @@ export default function DetailScreen() {
                   inputAccessoryViewID={Platform.OS === 'ios' ? PRICE_INPUT_ACCESSORY_ID : undefined}
                   placeholder="0.00"
                   placeholderTextColor={theme.colors.mauve}
+                  accessibilityLabel={soldNum != null ? 'Sold price, in dollars' : 'Target resale price, in dollars'}
                 />
               </View>
               <Text style={styles.profitStripLabel}>{soldNum != null ? 'Sold' : 'Resale'}</Text>
@@ -1054,7 +1065,7 @@ export default function DetailScreen() {
             >
               <View style={styles.insightsHeaderContent}>
                 <View style={styles.insightsHeaderTopRow}>
-                  <Text style={styles.insightsTitle}>Insights</Text>
+                  <Text style={styles.insightsTitle} accessibilityRole="header">Insights</Text>
                   <View style={styles.insightsHeaderRight}>
                     <View style={styles.insightsCountBadge}>
                       <Text style={styles.insightsCountText}>
@@ -1420,6 +1431,7 @@ export default function DetailScreen() {
                       onChangeText={(t) => update({ platform: t })}
                       placeholder="Type platform name..."
                       placeholderTextColor={theme.colors.mauve}
+                      accessibilityLabel="Custom platform name"
                     />
                     {item.platform.length > 0 && (
                       <Pressable
@@ -1488,6 +1500,7 @@ export default function DetailScreen() {
                   mainScrollRef.current?.scrollToEnd({ animated: true });
                 }, 300);
               }}
+              accessibilityLabel="Notes"
             />
           </View>
         </View>
@@ -1531,7 +1544,7 @@ export default function DetailScreen() {
           }
         }}
       >
-        <Text style={styles.addPhotoTitle}>Add photo</Text>
+        <Text style={styles.addPhotoTitle} accessibilityRole="header">Add photo</Text>
         <Pressable
           style={({ pressed }) => [styles.addPhotoRow, pressed && styles.btnPressed]}
           onPress={() => {
@@ -1539,6 +1552,7 @@ export default function DetailScreen() {
             closeAddPhotoModal();
           }}
           accessibilityRole="button"
+          accessibilityLabel="Take photo"
         >
           <AppIcon name="camera" size={22} color={theme.colors.vintageBlueDark} />
           <Text style={styles.addPhotoRowText}>Take photo</Text>
@@ -1550,6 +1564,7 @@ export default function DetailScreen() {
             closeAddPhotoModal();
           }}
           accessibilityRole="button"
+          accessibilityLabel="Choose from library"
         >
           <AppIcon name="images-outline" size={22} color={theme.colors.vintageBlueDark} />
           <Text style={styles.addPhotoRowText}>Choose from library</Text>
@@ -1559,6 +1574,7 @@ export default function DetailScreen() {
           style={({ pressed }) => [styles.addPhotoCancelWrap, pressed && styles.btnPressed]}
           onPress={closeAddPhotoModal}
           accessibilityRole="button"
+          accessibilityLabel="Cancel"
         >
           <Text style={styles.addPhotoCancelText}>Cancel</Text>
         </Pressable>
@@ -1650,17 +1666,23 @@ export default function DetailScreen() {
         animationType="none"
         onRequestClose={dismissHistorySheet}
       >
-        <Pressable style={styles.itemMenuOverlay} onPress={dismissHistorySheet}>
+        <Pressable
+          style={styles.itemMenuOverlay}
+          onPress={dismissHistorySheet}
+          accessibilityLabel="Dismiss scan history"
+          accessibilityRole="button"
+        >
           <Animated.View
+            accessibilityViewIsModal
             style={[styles.historyCard, { transform: [{ translateY: historySheetTranslateY }] }]}
           >
-            <Pressable onPress={(e) => e.stopPropagation()} style={styles.historySheetInner}>
+            <Pressable onPress={(e) => e.stopPropagation()} style={styles.historySheetInner} accessible={false}>
             {/* Drag handle, only this area triggers swipe-to-dismiss */}
             <View style={styles.historyDragArea} {...historySheetPanResponder.panHandlers}>
               <View style={styles.historyHandle} />
             </View>
             <View style={styles.historyHeaderRow}>
-              <Text style={styles.historyTitle}>Scan history</Text>
+              <Text style={styles.historyTitle} accessibilityRole="header">Scan history</Text>
               <View style={styles.insightsCountBadge}>
                 <Text style={styles.insightsCountText}>{snapshots.length} scan{snapshots.length === 1 ? '' : 's'}</Text>
               </View>
@@ -1675,6 +1697,8 @@ export default function DetailScreen() {
                     style={[styles.historyRow, isActive && styles.historyRowActive]}
                     onPress={() => switchActiveSnapshot(snapshot.id)}
                     accessibilityRole="button"
+                    accessibilityLabel={`Scan from ${formatSnapshotTime(snapshot.createdAt)}${isActive ? ', currently active' : ''}`}
+                    accessibilityState={{ selected: isActive }}
                   >
                     <View style={styles.historyRowThumb}>
                       {snapshot.sourceImageUri ? (
@@ -1720,7 +1744,12 @@ export default function DetailScreen() {
                 );
               })}
             </ScrollView>
-            <Pressable style={styles.historyCloseBtn} onPress={dismissHistorySheet}>
+            <Pressable
+              style={styles.historyCloseBtn}
+              onPress={dismissHistorySheet}
+              accessibilityRole="button"
+              accessibilityLabel="Close scan history"
+            >
               <Text style={styles.itemMenuItemTextSecondary}>Close</Text>
             </Pressable>
             </Pressable>
@@ -1737,8 +1766,11 @@ export default function DetailScreen() {
         <Pressable
           style={styles.imageFullScreenOverlay}
           onPress={() => setImageFullScreenVisible(false)}
+          accessibilityLabel="Close image"
+          accessibilityRole="button"
         >
           <Animated.View
+            accessibilityViewIsModal
             style={[
               styles.imageFullScreenSwipeWrap,
               { transform: [{ translateY: imageFullScreenTranslateY }] },
@@ -1760,6 +1792,9 @@ export default function DetailScreen() {
                   key={`${uri}-${i}`}
                   style={[styles.imageFullScreenContent, { width: screenWidth }]}
                   onPress={() => setFullscreenChromeVisible((v) => !v)}
+                  accessibilityLabel={`Photo ${i + 1} of ${photos.length}`}
+                  accessibilityHint="Double-tap to toggle controls"
+                  accessibilityRole="image"
                 >
                   <Image source={{ uri }} style={styles.imageFullScreenImg} contentFit="contain" cachePolicy="memory-disk" />
                 </Pressable>
@@ -1774,7 +1809,8 @@ export default function DetailScreen() {
               <Pressable
                 style={[styles.imageFullScreenClose, { paddingTop: insets.top + 8 }]}
                 onPress={() => setImageFullScreenVisible(false)}
-                accessibilityLabel="Close"
+                accessibilityLabel="Close image"
+                accessibilityRole="button"
               >
                 <AppIcon name="close" size={28} color={theme.colors.overlayWhiteStrong} />
               </Pressable>
@@ -1866,6 +1902,7 @@ function FieldRow({
           keyboardType={keyboardType}
           placeholder={placeholder}
           placeholderTextColor={theme.colors.mauve}
+          accessibilityLabel={label}
         />
       ) : (
         <Text style={styles.fieldValue}>{value}</Text>
