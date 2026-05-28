@@ -6,7 +6,7 @@ ThriftVault is a mobile-first thrift reselling app built with Expo + React Nativ
 
 ## Agent Safety
 
-See [SAFETY.md](SAFETY.md), never-run list, confirm-before list, and recovery playbooks. Hard enforcement in `.claude/settings.json`. The agent treats both as load-bearing.
+See [SAFETY.md](docs/SAFETY.md), never-run list, confirm-before list, and recovery playbooks. Hard enforcement in `.claude/settings.json`. The agent treats both as load-bearing.
 
 ## Tech Stack
 
@@ -254,4 +254,4 @@ interface ScanScenario {
 
 ## Post-Launch Ideas
 
-See [POST_LAUNCH.md](POST_LAUNCH.md), single source of truth for scoped todos and unscoped ideas.
+See [POST_LAUNCH.md](docs/POST_LAUNCH.md), single source of truth for scoped todos and unscoped ideas.
