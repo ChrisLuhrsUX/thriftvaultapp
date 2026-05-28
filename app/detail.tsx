@@ -485,8 +485,8 @@ export default function DetailScreen() {
           redFlagBanner: redFlagDismissed,
         }));
       }
-    } catch {
-      showToast("Couldn't rescan, try again");
+    } catch (e) {
+      showToast(e instanceof Error && e.name === 'ScanCapError' ? e.message : "Couldn't rescan, try again");
     } finally {
       setRescanningHandmade(false);
     }
@@ -554,8 +554,8 @@ export default function DetailScreen() {
       setRedFlagDismissed(false);
       AsyncStorage.removeItem(`tv_prompt_dismissed_${item.id}`);
       if (result.correction) showToast(toastForCorrection(result.correction));
-    } catch {
-      showToast("Couldn't rescan, try again");
+    } catch (e) {
+      showToast(e instanceof Error && e.name === 'ScanCapError' ? e.message : "Couldn't rescan, try again");
     } finally {
       setRescanningWrong(false);
     }
@@ -577,8 +577,8 @@ export default function DetailScreen() {
       );
       update({ scanSnapshots: updatedSnapshots });
       updateItem(item.id, { scanSnapshots: updatedSnapshots });
-    } catch {
-      showToast("Couldn't refresh, try again");
+    } catch (e) {
+      showToast(e instanceof Error && e.name === 'ScanCapError' ? e.message : "Couldn't refresh, try again");
     } finally {
       setRefreshingUpcycle(false);
     }

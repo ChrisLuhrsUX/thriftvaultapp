@@ -65,9 +65,12 @@ const SNAPSHOT_CAP = 5;
 // Failure modes the scan flow can land in. Drives the inline error card's copy +
 // icon. Kept generic on purpose; the user never needs to know which AI provider
 // or tier responded (see feedback_no_ai_provider_names memory).
-type ScanErrorKind = 'busy' | 'network' | 'unavailable' | 'parse' | 'unknown';
+type ScanErrorKind = 'busy' | 'network' | 'unavailable' | 'parse' | 'cap-reached' | 'unknown';
 
 function classifyScanError(err: unknown): ScanErrorKind {
+  if (err instanceof Error && err.name === 'ScanCapError') {
+    return 'cap-reached';
+  }
   const message = err instanceof Error ? err.message : String(err ?? '');
   if (/API\s*(429|503|529)/i.test(message) || /overloaded|high\s*demand|rate[\s-]?limit/i.test(message)) {
     return 'busy';
@@ -87,7 +90,7 @@ function classifyScanError(err: unknown): ScanErrorKind {
 interface ScanErrorCopy {
   title: string;
   body: string;
-  icon: 'alert-circle-outline' | 'cloud-offline-outline' | 'time-outline' | 'eye-off-outline';
+  icon: 'alert-circle-outline' | 'cloud-offline-outline' | 'time-outline' | 'eye-off-outline' | 'hourglass-outline';
 }
 
 function getScanErrorCopy(kind: ScanErrorKind): ScanErrorCopy {
@@ -115,6 +118,12 @@ function getScanErrorCopy(kind: ScanErrorKind): ScanErrorCopy {
         title: "Couldn't read this item",
         body: 'Try a clearer photo or add another angle.',
         icon: 'eye-off-outline',
+      };
+    case 'cap-reached':
+      return {
+        title: 'Daily scan limit reached',
+        body: "You've hit today's 100-scan limit. Resets at midnight.",
+        icon: 'hourglass-outline',
       };
     default:
       return {
@@ -553,7 +562,7 @@ function ScanResultCard({
           <Pressable
             style={styles.upcycleHeader}
             onPress={() => setUpcycleExpanded((v) => !v)}
-            hitSlop={4}
+            hitSlop={12}
             accessibilityLabel="Upcycle ideas"
             accessibilityRole="button"
             accessibilityState={{ expanded: upcycleExpanded }}
@@ -572,13 +581,15 @@ function ScanResultCard({
             />
           </Pressable>
           {upcycleExpanded && (
-            <View style={styles.upcycleRows}>
-              {scenario.upcycle.map((tip, i) => (
-                <View key={i} style={styles.upcycleRow}>
-                  <View style={styles.upcycleDot} />
-                  <Text style={styles.upcycleText} selectable>{tip}</Text>
-                </View>
-              ))}
+            <>
+              <View style={styles.upcycleRows}>
+                {scenario.upcycle.map((tip, i) => (
+                  <View key={i} style={styles.upcycleRow}>
+                    <View style={styles.upcycleDot} />
+                    <Text style={styles.upcycleText} selectable>{tip}</Text>
+                  </View>
+                ))}
+              </View>
               <Pressable
                 onPress={onRefreshUpcycle}
                 disabled={refreshingUpcycle}
@@ -595,7 +606,7 @@ function ScanResultCard({
                   {refreshingUpcycle ? 'Regenerating...' : 'Regenerate ideas'}
                 </Text>
               </Pressable>
-            </View>
+            </>
           )}
         </View>
       )}
@@ -774,15 +785,15 @@ function createScanStyles(theme: Theme, formMaxWidth?: number) {
       color: theme.colors.profit,
       marginTop: 4,
     },
-    upcycleSection: {},
+    upcycleSection: {
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.surfaceVariant,
+      paddingVertical: theme.spacing.sm,
+    },
     upcycleHeader: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      borderTopWidth: 1,
-      borderTopColor: theme.colors.surfaceVariant,
-      paddingVertical: theme.spacing.sm,
-      minHeight: theme.minTouchTargetSize,
     },
     upcycleHeaderText: {
       ...theme.typography.caption,
@@ -2001,7 +2012,8 @@ export default function ScanScreen() {
       setActiveSessionSnapshotId(snap.id);
     } catch (err) {
       if (__DEV__) console.log('[Handmade rescan] error:', err);
-      showToast(isOverloadError(err) ? 'AI is busy, try again in a moment' : "Couldn't rescan, try again");
+      const capHit = err instanceof Error && err.name === 'ScanCapError';
+      showToast(capHit ? (err as Error).message : isOverloadError(err) ? 'AI is busy, try again in a moment' : "Couldn't rescan, try again");
     } finally {
       setRescanningHandmade(false);
     }
@@ -2029,7 +2041,8 @@ export default function ScanScreen() {
       if (updated.correction) showToast(toastForCorrection(updated.correction));
     } catch (err) {
       if (__DEV__) console.log('[Wrong rescan] error:', err);
-      showToast(isOverloadError(err) ? 'AI is busy, try again in a moment' : "Couldn't rescan, try again");
+      const capHit = err instanceof Error && err.name === 'ScanCapError';
+      showToast(capHit ? (err as Error).message : isOverloadError(err) ? 'AI is busy, try again in a moment' : "Couldn't rescan, try again");
     } finally {
       setRescanningWrong(false);
     }
@@ -2045,8 +2058,8 @@ export default function ScanScreen() {
         result ? { name: result.name, category: result.category, sub: result.sub } : undefined
       );
       setResult((prev) => prev ? { ...prev, upcycle: newUpcycle } : null);
-    } catch {
-      showToast("Couldn't refresh, try again");
+    } catch (err) {
+      showToast(err instanceof Error && err.name === 'ScanCapError' ? err.message : "Couldn't refresh, try again");
     } finally {
       setRefreshingUpcycle(false);
     }

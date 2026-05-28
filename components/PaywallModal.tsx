@@ -136,7 +136,7 @@ export function PaywallModal({ visible, onClose }: PaywallModalProps) {
     setPurchasing(false);
     if (result.success) {
       dismiss();
-      showToast(`Welcome to ThriftVault Pro!`);
+      if (!result.alreadyActive) showToast(`Welcome to ThriftVault Pro!`);
     } else if (result.error) {
       showToast(result.error);
     }

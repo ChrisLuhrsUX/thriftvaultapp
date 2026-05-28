@@ -1,6 +1,7 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import { ITEM_CATEGORIES, type ItemCategory, type ScanScenario } from '@/types/inventory';
 import { formatMoney, roundDisplayPrice } from '@/utils/currency';
+import { checkScanCap, incrementTodayScanCount } from '@/utils/scanCap';
 
 const GEMINI_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY ?? '';
 const ANTHROPIC_KEY = process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY ?? '';
@@ -283,7 +284,7 @@ When WIP is confirmed:
 
 Guidelines:
 - category: use "bottoms" for pants, leggings, joggers, athletic bottoms, shorts (non-denim); "denim" for jeans; "outerwear" for jackets and coats; "tops" for shirts, sweatshirts worn as tops, hoodies when not outerwear
-- category "furniture": use for actual furniture, chairs, sofas/sectionals/loveseats, tables of all forms (coffee, end/side, nightstand, console/sofa, dining, counter-height, bar-height), desks, dressers/cabinets/bookshelves/sideboards/credenzas/armoires, bed frames/headboards, outdoor patio furniture, and modern multi-function record-player cabinets. In the "name" field include the specific subtype with the exact form word (e.g. "Vintage Walnut Credenza", "MCM-Style Dining Chair", "MCM-Style Walnut Coffee Table", "Vintage Oak Dining Table Seating 6"). TABLES SPECIFICALLY: route by visible HEIGHT + SURFACE proportions + ROOM CONTEXT before naming; see TABLE TYPE DISAMBIGUATION inside FURNITURE PRICING. Do NOT default to "dining table" when the type is ambiguous; coffee, end, side, console, and nightstand are far more common at thrift and price 5–10x lower.
+- category "furniture": use for actual furniture, chairs of all forms (dining, lounge/armchair, accent, slipper, wingback, club/Chesterfield, recliner, office/task, bar/counter stool, rocker, folding/director/butterfly, stackable/Bertoia/Emeco, bench), sofas/sectionals/loveseats, tables of all forms (coffee, end/side, nightstand, console/sofa, dining, counter-height, bar-height), desks of all forms (writing, computer, executive, partner's, roll-top, secretary, drafting, standing, vanity, trestle), dressers/cabinets/bookshelves/sideboards/credenzas/armoires, bed frames/headboards, outdoor patio furniture, and modern multi-function record-player cabinets. In the "name" field include the specific subtype with the exact form word (e.g. "Vintage Walnut Credenza", "MCM-Style Dining Chair", "MCM-Style Walnut Coffee Table", "Vintage Oak Dining Table Seating 6", "Herman Miller Aeron Remastered Size B", "Eames Lounge Replica with Ottoman", "Antique Oak Roll-Top Desk", "IKEA BEKANT Standing Desk"). TABLES SPECIFICALLY: route by visible HEIGHT + SURFACE proportions + ROOM CONTEXT before naming; see TABLE TYPE DISAMBIGUATION inside FURNITURE PRICING. Do NOT default to "dining table" when the type is ambiguous; coffee, end, side, console, and nightstand are far more common at thrift and price 5–10x lower. CHAIRS SPECIFICALLY: apply THREE BINARY TELLS first (wheels + gas-lift = office, visible recline mechanism = recliner, curved runners = rocker) before form-by-dimensions; see CHAIR TYPE DISAMBIGUATION inside FURNITURE PRICING. Do NOT default to "lounge chair" when ambiguous; accent and dining are more common and price 10x+ lower. DESKS SPECIFICALLY: apply BINARY TELLS first (tambour curtain = roll-top, drop-front + hutch = secretary, angled top = drafting, adjustable-height base = standing, keyboard tray / monitor cutout = computer, mirror frame = vanity) before form-by-dimensions; see DESK TYPE DISAMBIGUATION inside FURNITURE PRICING. Do NOT default to "executive desk" when ambiguous; writing and computer are far more common at thrift.
 - category "homewares": use for lighting (lamps, sconces, chandeliers), mirrors, rugs, ceramics and pottery (vases, sculpture, dinnerware, tableware, figurines, mugs, bowls, plates, studio pottery), glass and glassware (art glass, Murano, Tiffany, Loetz, Daum, drinkware, vessels), small antique metals (silver flatware, sterling, coin silver, pewter, brass, copper, bronze candleholders), clocks (mantel, wall, longcase, cuckoo, carriage), and other small decorative objects. In the "name" field include the specific subtype (e.g. "Vintage Brass Floor Lamp", "Persian Wool Rug", "Signed Studio Pottery Vessel", "Sterling Silver Flatware Set", "Antique Mantel Clock").
 - category "accessories": use for jewelry, belts, hats, sunglasses, scarves, gloves, AND watches (wristwatch / pocket watch / smart-watch). For watches specifically, in the "name" field include silhouette / case material / complication subtype (e.g. "Gold-Tone Chronograph with Moon Phase", "Stainless Steel Diver", "Vintage Day-Date", "Two-Tone Quartz with Date Cyclops").
 - BRAND IN NAME, HARD RULE: Only include a brand word in "name" if you can see an actual LOGO, WORDMARK, PRINTED TAG, EMBROIDERED LABEL, WOVEN LABEL, or STAMPED HARDWARE bearing that brand's text or recognized logomark, and it is legible enough to read. You must be able to point to the specific region of the photo where the brand marking appears. DO NOT infer brand from silhouette, cut, aesthetic, era, embellishment pattern, stitching style, fabric weight, hardware style, or resemblance to brands known for a similar look. Inference from aesthetic is a guess, not identification.
@@ -477,7 +478,7 @@ Guidelines:
       Mass-market particleboard (IKEA, Wayfair budget, Target Threshold, dorm-tier): $15–$80. Larger dressers/wardrobes top out $80–$120 only when assembled and undamaged.
       Modern contemporary (West Elm, CB2, Crate & Barrel, Pottery Barn, Article, Joybird): chairs $80–$400, sofas $200–$800, dining tables $150–$600, storage $150–$500. NWT or like-new commands top of range; heavy use drops 50%.
       Premium contemporary (Restoration Hardware, Room & Board, Design Within Reach, Blu Dot): $200–$1500. RH leather/linen sofas $400–$2000+ used.
-      MCM authenticated (Eames, Knoll, Herman Miller, Hans Wegner, Eero Saarinen, George Nakashima, Arne Jacobsen, Marcel Breuer, Le Corbusier, Mies van der Rohe, George Nelson, Florence Knoll, Cassina, Vitra, B&B Italia, Poltrona Frau): $500–$8000+. Eames Lounge Chair authenticated $2500–$8000; Saarinen Tulip Side Table $400–$1200, Tulip 36"-round Coffee variant $800–$1800, Tulip Dining $1500–$3500; Wegner Wishbone $400–$1200; Barcelona Chair (Knoll/Cassina) $800–$3500; Eames Shell Chair $200–$700; Nelson Bench $400–$2000.
+      MCM authenticated (Eames, Knoll, Herman Miller, Hans Wegner, Eero Saarinen, George Nakashima, Arne Jacobsen, Marcel Breuer, Le Corbusier, Mies van der Rohe, George Nelson, Florence Knoll, Cassina, Vitra, B&B Italia, Poltrona Frau, Fritz Hansen, Steelcase, Emeco): $500–$8000+. Eames Lounge Chair + Ottoman authenticated $2500–$8000; Saarinen Tulip Side Table $400–$1200, Tulip 36"-round Coffee variant $800–$1800, Tulip Dining $1500–$3500, Tulip Chair $400–$900/each; Wegner Wishbone $400–$1200/each; Wegner Papa Bear $3000–$8000; Wegner PK22 $1500–$4000; Knoll Womb Chair $1500–$4000; Jacobsen Egg Chair $2500–$8000; Jacobsen Swan Chair $1500–$4000; Jacobsen Series 7 $200–$500/each; Eames DSW/DSR/DCM $200–$500/each; Eames Soft Pad / Aluminum Group Management Chair $600–$2500; Pollock Executive Chair (Knoll) $300–$1500; Bertoia Side Chair (Knoll) $300–$700/each; Emeco 1006 Navy Chair $400–$900/each; Barcelona Chair (Knoll/Cassina) $800–$3500; Eames Shell Chair $200–$700; Nelson Bench $400–$2000. Modern ergonomic office (separate buyer pool, anchor eBay + Facebook Marketplace + Craigslist + OfferUp, NOT Chairish/1stDibs): Herman Miller Aeron Classic pre-2016 $300–$700, Aeron Remastered 2016+ with PostureFit SL and 8Z Pellicle $500–$1400 (Size B is the comp pool; A and C trail 15–25%); Herman Miller Embody $400–$1500; Vitra Cosm $400–$1500; Steelcase Leap V2 $150–$400; Steelcase Gesture $250–$500. Madison Seating and Crandall Office Furniture serve as ceiling references (refurbished resellers), not buyer marketplaces. Office chairs do NOT have an unattributed MCM-style tier; without a visible HM/Steelcase/Vitra label they route to mass-market task chair ($20–$100), see CHAIR TYPE DISAMBIGUATION below.
       Vintage Danish/Scandinavian Modern unbranded (teak/walnut/rosewood, sleek tapered legs, dovetail joints): credenza/sideboard $300–$1500, dining chair set of 4 $300–$1200, dining table $200–$900, lounge chair $200–$700.
       Vintage American mid-tier (Heywood-Wakefield, Drexel, Lane, Henredon, Baker, Thomasville, Ethan Allen, Stickley, Broyhill Brasilia, Kent Coffey, American of Martinsville): chairs/tables $100–$800, case goods $200–$2000. Stickley Mission and Broyhill Brasilia spike toward upper band.
       Hollywood Regency / Postmodern 70s–80s (Memphis Group, Karl Springer, Milo Baughman, Gabriella Crespi, Vladimir Kagan, Pierre Cardin): $400–$3000+ (Q2 2026 spike, Memphis revival especially). Lacquer, brass, lucite, mirrored surfaces are tells.
@@ -509,7 +510,7 @@ Guidelines:
 
     CONDITION REPORTING, HARD RULE: The description (sub field) MUST name every visible defect when wear is present in the cover photo. Visible defects include but are not limited to: chipped edges, finish loss / worn finish, scratches, dents, gouges, water rings or stains, sun fade, paint loss, missing veneer, drawer sag, loose joints, cracked surface, missing hardware, rust on metal hardware. "Good condition" may ONLY be used when zero defects are visible in the cover photo. When any wear is visible, default to "used" and name the specific defect with location (top right edge, drawer front, leg base, etc.). Pricing must reflect the visible condition; do not anchor to the tier mid-range and then verbally describe defects, drop to the lower portion of the tier or the next tier down when defects are visible.
 
-    SIZE PENALTY: large items (sofas, sectionals, dining tables ≥60" or seating 6+, beds, full-size dressers, armoires) -30% vs comparable smaller piece because the buyer pool is local-pickup-only on Facebook Marketplace/Craigslist/OfferUp. Small shippable items (lamps, mirrors under 36", end/side tables, coffee tables under 60" long, console tables under 48" long, nightstands, decor under 30 lbs) command full price because they list nationally on eBay/Etsy.
+    SIZE PENALTY: large items (sofas, sectionals, dining tables ≥60" or seating 6+, beds, full-size dressers, armoires, dining chair sets of 4+ shipped together, recliners and lounges 40+ lbs, rocking chairs 30+ lbs) -30% vs comparable smaller piece because the buyer pool is local-pickup-only on Facebook Marketplace/Craigslist/OfferUp. Small shippable items (lamps, mirrors under 36", end/side tables, coffee tables under 60" long, console tables under 48" long, nightstands, single dining chairs and accent chairs, office chairs shipped disassembled in original box, bar/counter stools sold individually, decor under 30 lbs) command full price because they list nationally on eBay/Etsy.
 
     FURNITURE COMPARTMENT NAMING, HARD RULE: When the piece has compartments, name each by type AND position. Compartment types: drawer = closed pull-out with hardware (knob, handle, pull); shelf = open horizontal surface with no door or front panel; cubby = open recessed compartment, three walls + floor, no front panel; magazine rack / open slot = open angled or vertical slot designed for magazines, newspapers, or storage of slim objects, often with a slanted side; door cabinet = compartment enclosed by a hinged door. Position: top, middle, bottom, or left/right for side-by-side. Do not lump multiple compartments under a single label. Example correct: "End Table with Magazine Rack Slot, Open Middle Shelf, and Bottom Drawer". Example incorrect: "End Table with Drawer and Shelf" (omits the magazine rack slot and the position of each compartment).
 
@@ -543,14 +544,126 @@ Guidelines:
 
       ROUTING RULES inside this HARD RULE:
         • Surface-area disambiguator for COFFEE vs SIDE (when no sofa or seating context is visible): long axis ≥36" → coffee; long axis <30" → side/end; in between → side/end with confidence: low. Surface area is the workable signal when context is absent.
+        • Leg-proportion heuristic (use when absolute height in inches is unreadable from the photo): visually measure the LEG LENGTH (top of leg or apron base down to the floor) as a fraction of TOTAL table height (top surface to floor). Legs <50% of total height → coffee or low table; legs 50–65% → side / end / accent / nightstand; legs >70% → dining, console, counter, or bar. A short turned-leg profile with a stretcher rail near the floor is coffee-table proportions regardless of surface area, brand stamp, or aesthetic styling. Aprons and skirts under the tabletop count as part of the tabletop assembly, not the leg, for this ratio.
+        • Drop-leaf / gateleg / Pembroke / butterfly-leaf rule: when the table has hinged drop leaves, gateleg hinged supports, or any folding-extension hardware, IGNORE leaves-up surface area as a routing signal. Surface area for drop-leaf tables varies 2–3x between leaves-down and leaves-up positions, so a leaves-up oval at 48–60" long does NOT route to dining. Route purely by HEIGHT + LEG PROPORTIONS. Most thrift-floor drop-leaf finds are coffee, side, or accent tables (Ethan Allen Heirloom, Lane Country French, Pennsylvania House Old Tavern coffee-height drop-leafs are extremely common at thrift); true drop-leaf dining tables (Pembroke gateleg dining, Shaker harvest gateleg, Hepplewhite tilt-top dining) exist but are rarer and have full 28–30" dining-height legs.
         • Dining-evidence override (POSITIVE-evidence guard against the lower-band default regressing legit dining tables): visible chairs around the table, place settings, dining-room context (chandelier overhead, china cabinet behind, sideboard adjacent) → DINING regardless of height ambiguity. Chairs + place settings beat dimensional uncertainty.
         • Round-table rule: round table at 28–30" height WITH chairs around it → dining (cafe-table style); round ≤36" diameter WITHOUT chairs → accent/side, lower band.
+        • Brand-association guard: vintage American mid-tier brands (Ethan Allen, Bassett, Lane, Drexel, Pennsylvania House, Broyhill, Kincaid, Henkel Harris, Bob Timberlake, Hooker, American of Martinsville, Cushman, L. Hitchcock) all produced COFFEE, SIDE, AND DINING tables in the same Country / Heirloom / Old Tavern / Colonial / Shaker aesthetic. The brand stamp alone is NOT a routing signal between coffee, side, and dining; apply HEIGHT + LEG PROPORTION + ROOM CONTEXT before letting brand bias push toward dining. The same is true for early American oak/pine reproductions (Workbench, This End Up, Yield House) and any Country French brand (Habersham, Guy Chaddock).
         • Ambiguity default: when no contextual evidence resolves the type, default to the LOWER band (side/end $15–$50 or coffee $40–$200) and set confidence: low. Do NOT default upward to dining.
         • MCM-style unattributed cap mirror: when the table is "MCM-style" unattributed (no visible Knoll/Eames/Saarinen label), the coffee-table MCM tier respects the existing MCM ATTRIBUTION HARD RULE below: $300 unrestored / $450 with full refurb premium. The $400–$3000+ MCM authenticated coffee band applies ONLY when a visible maker label/stamp/sticker is present.
 
       WORKED EXAMPLE A (coffee correctly classified): a 48" wide × 18" tall walnut rectangle with hairpin legs photographed in front of a sofa is a coffee table, NOT a dining table, even when no maker is visible. "name": "MCM-Style Walnut Coffee Table with Hairpin Legs". Route to the MCM-style unattributed cap ($80–$300 unrestored / $450 with full refurb), NOT Modern contemporary dining ($150–$600). The 18" height and sofa-adjacent context are the routing signals.
 
       WORKED EXAMPLE B (dining correctly classified): a 60" round walnut pedestal table photographed with four chairs around it is a dining table, NOT a coffee or accent table, even when no maker is visible. "name": "Vintage Walnut Pedestal Dining Table Seating 4". Route to Modern contemporary dining ($150–$600) or Vintage American mid-tier ($100–$800) depending on visible age signals. The chairs and 28–30" height are the dining signals; do NOT let the round form regress this to accent-table tier.
+
+    CHAIR TYPE DISAMBIGUATION, HARD RULE: when the item is a chair, apply THREE BINARY TELLS FIRST, then route by form-by-dimensions. Chairs of different forms span 800x price differences (mass-market plastic dining $5 vs authenticated Wegner Papa Bear $4000+), so misclassification is the most expensive failure mode in this category after tables. Do NOT default to "lounge chair" when the type is ambiguous; default to the lower band (accent or dining) with confidence: low. All bands anchor to the FURNITURE PRICING platforms named at the top of FURNITURE PRICING (Facebook Marketplace, Chairish, 1stDibs, Craigslist, eBay, AptDeco) plus OfferUp for casual local. No invented platforms.
+
+      THREE BINARY TELLS (resolve before measurements):
+        • Wheels + gas-lift cylinder = office/task chair, always (regardless of styling resemblance to MCM silhouettes; a mesh-back chair with curves is still office, not "MCM-style accent").
+        • Visible recline mechanism (side lever, footrest extension, electric button) = recliner, always. NO mechanism plus a paired ottoman = lounge, NOT recliner (the Eames Lounge + Ottoman pairing is the canonical confusion).
+        • Curved runners on the floor = rocker, always (regardless of arm style or upholstery).
+
+      Dining chair: total height 33–36", seat height 17–19" (BIFMA standard), no arms or low arms, sold in sets.
+        • Mass-market $5–$30 each. Anchor OfferUp + Craigslist + Facebook Marketplace.
+        • West Elm / CB2 / Crate & Barrel contemporary $40–$120 each. Anchor Facebook Marketplace + AptDeco.
+        • Vintage Danish unbranded $40–$150 each ($300–$1200 set of 4). Anchor Chairish + Facebook Marketplace.
+        • Authenticated MCM dining $300–$900 each: Wegner Wishbone $400–$1200, Saarinen Tulip Chair $400–$900, Jacobsen Series 7 $200–$500, Eames DSW / DSR / DCM $200–$500. Anchor Chairish + 1stDibs + eBay.
+        • Set discount: singletons command 30–50% per-chair premium over set price (singletons fill the "need a matching extra" niche). Sets of 6 drop another 10–15% per chair vs sets of 4 (smaller buyer pool).
+
+      Lounge chair / armchair: total height 30–36", seat 16–19" (Eames Lounge 15", Wegner Papa Bear ~16", modern oversized lounges 18–19"), deep seat 22–28", arms, often paired with ottoman.
+        • Mass-market $50–$150. Anchor OfferUp + Facebook Marketplace.
+        • Contemporary $200–$700. Anchor Facebook Marketplace + AptDeco.
+        • MCM unattributed $80–$300 unrestored / $450 refurb (per the MCM ATTRIBUTION HARD RULE below). Anchor Facebook Marketplace + Chairish.
+        • EAMES LOUNGE REPLICA CARVE-OUT: $200–$600 unrestored / $700 with full refurb. This silhouette is the single exception to the unattributed MCM cap because the form itself signals premium; modern replicas (Manhattan Home Design, Rove Concepts, Mecor) resell $300–$700 on Facebook Marketplace and $400–$900 on eBay used. Apply ONLY when the silhouette matches Eames Lounge + Ottoman; do not extend the carve-out to other lounge silhouettes.
+        • MCM authenticated $1500–$8000+: Eames Lounge, Wegner Papa Bear $3000–$8000, Knoll Womb $1500–$4000, Jacobsen Egg $2500–$8000, Jacobsen Swan $1500–$4000, Wegner PK22 $1500–$4000. Anchor Chairish + 1stDibs.
+
+      Accent chair / occasional chair: single statement piece, less volume than lounge, seat 17–19".
+        • Mass-market $40–$150. Anchor OfferUp + Facebook Marketplace.
+        • Contemporary $100–$400. Anchor Facebook Marketplace + AptDeco.
+        • Vintage $80–$300. Anchor Chairish + Facebook Marketplace.
+
+      Slipper chair: armless, low seat 15–17", bedroom or sitting-room context. $40–$200. Armless alone is not enough to route here; bedroom or sitting-room context plus low seat is the routing signal.
+
+      Wingback: tall back with wings, traditional silhouette. Generic $80–$400; antique $200–$800. Anchor Facebook Marketplace + eBay + Chairish.
+
+      Club chair / Chesterfield: leather, deep, often tufted. Generic $100–$500; vintage $200–$1000. Anchor Chairish + Facebook Marketplace.
+
+      Recliner: seat 18–20", total back 38–44", visible mechanism (binary tell above). Mass-market La-Z-Boy $50–$200; premium (Stressless, modern leather) $200–$800. Anchor Facebook Marketplace + Craigslist + OfferUp (local-pickup-only; 70+ lbs).
+
+      Office / task chair: wheels + gas-lift (binary tell above). No MCM-style unattributed tier exists for office chairs: either the brand label is visible (Herman Miller, Steelcase, Vitra) and routes to the named tier, or it isn't and routes to mass-market $20–$100. Do NOT invent an "MCM-style office chair" $200–$400 band when you see a mesh-back chair with curves.
+        • Mass-market $20–$100. Anchor OfferUp + Craigslist + Facebook Marketplace.
+        • Steelcase Leap V2 $150–$400; Steelcase Gesture $250–$500. Anchor eBay + Facebook Marketplace.
+        • Herman Miller Aeron Classic (pre-2016) $300–$700; Aeron Remastered (2016+ with PostureFit SL, 8Z Pellicle) $500–$1400. Size B is the comp pool; Size A and Size C trail 15–25%. Anchor eBay + Facebook Marketplace + Craigslist + OfferUp. Madison Seating and Crandall Office Furniture serve as ceiling references (refurbished resellers), not buyer marketplaces.
+        • Herman Miller Embody / Vitra Cosm $400–$1500. Anchor eBay + Facebook Marketplace.
+        • Pollock Executive Chair (MCM-office hybrid, Knoll) $300–$1500. Anchor 1stDibs + Chairish + eBay.
+        • Eames Soft Pad / Aluminum Group Management Chair $600–$2500. Anchor 1stDibs + eBay + Chairish.
+
+      Bar stool: seat 28–30" (for 40–42" bar), footrest ring, often backless or low-back.
+        • Mass-market $30–$150 each. Anchor OfferUp + Facebook Marketplace.
+        • MCM authenticated $400–$800 each (Wegner CH56/CH58 counter stools, Saarinen Tulip stool). Anchor Chairish + 1stDibs + eBay.
+
+      Counter stool: seat 24–26" (for 34–36" counter). Mass-market $40–$150 each. MCM authenticated $400–$800 each. Same platforms as bar stool.
+
+      Rocking chair: curved runners (binary tell above). Generic $50–$200; Boston Rocker $80–$300; Bentwood Thonet vintage $150–$600. Anchor Facebook Marketplace + Chairish + eBay.
+
+      Folding / director / butterfly / saucer chair: collapsible or sling-style, catch-all for chairs that do not fit other forms. $20–$80. Anchor OfferUp + Facebook Marketplace.
+
+      Stackable / Navy / Tolix-style chair: Bertoia Side Chair (Knoll) authenticated $300–$700 each; Emeco 1006 Navy Chair authenticated $400–$900 each; Tolix-style cafe chairs $40–$120 each. Anchor Chairish + 1stDibs + eBay.
+
+      Bench (seating with no back, 36–72" long): route by brand/era same as chairs. Nelson Bench authenticated $400–$2000 (existing line 480); unattributed MCM bench $80–$300 / $450 refurb; vintage solid-wood bench $40–$200; mass-market entry bench $20–$80. Piano bench, storage bench, and entry bench all share this routing.
+
+      ROUTING RULES inside this HARD RULE:
+        • Office-chair binary lock: wheels + gas-lift → office tier regardless of styling resemblance to MCM silhouettes.
+        • Lounge vs recliner: visible mechanism (lever, footrest extension, electric button) = recliner. Lounge + ottoman is NOT a recliner; Eames Lounge has no mechanism.
+        • Slipper vs accent: armless + low (≤17" seat) + bedroom or sitting-room context = slipper. Armless alone is not enough.
+        • Singleton vs set: dining chairs photographed alone command 30–50% per-chair premium over set price. Sets of 6 drop 10–15% per chair vs sets of 4.
+        • Ambiguity default: when no contextual evidence resolves the form, default to the LOWER band (accent $80–$300 or dining $40–$150) and set confidence: low. Do NOT default upward to lounge.
+        • MCM-style unattributed cap mirror: same as the table block above. Caps at $80–$300 / $450 refurb per the MCM ATTRIBUTION HARD RULE below. SINGLE EXCEPTION: Eames Lounge replica carve-out ($200–$600 / $700 refurb), called out under Lounge chair above.
+
+      AERON AUTHENTICATION mini-rule: to route a chair to the Aeron tier ($300–$1400), the photo MUST show at least one of: visible Herman Miller logo on the base under the seat; "Aeron" stamp on the lumbar yoke; PostureFit SL adjuster (Remastered indicator); 8Z Pellicle mesh pattern on the seat/back. Without these tells, route to mid-tier task chair ($80–$200); mesh-back styling alone is the most replicated detail in office chair knockoffs (Amazon and Wayfair "Aeron-style" chairs sell $80–$200 new).
+
+      EAMES LOUNGE AUTHENTICATION mini-rule: to route to authenticated Eames Lounge ($2500–$8000), the photo MUST show a Herman Miller foil sticker under the seat or inside the shell AND a 5-prong base in rosewood, walnut, or santos palisander. Knockoffs use 4-prong bases and plastic-veneer shells. Without the HM sticker plus 5-prong base, treat as MCM-style replica ($200–$600 unrestored / $700 refurb per the Eames Lounge replica carve-out above).
+
+      WORKED EXAMPLE A (office, not accent): a mesh-back chair with wheels and a gas-lift cylinder is an office/task chair, NOT an MCM-style accent, even when the curves resemble Bertoia or Saarinen. The wheels + gas-lift binary tell wins. If no HM/Steelcase/Vitra logo is visible, route to mass-market task chair ($20–$100), NOT unattributed MCM ($80–$300).
+
+      WORKED EXAMPLE B (lounge, not recliner): a leather chair with an attached or paired ottoman, NO visible recline mechanism, deep 24"+ seat depth is a lounge chair, NOT a recliner. The Eames Lounge + Ottoman pairing is the canonical confusion. Without HM sticker plus 5-prong base, route to MCM-style replica ($200–$600 / $700 refurb per the Eames Lounge carve-out).
+
+      WORKED EXAMPLE C (slipper, not accent): an armless chair with a low 16" seat photographed in a bedroom is a slipper chair ($40–$200), NOT an accent chair ($80–$300). Bedroom context plus low seat are the routing signals; armless alone is not enough.
+
+      WORKED EXAMPLE D (rocker, not lounge): a chair with visible curved runners on the floor is a rocking chair regardless of arm style or upholstery. The runners are the binary tell. Generic rocker $50–$200; Boston Rocker style $80–$300; Bentwood Thonet vintage $150–$600.
+
+    DESK TYPE DISAMBIGUATION, HARD RULE: when the item is a desk, apply BINARY TELLS FIRST, then route by form-by-dimensions. Desk forms span ~80x price differences (IKEA LINNMON $25 vs Stickley executive $2000+). Brand stamp alone is NOT a routing signal between desk forms; Ethan Allen, Stickley, Drexel, Henkel Harris, Pennsylvania House, Bassett, Bob Timberlake all produced WRITING, COMPUTER, EXECUTIVE, SECRETARY, and ROLL-TOP variants in the same aesthetic. All bands anchor to the FURNITURE PRICING platforms named at the top of FURNITURE PRICING (Facebook Marketplace, Chairish, 1stDibs, Craigslist, eBay, AptDeco) plus OfferUp for casual local. No invented platforms.
+
+      BINARY TELLS (resolve before measurements):
+        • Tambour curtain top (wooden roll-down slat cover) = roll-top desk, always.
+        • Drop-front hinged writing surface above a chest of drawers with hutch shelves above = secretary desk, always.
+        • Adjustable-angle work surface (tilts via lever or geared mechanism) = drafting table, always.
+        • Adjustable-height crank or electric motor base = standing desk, always.
+        • Visible keyboard tray cutout, monitor cutout, or cable grommets on the work surface = computer desk regardless of how vintage-looking the cabinet styling reads.
+        • Mirror frame mounted above the tabletop = vanity desk, NOT writing desk.
+
+      Writing desk: slim profile 24–30" deep, 36–48" wide, 0–1 drawer, no keyboard tray. Mass-market $30–$120; modern contemporary $150–$400; vintage solid wood $80–$300; antique $200–$700. Anchor Facebook Marketplace + AptDeco + eBay.
+      Computer desk: keyboard tray / monitor cutout / cable grommets, often particleboard with printed wood-grain veneer. Mass-market $20–$80; modern contemporary $80–$200. Anchor OfferUp + Craigslist + Facebook Marketplace.
+      Executive desk: 60–72" wide, single-pedestal or double-pedestal (drawer columns on each side), formal styling. Mass-market $80–$200; premium contemporary $200–$600; vintage solid wood $200–$1200; Stickley Mission / Henkel Harris / Drexel authenticated $400–$2000. Anchor Facebook Marketplace + Chairish + 1stDibs.
+      Partner's desk: drawers and finished surface on BOTH sides (two people face each other). $600–$3000. Distinguishing tell: no "back" side. Anchor Chairish + 1stDibs.
+      Roll-top desk: tambour curtain (binary tell above). Modern repro $80–$300; antique 1900s–1920s (Cutler, Hoover, Indiana Desk Co, Standard Furniture) $400–$1500; signed grail-tier $800–$3000. Anchor Chairish + 1stDibs + eBay.
+      Secretary desk: drop-front + hutch (binary tell above). Vintage $150–$600; antique Federal / Queen Anne / Sheraton / Chippendale $300–$1500; signed Wallace Nutting / Margolis $500–$2500. Anchor Chairish + 1stDibs + eBay.
+      Drafting table: angled top (binary tell above). Vintage industrial (Hamilton, Mayline, Stacor) $80–$400; modern (Studio Designs, Mont Martre) $60–$200; antique architect's drafting $300–$800. Anchor Facebook Marketplace + eBay.
+      Standing desk: adjustable height (binary tell above). Mass-market IKEA BEKANT $80–$200; mid-tier Uplift V2 / Fully Jarvis used $200–$500; premium Herman Miller / Vari / Steelcase Migration $400–$1500. Anchor eBay + Facebook Marketplace + Craigslist.
+      Vanity desk: mirror frame (binary tell above). Small bedroom/dressing scale. $60–$300; vintage Hollywood Regency $200–$800. Anchor Facebook Marketplace + Etsy + Chairish.
+      Trestle desk: flat top on X-base or sawhorse base, no drawers underneath, modern or industrial. $80–$400; designer (Florence Knoll, Hay) $400–$1500. Anchor Facebook Marketplace + Chairish.
+      MCM authenticated desks (named-designer tier, require visible maker label per MCM ATTRIBUTION HARD RULE below): Nakashima Conoid $2000–$8000; Florence Knoll Executive Desk $800–$2500; George Nelson Executive Office Group $600–$2500; Eames Aluminum Group desk variant $600–$2500; Jens Risom $400–$1500. Without a visible label, route to unattributed MCM-style desk cap ($80–$300 / $450 refurb).
+
+      ROUTING RULES inside this HARD RULE:
+        • Computer-desk binary lock: visible keyboard tray cutout, monitor cutout, or cable grommets → computer desk regardless of cabinet styling. Printed wood-grain veneer over particleboard reinforces this.
+        • Form-not-brand: brand stamp alone is NOT a routing signal between desk forms (Ethan Allen / Stickley / Drexel / Henkel Harris / Pennsylvania House / Bassett produced every desk form). Apply binary tells + dimensions + leg/base proportions before letting brand bias push toward executive.
+        • Leg-proportion heuristic carries over from TABLE TYPE DISAMBIGUATION: a desk with legs <50% of total height is unusual; most desks have legs 65–80% of total height (the work surface needs to clear knees). A "desk" with sub-50% leg-to-total ratio is more likely a console or accent table mislabeled.
+        • Ambiguity default: when no binary tell fires and dimensions are ambiguous, default to writing desk (lower band $80–$300) with confidence: low. Do NOT default upward to executive.
+        • MCM-style unattributed cap mirror: route to $80–$300 unrestored / $450 refurb per the MCM ATTRIBUTION HARD RULE below, NOT the authenticated band.
+
+      WORKED EXAMPLE A (computer, not writing): a wood-grain desk with a slide-out keyboard tray and a square monitor cutout in the work surface is a computer desk regardless of how "vintage-looking" the cabinet styling reads. The keyboard tray and monitor cutout are binary tells. Route to mass-market $20–$80 (printed-veneer particleboard) or modern contemporary $80–$200.
+
+      WORKED EXAMPLE B (roll-top, not secretary): a desk with a wooden tambour curtain that rolls down to cover the work surface and pigeonhole compartments is a roll-top desk regardless of the chest of drawers below. The tambour curtain is the binary tell. Route to antique roll-top tier ($400–$1500) when 1900s–1920s tells are present (hand-cut dovetails, Cutler / Hoover / Indiana Desk Co manufacturer plate); modern repro $80–$300 when those tells are absent.
 
     MCM ATTRIBUTION, HARD RULE: Eames / Knoll / Wegner / Saarinen / Herman Miller / Vitra / Cassina / Nakashima / Jacobsen / Breuer / Le Corbusier / Mies van der Rohe / Nelson attribution requires a visible maker label, sticker, stamp, paper tag, or burn-in mark. Without it, do NOT include the designer name in "name". Describe as "MCM-style", "mid-century", "Danish modern", or "in the manner of [era]" and price as unattributed MCM tier ($80–$300). Silhouette resemblance is NOT identification, knockoffs of Eames Shell Chair, Wegner Wishbone, and Saarinen Tulip Table are mass-produced and common in thrift. Same trap pattern as the COMMON HALLUCINATION TRAPS list for clothing. Refurb labor (reupholster, refinish, chrome polish, recane) on unattributed MCM stays WITHIN the band's hard ceiling: top of the unattributed MCM band is $300 unrestored / $450 with full refurb premium. Do NOT stack refurb premium above $450 for unattributed MCM regardless of labor density (full reupholstery in new leather + refinished shell + polished chrome together still cap at $450). Authenticated MCM (visible Herman Miller / Vitra / Knoll label) prices at the authentic tier per its own ceiling.
 
@@ -1638,9 +1751,12 @@ Worked positive example: cover shows a mint-green dress with thin spaghetti stra
 }
 
 export async function scanWithGemini(photoUris: string | string[], signal?: AbortSignal, onPhaseChange?: (status: string) => void, priorResult?: ScanScenario): Promise<ScanScenario> {
+  await checkScanCap();
   const uris = Array.isArray(photoUris) ? photoUris : [photoUris];
   const suffix = priorResult ? RESCAN_CORRECTION_SUFFIX(priorResult) : '';
-  return runScanPipeline(uris, suffix, signal, priorResult);
+  const result = await runScanPipeline(uris, suffix, signal, priorResult);
+  await incrementTodayScanCount();
+  return result;
 }
 
 function buildUpcyclePrompt(itemName?: string, category?: string, sub?: string): string {
@@ -1726,15 +1842,18 @@ export async function refreshUpcycleIdeas(
   itemContext?: { name?: string; category?: string; sub?: string },
   signal?: AbortSignal
 ): Promise<string[]> {
+  await checkScanCap();
   const { uri: readUri, mimeType } = await resolveReadableUri(photoUri);
   const base64 = await FileSystem.readAsStringAsync(readUri, {
     encoding: FileSystem.EncodingType.Base64,
   });
   const prompt = buildUpcyclePrompt(itemContext?.name, itemContext?.category, itemContext?.sub);
   const parsed = await callWithFallback([{ base64, mimeType }], '', signal, prompt, 0.9);
-  return Array.isArray(parsed.upcycle)
+  const result = Array.isArray(parsed.upcycle)
     ? parsed.upcycle.slice(0, 3).map((u: unknown) => String(u || '')).filter(Boolean)
     : [];
+  await incrementTodayScanCount();
+  return result;
 }
 
 const HANDMADE_SUFFIX = `\n\nIMPORTANT: The user has confirmed this item IS handmade/custom. Set isCustom = true.
@@ -1793,7 +1912,10 @@ The user explicitly flagged this scan as wrong. Commit to a direction. Do NOT ec
 DEFAULT BIAS, when uncertain about direction, choose "lower". User "wrong scan" flags are most often overprice protests, not underprice protests; sellers know when an item won't move at the suggested price. Reserve "higher" for cases where you can name a SPECIFIC upper-tier signal you missed on the first pass: visible vintage Big E tab, NWT/original tags hanging, named designer label legible, chain-stitched hem, union-made tag, single-stitch construction, premium material tag (cashmere/silk/leather verified), mint condition with original packaging or box. Generic descriptors like "distressed", "looks worn", "feels vintage", or "strong brand name" are NOT upper-tier signals, those are already factored into the modern factory tier. Modern Levi's, Madewell, AG, Gap, Old Navy with factory distressing belong in their modern tier, not vintage. When the prior price falls within the correct factory tier and rescrutiny does not surface an explicit upper-tier signal you missed, choose "lower" and pull both ends down 15–25%.`;
 
 export async function rescanAsHandmade(photoUris: string | string[], signal?: AbortSignal, priorResult?: ScanScenario): Promise<ScanScenario> {
+  await checkScanCap();
   const uris = Array.isArray(photoUris) ? photoUris : [photoUris];
   const suffix = HANDMADE_SUFFIX + (priorResult ? RESCAN_CORRECTION_SUFFIX(priorResult) : '');
-  return runScanPipeline(uris, suffix, signal, priorResult);
+  const result = await runScanPipeline(uris, suffix, signal, priorResult);
+  await incrementTodayScanCount();
+  return result;
 }

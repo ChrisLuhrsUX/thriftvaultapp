@@ -32,11 +32,50 @@ const SETTINGS_ROWS = [
   { id: 'terms', label: 'Terms of Service', icon: 'document-text-outline' as const },
 ];
 
+const PRODUCT_ID_TO_PLAN: Record<string, string> = {
+  monthly: 'Monthly · $4.99',
+  three_month: 'Season Pass · $9.99',
+  annual: 'Annual · $29.99',
+  yearly: 'Annual · $29.99',
+};
+
+function formatProSubtitle(args: {
+  proProductId: string | null;
+  proExpirationDate: Date | null;
+  proWillRenew: boolean;
+  proIsInTrial: boolean;
+}): string {
+  const { proProductId, proExpirationDate, proWillRenew, proIsInTrial } = args;
+  const dateStr = proExpirationDate
+    ? proExpirationDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+      })
+    : '';
+
+  if (proIsInTrial) {
+    return dateStr ? `Free trial · Ends ${dateStr}` : 'Free trial';
+  }
+
+  const plan = PRODUCT_ID_TO_PLAN[proProductId ?? ''] ?? 'Pro';
+  if (!dateStr) return plan;
+  if (!proWillRenew) return `${plan} · Cancels ${dateStr}`;
+  return `${plan} · Renews ${dateStr}`;
+}
+
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { theme, colorScheme, setColorScheme } = useTheme();
   const { inventory } = useInventory();
-  const { isPro, restorePurchases } = usePurchases();
+  const {
+    isPro,
+    loading: purchasesLoading,
+    proExpirationDate,
+    proWillRenew,
+    proProductId,
+    proIsInTrial,
+    restorePurchases,
+  } = usePurchases();
   const { formMaxWidth, headerHPad } = useResponsive();
   const { showToast } = useToast();
   const [paywallVisible, setPaywallVisible] = useState(false);
@@ -150,7 +189,7 @@ export default function ProfileScreen() {
         <View style={styles.header}>
           <Text style={styles.title} accessibilityRole="header">Profile</Text>
         </View>
-        {!isPro && (
+        {!purchasesLoading && !isPro && (
           <>
             <Button
               label="Upgrade to Pro"
@@ -161,6 +200,25 @@ export default function ProfileScreen() {
             />
             <Text style={styles.trialNote}>{TRIAL_DURATION_DAYS}-day free trial · no commitment</Text>
           </>
+        )}
+        {!purchasesLoading && isPro && (
+          <Pressable
+            style={styles.proCard}
+            onPress={() => Linking.openURL('https://apps.apple.com/account/subscriptions')}
+            accessibilityRole="button"
+            accessibilityLabel={`ThriftVault Pro, ${formatProSubtitle({ proProductId, proExpirationDate, proWillRenew, proIsInTrial })}. Tap to manage subscription.`}
+          >
+            <View style={styles.proCardLeft}>
+              <AppIcon name="sparkles" size={20} color={theme.colors.onPrimary} />
+            </View>
+            <View style={styles.proCardBody}>
+              <Text style={styles.proCardTitle}>ThriftVault Pro</Text>
+              <Text style={styles.proCardSub}>
+                {formatProSubtitle({ proProductId, proExpirationDate, proWillRenew, proIsInTrial })}
+              </Text>
+            </View>
+            <AppIcon name="chevron-forward" size={18} color={theme.colors.onPrimary} />
+          </Pressable>
         )}
         {storeStats.length > 0 && (
           <View style={styles.section}>
@@ -266,7 +324,11 @@ export default function ProfileScreen() {
                 </Pressable>
               </View>
           */}
-          {SETTINGS_ROWS.map((row) => (
+          {SETTINGS_ROWS.filter((r) => {
+            if (r.id === 'subscription') return !isPro;
+            if (r.id === 'manage') return isPro;
+            return true;
+          }).map((row) => (
             <Pressable
               key={row.id}
               style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
@@ -325,6 +387,40 @@ function createStyles(theme: Theme, headerHPad: number, formMaxWidth?: number) {
     textAlign: 'center',
     marginTop: 4,
     marginBottom: 20,
+  },
+  proCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 24,
+    marginBottom: 20,
+    backgroundColor: theme.colors.vintageBlueDark,
+    borderRadius: theme.radius.md,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    gap: 12,
+    ...(theme.shadows.sm ?? {}),
+  },
+  proCardLeft: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  proCardBody: {
+    flex: 1,
+  },
+  proCardTitle: {
+    ...theme.typography.body,
+    fontWeight: '600',
+    color: theme.colors.onPrimary,
+  },
+  proCardSub: {
+    ...theme.typography.caption,
+    color: theme.colors.onPrimary,
+    opacity: 0.85,
+    marginTop: 2,
   },
   section: {
     marginHorizontal: 24,

@@ -29,3 +29,15 @@ Start with a **30-day free trial**, every Pro feature unlocked: AI scan, vault, 
 By downloading ThriftVault, you agree to our Privacy Policy: https://thriftvaultapp.com/privacy-policy/
 
 **Keywords:** thrift, resell, reseller, flip, poshmark, depop, ebay, inventory, tracker, profit
+
+## Screenshots (6.9" iPhone, 1320×2868)
+
+Italics = Playfair Display emphasis word. Plain = DM Sans subhead. Match landing-page hangtag motif, cream / vintageBlue bg, iPhone 16 Pro mockup frame.
+
+1. **Scan result (hero)** — Snap a tag. See the *flip.* / AI pricing in seconds, calibrated to recent Depop, eBay, and Poshmark sold listings.
+2. **Vault grid** — Every find, *tracked.* / Inventory, cost basis, and resale prices in one place. Profit math handled.
+3. **Paywall** — 30 days *free.* / Then $4.99 a month, or save with Season Pass or Annual. Cancel anytime.
+4. **Red-flag banner** — Catch the *red flags.* / Heads-up on suspected counterfeits, scams, and condition issues on every scan.
+5. **Profile stats** — Numbers that make it *worth it.* / Total profit, best flip, and profit by store, at a glance.
+
+**Capture pipeline (Windows):** native iPhone 13 screenshots are 1170×2532 → upscale ~1.13× in Figma to 1320×2868 artboard → device frame → Playfair headline + DM Sans subhead → export PNG → upload via ASC → App Information → App Store → Screenshots.
