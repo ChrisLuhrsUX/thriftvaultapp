@@ -8,7 +8,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useToast } from '@/context/ToastContext';
 import { usePurchases } from '@/hooks/usePurchases';
 import { useResponsive } from '@/hooks/useResponsive';
-import { getRedFlagPresentation, isOverloadError, refreshUpcycleIdeas, rescanAsHandmade, scanWithGemini } from '@/services/gemini';
+import { getRedFlagPresentation, isOverloadError, refreshUpcycleIdeas, rescanAsHandmade, scanWithGemini, type AiTier } from '@/services/gemini';
 import type { Theme } from '@/theme';
 import type { Item, ItemScanSnapshot, ScanScenario } from '@/types/inventory';
 import { getConfidenceColor, getConfidencePresentation } from '@/utils/confidencePresentation';
@@ -163,6 +163,10 @@ function formatSnapshotTime(createdAt: number): string {
   const datePart = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   const timePart = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   return `${datePart} · ${timePart}`;
+}
+
+function formatElapsed(seconds: number): string {
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 }
 
 /**
@@ -1119,6 +1123,16 @@ export default function ScanScreen() {
   const [cameraFacing, setCameraFacing] = useState<'back' | 'front'>('back');
   const [cameraReady, setCameraReady] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  useEffect(() => {
+    if (!scanning) return;
+    const start = Date.now();
+    setElapsedSeconds(0);
+    const id = setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - start) / 1000));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [scanning]);
   const [scanStatus, setScanStatus] = useState<string | null>(null);
   const [result, setResult] = useState<ScanScenario | null>(null);
   const [scanError, setScanError] = useState<ScanErrorKind | null>(null);
@@ -1361,14 +1375,22 @@ export default function ScanScreen() {
     setScanning(true);
     setCameraActive(false);
     setCameraReady(false);
+    const scanStartMs = Date.now();
+    let capturedTier: AiTier | null = null;
+    const photoCount = stagedPhotos.length;
     try {
-      const geminiResult = await scanWithGemini(stagedPhotos, controller.signal, setScanStatus);
+      const geminiResult = await scanWithGemini(stagedPhotos, controller.signal, setScanStatus, undefined, (t) => { capturedTier = t; });
       if (controller.signal.aborted) return;
       pendingRetryRef.current = false; // scan succeeded, don't retry on foreground
       setResult(geminiResult);
       const snap = buildSessionSnapshot(geminiResult, stagedPhotos);
       setSessionSnapshots(prev => [snap, ...prev].slice(0, SESSION_SNAPSHOT_CAP));
       setActiveSessionSnapshotId(snap.id);
+      Sentry.captureMessage('scan_completed', {
+        level: 'info',
+        tags: { scope: 'scan', tier: capturedTier ?? 'unknown', multi: photoCount > 1 ? 'multi' : 'single' },
+        extra: { duration_ms: Date.now() - scanStartMs, photo_count: photoCount, flow: 'primary' },
+      });
     } catch (error) {
       if ((error as Error)?.name === 'AbortError') return;
       // We backgrounded mid-scan, failure is almost always iOS suspending the
@@ -1380,7 +1402,10 @@ export default function ScanScreen() {
       setScanError(kind);
       // Production telemetry: capture the full error with classification context
       // so we can tell network noise apart from real outages in Sentry.
-      Sentry.captureException(error, { tags: { scope: 'scan', scanErrorKind: kind } });
+      Sentry.captureException(error, {
+        tags: { scope: 'scan', scanErrorKind: kind, tier: capturedTier ?? 'none', multi: photoCount > 1 ? 'multi' : 'single' },
+        extra: { duration_ms: Date.now() - scanStartMs, photo_count: photoCount, flow: 'primary' },
+      });
     } finally {
       scanningRef.current = false;
       abortControllerRef.current = null;
@@ -1996,8 +2021,11 @@ export default function ScanScreen() {
     const controller = new AbortController();
     abortControllerRef.current = controller;
     setRescanningHandmade(true);
+    const scanStartMs = Date.now();
+    let capturedTier: AiTier | null = null;
+    const photoCount = stagedPhotos.length;
     try {
-      const updated = await rescanAsHandmade(stagedPhotos, controller.signal);
+      const updated = await rescanAsHandmade(stagedPhotos, controller.signal, undefined, (t) => { capturedTier = t; });
       if (controller.signal.aborted) return;
       const prev = resultRef.current;
       if (!prev) return;
@@ -2010,6 +2038,11 @@ export default function ScanScreen() {
       const snap = buildSessionSnapshot(merged, stagedPhotos);
       setSessionSnapshots(s => [snap, ...s].slice(0, SESSION_SNAPSHOT_CAP));
       setActiveSessionSnapshotId(snap.id);
+      Sentry.captureMessage('scan_completed', {
+        level: 'info',
+        tags: { scope: 'scan', tier: capturedTier ?? 'unknown', multi: photoCount > 1 ? 'multi' : 'single' },
+        extra: { duration_ms: Date.now() - scanStartMs, photo_count: photoCount, flow: 'rescan_handmade' },
+      });
     } catch (err) {
       if (__DEV__) console.log('[Handmade rescan] error:', err);
       const capHit = err instanceof Error && err.name === 'ScanCapError';
@@ -2025,12 +2058,16 @@ export default function ScanScreen() {
     const controller = new AbortController();
     abortControllerRef.current = controller;
     setRescanningWrong(true);
+    const scanStartMs = Date.now();
+    let capturedTier: AiTier | null = null;
+    const photoCount = stagedPhotos.length;
     try {
       const wasHandmade = result?.isCustom === true;
       const prior = result ?? undefined;
+      const captureTier = (t: AiTier) => { capturedTier = t; };
       const updated = wasHandmade
-        ? await rescanAsHandmade(stagedPhotos, controller.signal, prior)
-        : await scanWithGemini(stagedPhotos, controller.signal, undefined, prior);
+        ? await rescanAsHandmade(stagedPhotos, controller.signal, prior, captureTier)
+        : await scanWithGemini(stagedPhotos, controller.signal, undefined, prior, captureTier);
       if (controller.signal.aborted) return;
       if (resultRef.current === null) return;
       const merged: ScanScenario = { ...updated, isCustom: wasHandmade || updated.isCustom };
@@ -2039,6 +2076,11 @@ export default function ScanScreen() {
       setSessionSnapshots(s => [snap, ...s].slice(0, SESSION_SNAPSHOT_CAP));
       setActiveSessionSnapshotId(snap.id);
       if (updated.correction) showToast(toastForCorrection(updated.correction));
+      Sentry.captureMessage('scan_completed', {
+        level: 'info',
+        tags: { scope: 'scan', tier: capturedTier ?? 'unknown', multi: photoCount > 1 ? 'multi' : 'single' },
+        extra: { duration_ms: Date.now() - scanStartMs, photo_count: photoCount, flow: 'rescan_wrong', was_handmade: wasHandmade },
+      });
     } catch (err) {
       if (__DEV__) console.log('[Wrong rescan] error:', err);
       const capHit = err instanceof Error && err.name === 'ScanCapError';
@@ -2052,18 +2094,27 @@ export default function ScanScreen() {
     const photoUri = stagedPhotos[0];
     if (!photoUri || refreshingUpcycle) return;
     setRefreshingUpcycle(true);
+    const scanStartMs = Date.now();
+    let capturedTier: AiTier | null = null;
     try {
       const newUpcycle = await refreshUpcycleIdeas(
         photoUri,
-        result ? { name: result.name, category: result.category, sub: result.sub } : undefined
+        result ? { name: result.name, category: result.category, sub: result.sub } : undefined,
+        undefined,
+        (t) => { capturedTier = t; },
       );
       setResult((prev) => prev ? { ...prev, upcycle: newUpcycle } : null);
+      Sentry.captureMessage('scan_completed', {
+        level: 'info',
+        tags: { scope: 'scan', tier: capturedTier ?? 'unknown', multi: 'single' },
+        extra: { duration_ms: Date.now() - scanStartMs, photo_count: 1, flow: 'upcycle_refresh' },
+      });
     } catch (err) {
       showToast(err instanceof Error && err.name === 'ScanCapError' ? err.message : "Couldn't refresh, try again");
     } finally {
       setRefreshingUpcycle(false);
     }
-  }, [stagedPhotos, refreshingUpcycle, showToast]);
+  }, [stagedPhotos, refreshingUpcycle, result, showToast]);
 
   const handleSaveForLater = useCallback(() => {
     if (!result) return;
@@ -2238,7 +2289,10 @@ export default function ScanScreen() {
                   {!result && (scanning ? (
                     <View style={styles.searchingWrap}>
                       <ActivityIndicator size="large" color={theme.colors.white} />
-                      <Text style={styles.searchingText}>Searching</Text>
+                      <View style={styles.searchingTextRow}>
+                        <Text style={styles.searchingText}>Searching · </Text>
+                        <Text style={[styles.searchingText, styles.searchingTimer]}>{formatElapsed(elapsedSeconds)}</Text>
+                      </View>
                       {scanStatus && (
                         <View style={styles.scanStatusPill}>
                           <AppIcon name="brush-outline" size={14} color={theme.colors.terra} />
@@ -2290,7 +2344,10 @@ export default function ScanScreen() {
                   {!result && (scanning ? (
                     <View style={styles.searchingWrap}>
                       <ActivityIndicator size="large" color={theme.colors.white} />
-                      <Text style={styles.searchingText}>Searching</Text>
+                      <View style={styles.searchingTextRow}>
+                        <Text style={styles.searchingText}>Searching · </Text>
+                        <Text style={[styles.searchingText, styles.searchingTimer]}>{formatElapsed(elapsedSeconds)}</Text>
+                      </View>
                       {scanStatus && (
                         <View style={styles.scanStatusPill}>
                           <AppIcon name="brush-outline" size={14} color={theme.colors.terra} />
@@ -3046,10 +3103,19 @@ function createStyles(
     alignItems: 'center',
     gap: 12,
   },
+  searchingTextRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
   searchingText: {
     ...theme.typography.body,
     fontWeight: '600',
     color: theme.colors.overlayWhiteStrong,
+    fontVariant: ['tabular-nums'],
+  },
+  searchingTimer: {
+    width: 40,
+    textAlign: 'left',
   },
   scanStatusPill: {
     flexDirection: 'row',

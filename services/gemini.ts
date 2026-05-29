@@ -324,6 +324,24 @@ Guidelines:
   • StockX / GOAT verification tag if pre-authenticated
   Specific collab tells: Travis Scott Jordan 1 has reverse mini-swoosh with Cactus Jack-branded shoelace bag; Off-White has signature zip-tie + quotation marks ("AIR", "FOR NIKE"); Fragment has lightning-bolt insole; Sacai has dual-tongue, dual-swoosh stacking.
   Without collab-specific evidence, do NOT use the collab name in "name", describe as the base silhouette only ("Black/White Jordan 1 High", "Panda Dunk Low") and price at the base hyped tier, NOT the collab tier. Reverse-swoosh styling alone is the most replicated detail in sneaker fakes.
+- GRAPHIC TEXT IN NAME, HARD RULE: When apparel (tee, sweatshirt, hoodie, tank, longsleeve, jacket, tote, cap) shows visibly readable printed, screen-printed, embroidered, applied, or heat-pressed TEXT that is NOT a brand wordmark (slogan, song lyric, religious phrase, political phrase, school or sports text, place name, motto, joke caption, single statement word), include the text VERBATIM in double quotes at the START of "name", followed by the descriptive item words. Format: "Slogan Text" Descriptive Item Name. Example: "Jesus Take the Wheel" Graphic Raglan Baseball Tee. Lead with the quoted text because buyers search Depop and Poshmark for the exact phrase; the quoted lead makes the listing match those searches. Capitalize the slogan as it appears in the print when legible; if the print uses all-caps stylization, you may use Title Case in "name" for readability.
+  • SUBORDINATE TO BRAND IN NAME: If the visible text IS a brand wordmark (NIKE, STÜSSY, SUPREME, CARHARTT, POLO, CHAMPION, etc.) the BRAND IN NAME rule applies INSTEAD; do not double-quote the brand. If BOTH a brand mark AND a separate slogan are visible (e.g. a Levi's tab plus a "Be Kind" chest print), format as: Brand "Slogan" Category, e.g. Levi's "Be Kind" Cropped Tee. Brand unquoted and first, slogan quoted and second.
+  • CUTOFF / PARTIAL TEXT, LENIENT WITH GUARDRAILS: When a word in the slogan is cropped at the photo edge, you MAY complete the word only when ALL of these hold:
+    – the visible letters allow only one plausible word in the detected language that fits the surrounding context
+    – the slogan with the completed word reads as a recognizable complete phrase or grammatical sentence
+    – your confidence in the completion is high
+    Acceptable example: photo shows "Jesus take the Whe" → "Jesus Take the Wheel" Graphic Raglan Tee (Whe + religious-phrase context narrows unambiguously to Wheel).
+    NOT acceptable: photo shows "Live Lau" → DO NOT complete to "Live Laugh Love"; Lau could be Laugh, Launch, Laundry, etc. Use ellipsis: "Live Lau..." Graphic Tee.
+    When any guardrail fails (multiple plausible completions, unfamiliar phrase, low confidence), include only the visible portion followed by an ellipsis inside the quotes: "Visible Portion..." Category. An honest ellipsis is always better than a wrong completion; reseller listings are searched on exact strings, and a wrong guess becomes a wrong listing.
+  • NO ARTIST / BAND / SONG / MOVIE / BRAND INFERENCE FROM SLOGAN: A slogan that matches a song lyric, movie line, book title, religious phrase, or meme does NOT make the garment merch for that artist or franchise. Do NOT name the item "Carrie Underwood Graphic Tee" because the print reads "Jesus Take the Wheel"; do NOT name it "Taylor Swift Tee" because the print is a lyric; do NOT name it "Marvel Tee" because the print quotes a line. Use only the visible text plus a generic category descriptor. Tour merch and official band tees are different and require a visible band logo or tour-date back-print; follow the BRAND IN NAME rule for those.
+  • RED FLAG INTERACTION: Legible, intentional slogans (religious, political, song lyric, motivational, joke) are NORMAL apparel prints and do NOT trigger the AI-GENERATED ARTWORK red flag. Only garbled, misspelled, fused, or nonsensical printed text in the design itself counts as an AI-art tell, per the RED FLAG DETECTION rule. A clear, correctly-spelled slogan is the OPPOSITE of an AI-art signal.
+  • EDGE CASES:
+    – Non-Latin scripts (Japanese kanji, Korean hangul, Arabic, Cyrillic, Spanish or Portuguese or French slogans): include the text verbatim in the original script when you can read it; do NOT translate. Example: "天使" Graphic Tee, "Mi Vida Loca" Cropped Tee.
+    – Back-only graphic (multi-photo scans showing back-print, or single back-view shot): still lead "name" with the quoted slogan; resale buyers search the phrase regardless of placement.
+    – Multi-line / stacked slogans: collapse to a single line with a space between lines in the quoted portion. Example: print stacked as "GOOD / VIBES / ONLY" → "Good Vibes Only" Graphic Tee.
+    – Decorative blackletter, gothic, or heavily ornamental fonts where you cannot confidently read the letters: omit from "name" and note in "sub" as "decorative gothic chest print, text not clearly legible". Do not guess at unreadable letters.
+    – Small chest-pocket text vs large central graphic: only large, primary, focal-point text leads the name; small woven labels, care symbols, and tiny pocket monograms are not "graphic text" for this rule.
+  • NOTES / SUB INTERACTION: When the slogan appears in "name", do NOT repeat it in "sub". Exception: when the slogan is cropped and only the partial appears in "name" with an ellipsis, the "sub" field may add ", front graphic partially cropped in photo" for buyer clarity.
 - COMMON HALLUCINATION TRAPS, do NOT assume these brands without a visible label:
   • Y2K low-rise flare jeans with rhinestone swirls, butterflies, crosses, or decorative back-pocket embellishments → NOT Vigoss, Miss Me, Rock Revival, Affliction, True Religion, Buckle, Silver Jeans, Grace in LA, or any "fashion denim" brand
   • Chunky white or beige sneakers → NOT Nike, Adidas, New Balance, Asics, Hoka, On Cloud
@@ -385,7 +403,7 @@ Guidelines:
     – Chronograph with three subdials and tachymeter bezel → NOT Omega Speedmaster / Tag Heuer Carrera without dial wordmark
     – Text engraved on the band, bracelet, or visible on the watch BOX is NOT the watch brand; it is typically a jeweler, owner monogram, or reseller mark
     – Watermarks, social-media handles, and photo overlays are NEVER brand evidence regardless of how prominent
-- When no brand marking is visible, name the item by its distinctive features, silhouette, wash or color, material, era, embellishment, or notable construction. Examples: "Y2K Rhinestone Flare Jeans", "Dark Wash Low Rise Swirl-Embellished Flares", "Chunky Cream Dad Sneakers", "Tan Canvas Double-Knee Work Pants". Never use the word "generic" in the name.
+- When no brand marking is visible, name the item by its distinctive features, silhouette, wash or color, material, era, embellishment, or notable construction. Examples: "Y2K Rhinestone Flare Jeans", "Dark Wash Low Rise Swirl-Embellished Flares", "Chunky Cream Dad Sneakers", "Tan Canvas Double-Knee Work Pants", "Jesus Take the Wheel" Graphic Raglan Baseball Tee, "Good Vibes Only" Cropped Hoodie. Never use the word "generic" in the name.
 - For upcycled or handmade items: the base garment's brand does NOT transfer to the upcycled piece unless the base brand's label is still visibly intact on the garment. Describe the upcycle itself, not a guessed source brand.
 - confidence = "low" if brand is obscure/niche or resale comps are sparse
 - PRICING, mentally benchmark against comparable recently-sold listings on Depop, Poshmark, eBay, and Etsy before setting any price. Do not default to the low end of a range, price for what the item actually sells for in current market.
@@ -1113,6 +1131,8 @@ async function callAnthropic(images: Array<{ base64: string; mimeType: string }>
 
 type ImagePart = { base64: string; mimeType: string };
 
+export type AiTier = 'gemini-flash' | 'gemini-flash-lite' | 'claude-sonnet';
+
 function errMsg(err: unknown): string {
   if (err instanceof Error) return err.message;
   return String(err ?? 'unknown');
@@ -1122,7 +1142,9 @@ function errMsg(err: unknown): string {
  * Try Gemini 2.5 Flash first, fall back to 2.5 Flash Lite (different quota pool),
  * then Claude Sonnet 4.5 if configured. Non-overload errors skip retries and
  * fail over immediately. If all providers fail, throws an error containing all
- * underlying causes.
+ * underlying causes. Optional onTier callback fires once on the winning tier
+ * for instrumentation (Sentry tags); never exposed to user-facing copy per
+ * the no-AI-provider-names rule.
  */
 async function callWithFallback(
   images: ImagePart[],
@@ -1130,6 +1152,7 @@ async function callWithFallback(
   signal?: AbortSignal,
   promptOverride?: string,
   temperature = 0.1,
+  onTier?: (tier: AiTier) => void,
 ): Promise<Record<string, unknown>> {
   if (!GEMINI_KEY && !ANTHROPIC_KEY) throw new Error('API key not configured');
 
@@ -1140,7 +1163,9 @@ async function callWithFallback(
   if (GEMINI_KEY) {
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {
-        return await callGemini(GEMINI_URL, images, promptSuffix, signal, promptOverride, temperature);
+        const result = await callGemini(GEMINI_URL, images, promptSuffix, signal, promptOverride, temperature);
+        onTier?.('gemini-flash');
+        return result;
       } catch (err) {
         if ((err as Error)?.name === 'AbortError') throw err;
         geminiError = err;
@@ -1154,7 +1179,9 @@ async function callWithFallback(
 
     // Fallback to Gemini 2.5 Flash Lite, separate quota pool, so an overload on 2.5 Flash doesn't take it down.
     try {
-      return await callGemini(GEMINI_URL_FALLBACK, images, promptSuffix, signal, promptOverride, temperature);
+      const result = await callGemini(GEMINI_URL_FALLBACK, images, promptSuffix, signal, promptOverride, temperature);
+      onTier?.('gemini-flash-lite');
+      return result;
     } catch (err) {
       if ((err as Error)?.name === 'AbortError') throw err;
       geminiFallbackError = err;
@@ -1163,7 +1190,9 @@ async function callWithFallback(
 
   if (ANTHROPIC_KEY) {
     try {
-      return await callAnthropic(images, promptSuffix, signal, promptOverride, temperature);
+      const result = await callAnthropic(images, promptSuffix, signal, promptOverride, temperature);
+      onTier?.('claude-sonnet');
+      return result;
     } catch (err) {
       if ((err as Error)?.name === 'AbortError') throw err;
       anthropicError = err;
@@ -1177,7 +1206,7 @@ async function callWithFallback(
   throw new Error(`All scan providers failed, ${parts}`);
 }
 
-async function runScanPipeline(photoUris: string[], promptSuffix = '', signal?: AbortSignal, priorResult?: ScanScenario): Promise<ScanScenario> {
+async function runScanPipeline(photoUris: string[], promptSuffix = '', signal?: AbortSignal, priorResult?: ScanScenario, onTier?: (tier: AiTier) => void): Promise<ScanScenario> {
   const resolved = await Promise.all(photoUris.map(uri => resolveReadableUri(uri)));
   const images = await Promise.all(
     resolved.map(async ({ uri, mimeType }) => ({
@@ -1255,7 +1284,7 @@ Specific cross-checks (run all four, do not skip):
 Worked positive example: cover shows a mint-green dress with thin spaghetti straps, lace bodice with center buckle, chiffon front overlay, no visible waistband detail, hem cropped out of frame. Correct name: "Mint Green Lace-Bodice Spaghetti-Strap Chiffon Mini Dress". Correct sub: "Women's, mint green, lace bodice with center buckle, spaghetti straps, chiffon overlay, good condition." INCORRECT (real failure mode from prior scans): "Strapless High-Low Chiffon Dress" with sub "lace bodice, black and silver patterned waistband, high-low hem", because strapless contradicts the visible straps, and the waistband + high-low hem are from a BEFORE source photo and do NOT appear in the cover.`
     : '';
 
-  const parsed = await callWithFallback(images, promptSuffix + multiPhotoSuffix, signal);
+  const parsed = await callWithFallback(images, promptSuffix + multiPhotoSuffix, signal, undefined, 0.1, onTier);
 
   const paid = Number(parsed.suggestedPaid) || 10;
   let resaleLow = Number(parsed.suggestedResaleLow) || 0;
@@ -1750,11 +1779,11 @@ Worked positive example: cover shows a mint-green dress with thin spaghetti stra
   };
 }
 
-export async function scanWithGemini(photoUris: string | string[], signal?: AbortSignal, onPhaseChange?: (status: string) => void, priorResult?: ScanScenario): Promise<ScanScenario> {
+export async function scanWithGemini(photoUris: string | string[], signal?: AbortSignal, onPhaseChange?: (status: string) => void, priorResult?: ScanScenario, onTier?: (tier: AiTier) => void): Promise<ScanScenario> {
   await checkScanCap();
   const uris = Array.isArray(photoUris) ? photoUris : [photoUris];
   const suffix = priorResult ? RESCAN_CORRECTION_SUFFIX(priorResult) : '';
-  const result = await runScanPipeline(uris, suffix, signal, priorResult);
+  const result = await runScanPipeline(uris, suffix, signal, priorResult, onTier);
   await incrementTodayScanCount();
   return result;
 }
@@ -1840,7 +1869,8 @@ Rules:
 export async function refreshUpcycleIdeas(
   photoUri: string,
   itemContext?: { name?: string; category?: string; sub?: string },
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  onTier?: (tier: AiTier) => void,
 ): Promise<string[]> {
   await checkScanCap();
   const { uri: readUri, mimeType } = await resolveReadableUri(photoUri);
@@ -1848,7 +1878,7 @@ export async function refreshUpcycleIdeas(
     encoding: FileSystem.EncodingType.Base64,
   });
   const prompt = buildUpcyclePrompt(itemContext?.name, itemContext?.category, itemContext?.sub);
-  const parsed = await callWithFallback([{ base64, mimeType }], '', signal, prompt, 0.9);
+  const parsed = await callWithFallback([{ base64, mimeType }], '', signal, prompt, 0.9, onTier);
   const result = Array.isArray(parsed.upcycle)
     ? parsed.upcycle.slice(0, 3).map((u: unknown) => String(u || '')).filter(Boolean)
     : [];
@@ -1911,11 +1941,11 @@ The user explicitly flagged this scan as wrong. Commit to a direction. Do NOT ec
 
 DEFAULT BIAS, when uncertain about direction, choose "lower". User "wrong scan" flags are most often overprice protests, not underprice protests; sellers know when an item won't move at the suggested price. Reserve "higher" for cases where you can name a SPECIFIC upper-tier signal you missed on the first pass: visible vintage Big E tab, NWT/original tags hanging, named designer label legible, chain-stitched hem, union-made tag, single-stitch construction, premium material tag (cashmere/silk/leather verified), mint condition with original packaging or box. Generic descriptors like "distressed", "looks worn", "feels vintage", or "strong brand name" are NOT upper-tier signals, those are already factored into the modern factory tier. Modern Levi's, Madewell, AG, Gap, Old Navy with factory distressing belong in their modern tier, not vintage. When the prior price falls within the correct factory tier and rescrutiny does not surface an explicit upper-tier signal you missed, choose "lower" and pull both ends down 15–25%.`;
 
-export async function rescanAsHandmade(photoUris: string | string[], signal?: AbortSignal, priorResult?: ScanScenario): Promise<ScanScenario> {
+export async function rescanAsHandmade(photoUris: string | string[], signal?: AbortSignal, priorResult?: ScanScenario, onTier?: (tier: AiTier) => void): Promise<ScanScenario> {
   await checkScanCap();
   const uris = Array.isArray(photoUris) ? photoUris : [photoUris];
   const suffix = HANDMADE_SUFFIX + (priorResult ? RESCAN_CORRECTION_SUFFIX(priorResult) : '');
-  const result = await runScanPipeline(uris, suffix, signal, priorResult);
+  const result = await runScanPipeline(uris, suffix, signal, priorResult, onTier);
   await incrementTodayScanCount();
   return result;
 }

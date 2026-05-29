@@ -7,7 +7,8 @@ import { useInventory } from '@/context/InventoryContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useToast } from '@/context/ToastContext';
 import { useResponsive } from '@/hooks/useResponsive';
-import { getRedFlagPresentation, refreshUpcycleIdeas, rescanAsHandmade, scanWithGemini } from '@/services/gemini';
+import { getRedFlagPresentation, refreshUpcycleIdeas, rescanAsHandmade, scanWithGemini, type AiTier } from '@/services/gemini';
+import * as Sentry from '@sentry/react-native';
 import type { Theme } from '@/theme';
 import { ITEM_CATEGORIES, type Item, type ItemScanSnapshot, type ItemStatus, type Platform as PlatformType, type ScanScenario } from '@/types/inventory';
 import { getConfidenceColor } from '@/utils/confidencePresentation';
@@ -447,8 +448,11 @@ export default function DetailScreen() {
       return;
     }
     setRescanningHandmade(true);
+    const scanStartMs = Date.now();
+    let capturedTier: AiTier | null = null;
+    const photoCount = photoUris.length;
     try {
-      const result = await rescanAsHandmade(photoUris);
+      const result = await rescanAsHandmade(photoUris, undefined, undefined, (t) => { capturedTier = t; });
       const newSnapshot: ItemScanSnapshot = {
         id: `${Date.now()}-handmade`,
         createdAt: Date.now(),
@@ -485,6 +489,11 @@ export default function DetailScreen() {
           redFlagBanner: redFlagDismissed,
         }));
       }
+      Sentry.captureMessage('scan_completed', {
+        level: 'info',
+        tags: { scope: 'scan', tier: capturedTier ?? 'unknown', multi: photoCount > 1 ? 'multi' : 'single' },
+        extra: { duration_ms: Date.now() - scanStartMs, photo_count: photoCount, flow: 'rescan_handmade_detail' },
+      });
     } catch (e) {
       showToast(e instanceof Error && e.name === 'ScanCapError' ? e.message : "Couldn't rescan, try again");
     } finally {
@@ -518,10 +527,14 @@ export default function DetailScreen() {
       suggestedResaleHigh: priorRange?.high,
     };
     setRescanningWrong(true);
+    const scanStartMs = Date.now();
+    let capturedTier: AiTier | null = null;
+    const photoCount = photoUris.length;
+    const captureTier = (t: AiTier) => { capturedTier = t; };
     try {
       const result = wasHandmade
-        ? await rescanAsHandmade(photoUris, undefined, prior)
-        : await scanWithGemini(photoUris, undefined, undefined, prior);
+        ? await rescanAsHandmade(photoUris, undefined, prior, captureTier)
+        : await scanWithGemini(photoUris, undefined, undefined, prior, captureTier);
       const newLow = Math.max(result.suggestedResaleLow ?? 0, 0);
       const newHigh = Math.max(result.suggestedResaleHigh ?? 0, 0);
       const newResale = newLow > 0 ? Math.round((newLow + newHigh) / 2) : 0;
@@ -554,6 +567,11 @@ export default function DetailScreen() {
       setRedFlagDismissed(false);
       AsyncStorage.removeItem(`tv_prompt_dismissed_${item.id}`);
       if (result.correction) showToast(toastForCorrection(result.correction));
+      Sentry.captureMessage('scan_completed', {
+        level: 'info',
+        tags: { scope: 'scan', tier: capturedTier ?? 'unknown', multi: photoCount > 1 ? 'multi' : 'single' },
+        extra: { duration_ms: Date.now() - scanStartMs, photo_count: photoCount, flow: 'rescan_wrong_detail', was_handmade: wasHandmade },
+      });
     } catch (e) {
       showToast(e instanceof Error && e.name === 'ScanCapError' ? e.message : "Couldn't rescan, try again");
     } finally {
@@ -567,16 +585,25 @@ export default function DetailScreen() {
     const photoUri = snapshot?.sourceImageUri || item.img;
     if (!photoUri) { showToast('No photo to generate ideas from'); return; }
     setRefreshingUpcycle(true);
+    const scanStartMs = Date.now();
+    let capturedTier: AiTier | null = null;
     try {
       const newUpcycle = await refreshUpcycleIdeas(
         photoUri,
-        { name: item.name, category: item.cat, sub: snapshot?.sub ?? item.name }
+        { name: item.name, category: item.cat, sub: snapshot?.sub ?? item.name },
+        undefined,
+        (t) => { capturedTier = t; },
       );
       const updatedSnapshots = item.scanSnapshots?.map((s) =>
         s.id === snapshot?.id ? { ...s, upcycle: newUpcycle } : s
       );
       update({ scanSnapshots: updatedSnapshots });
       updateItem(item.id, { scanSnapshots: updatedSnapshots });
+      Sentry.captureMessage('scan_completed', {
+        level: 'info',
+        tags: { scope: 'scan', tier: capturedTier ?? 'unknown', multi: 'single' },
+        extra: { duration_ms: Date.now() - scanStartMs, photo_count: 1, flow: 'upcycle_refresh_detail' },
+      });
     } catch (e) {
       showToast(e instanceof Error && e.name === 'ScanCapError' ? e.message : "Couldn't refresh, try again");
     } finally {
