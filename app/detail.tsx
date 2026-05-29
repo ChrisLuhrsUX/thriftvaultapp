@@ -290,6 +290,7 @@ export default function DetailScreen() {
 
   useEffect(() => {
     lastScrollYRef.current = 0;
+    hasEdited.current = false;
   }, [id]);
 
   useEffect(() => {
@@ -331,6 +332,10 @@ export default function DetailScreen() {
   }, [id]);
 
   useEffect(() => {
+    priceInitialized.current = false;
+  }, [id]);
+
+  useEffect(() => {
     if (item && !priceInitialized.current) {
       setPaidStr(item.paid != null ? String(item.paid) : '');
       setResaleStr(String(item.resale));
@@ -353,9 +358,8 @@ export default function DetailScreen() {
     hasEdited.current = true;
     setItem((prev) => {
       if (!prev) return null;
-      const next = { ...prev, ...updates };
-      updateItem(next.id, next);
-      return next;
+      updateItem(prev.id, updates);
+      return { ...prev, ...updates };
     });
   }, [updateItem]);
 
@@ -378,21 +382,29 @@ export default function DetailScreen() {
 
   const saveAndBack = useCallback(() => {
     if (item) {
-      if (manual === '1' && !hasEdited.current) {
+      let edited = hasEdited.current;
+      if (editingName) {
+        const trimmed = editedName.trim();
+        if (trimmed && trimmed !== item.name) {
+          updateItem(item.id, { name: trimmed });
+          edited = true;
+        }
+      }
+      if (manual === '1' && !edited) {
         removeItem(item.id);
       } else {
         const paidVal = paidStr.trim() === '' ? null : (isNaN(parseFloat(paidStr)) ? null : parseFloat(paidStr));
         const resaleVal = isNaN(parseFloat(resaleStr)) ? item.resale : parseFloat(resaleStr);
         const soldVal = soldStr.trim() === '' ? null : (isNaN(parseFloat(soldStr)) ? null : parseFloat(soldStr));
         const pricesChanged = paidVal !== item.paid || resaleVal !== item.resale || soldVal !== item.soldPrice;
-        if (hasEdited.current || pricesChanged) {
-          updateItem(item.id, { ...item, paid: paidVal, resale: resaleVal, soldPrice: soldVal });
+        if (edited || pricesChanged) {
+          updateItem(item.id, { paid: paidVal, resale: resaleVal, soldPrice: soldVal });
           showToast('Saved');
         }
       }
     }
     router.back();
-  }, [item, paidStr, resaleStr, soldStr, manual, updateItem, removeItem, router, showToast]);
+  }, [item, paidStr, resaleStr, soldStr, editingName, editedName, manual, updateItem, removeItem, router, showToast]);
 
   const getActiveSnapshot = useCallback((targetItem: Item): ItemScanSnapshot | null => {
     const snapshots = targetItem.scanSnapshots;
@@ -820,14 +832,17 @@ export default function DetailScreen() {
   const redFlagSubtitleLabel = redFlagPresentation.subtext;
 
   const isCloset = item.intent === 'closet';
-  const paidNum = Number(item.paid) || 0;
+  const paidFromInput = paidStr.trim() === '' || isNaN(parseFloat(paidStr))
+    ? null
+    : parseFloat(paidStr);
+  const paidNum = paidFromInput ?? (Number(item.paid) || 0);
+  const paidEntered = paidFromInput != null || item.paid != null;
   const resaleNum = Number(item.resale) || 0;
   const soldNum =
     item.status === 'sold' && item.soldPrice != null
       ? Number(item.soldPrice)
       : null;
   const revenue = soldNum ?? resaleNum;
-  const paidEntered = paidStr.trim() !== '';
   const profit = paidEntered ? revenue - paidNum : 0;
   const roiPct = paidEntered && paidNum > 0 ? Math.round((profit / paidNum) * 100) : 0;
 

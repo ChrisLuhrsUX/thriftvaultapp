@@ -2,7 +2,7 @@
 
 **App Name:** ThriftVault: Scan to Flip
 
-**Subtitle:** Track flips, scan items, profit
+**Subtitle:** Scan, flip, profit
 
 **Category:** Shopping (primary), Business (secondary)
 
@@ -36,7 +36,7 @@ Italics = Playfair Display emphasis word. Plain = DM Sans subhead. Match landing
 
 1. **Scan result (hero)** — Snap a tag. See the *flip.* / AI pricing in seconds, calibrated to recent Depop, eBay, and Poshmark sold listings.
 2. **Vault grid** — Every find, *tracked.* / Inventory, cost basis, and resale prices in one place. Profit math handled.
-3. **Hauls** — Every trip, a *haul.* / Group finds by shopping trip. ROI, photos, and totals per stop.
+3. **Hauls** — Your thrift day, *remembered.* / Group finds by shopping trip. ROI, photos, and totals per stop.
 4. **Red-flag banner** — Catch the *red flags.* / Heads-up on suspected counterfeits, scams, and condition issues on every scan.
 5. **Profile stats** — Numbers that make it *worth it.* / Total profit, best flip, and profit by store, at a glance.
 

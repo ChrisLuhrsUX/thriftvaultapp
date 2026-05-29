@@ -307,29 +307,50 @@ const HaulCard = React.memo(function HaulCard({
           <View style={styles.haulCardPlaceholder}>
             <AppIcon name="images-outline" size={32} color={theme.colors.mauve} />
           </View>
-        ) : count === 1 && thumbItems[0].img ? (
-          <Image
-            source={{ uri: thumbItems[0].img }}
-            style={styles.haulCardImg}
-            contentFit="cover"
-            cachePolicy="memory-disk"
-            recyclingKey={String(thumbItems[0].id)}
-            accessible={false}
-          />
+        ) : count === 1 ? (
+          thumbItems[0].img ? (
+            <Image
+              source={{ uri: thumbItems[0].img }}
+              style={styles.haulCardImg}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              recyclingKey={String(thumbItems[0].id)}
+              accessible={false}
+            />
+          ) : (
+            <View style={styles.haulCardPlaceholder}>
+              <AppIcon name="images-outline" size={32} color={theme.colors.mauve} />
+            </View>
+          )
         ) : (
           <View style={styles.haulCardGridOuter}>
             <View style={styles.haulCardGrid}>
-              {thumbItems.filter((item) => !!item.img).map((item) => (
-                <Image
-                  key={item.id}
-                  source={{ uri: item.img }}
-                  style={count === 2 ? styles.haulCardGridCell2 : styles.haulCardGridCell4}
-                  contentFit="cover"
-                  cachePolicy="memory-disk"
-                  recyclingKey={String(item.id)}
-                  accessible={false}
-                />
-              ))}
+              {(count === 2 ? [0, 1] : [0, 1, 2, 3]).map((slot) => {
+                const item = thumbItems[slot];
+                const cellStyle = count === 2 ? styles.haulCardGridCell2 : styles.haulCardGridCell4;
+                if (item?.img) {
+                  return (
+                    <Image
+                      key={item.id}
+                      source={{ uri: item.img }}
+                      style={cellStyle}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                      recyclingKey={String(item.id)}
+                      accessible={false}
+                    />
+                  );
+                }
+                return (
+                  <View
+                    key={`haul-thumb-empty-${slot}`}
+                    style={[cellStyle, styles.haulCardGridCellEmpty]}
+                    accessible={false}
+                  >
+                    <AppIcon name="images-outline" size={count === 2 ? 24 : 20} color={theme.colors.mauve} />
+                  </View>
+                );
+              })}
             </View>
           </View>
         )}
@@ -665,7 +686,7 @@ export default function InventoryScreen() {
     });
     if (result.canceled || !result.assets?.length) return;
     const id = await createItemFromAssets(result.assets, '', 'closet');
-    router.push({ pathname: '/detail', params: { itemId: String(id), manual: '1' } });
+    router.push({ pathname: '/detail', params: { itemId: String(id) } });
   }, [createItemFromAssets, showToast, router]);
 
   const filtersForView = view === 'closet' ? CLOSET_FILTERS : FLIP_FILTERS;
@@ -934,7 +955,7 @@ export default function InventoryScreen() {
                 title="Pieces you're keeping for yourself"
                 body="Add wardrobe favorites and we'll track what they're worth today."
                 action={{
-                  label: 'Scan with AI',
+                  label: 'Scan',
                   icon: 'arrow-forward',
                   iconPosition: 'right',
                   onPress: () => router.replace('/(tabs)/scan'),
@@ -963,7 +984,7 @@ export default function InventoryScreen() {
                 title="Your first find is one scan away"
                 body="Scan an item with AI to see its resale value instantly."
                 action={{
-                  label: 'Scan with AI',
+                  label: 'Scan',
                   icon: 'arrow-forward',
                   iconPosition: 'right',
                   onPress: () => router.replace('/(tabs)/scan'),
@@ -1033,6 +1054,7 @@ export default function InventoryScreen() {
                     {filteredHauls.length} {filteredHauls.length === 1 ? 'result' : 'results'}
                   </Text>
                 )}
+                {/* Hauls are created automatically when items share a scan date; manual New Haul entry disabled.
                 <Button
                   label="New Haul"
                   icon="images-outline"
@@ -1040,6 +1062,7 @@ export default function InventoryScreen() {
                   accessibilityLabel="Create new haul"
                   style={{ marginHorizontal: hPad, marginBottom: theme.spacing.md }}
                 />
+                */}
               </View>
             }
             ListEmptyComponent={
@@ -1048,11 +1071,6 @@ export default function InventoryScreen() {
                   icon="bag-handle-outline"
                   title="Your haul history lives here"
                   body="Log items from your last thrift run to track spending and profits by trip."
-                  action={{
-                    label: 'New Haul',
-                    icon: 'images-outline',
-                    onPress: handleNewHaul,
-                  }}
                 />
               ) : (
                 <EmptyState
@@ -1392,6 +1410,11 @@ function createStyles(theme: Theme, hPad: number, headerHPad: number, numColumns
   haulCardGridCell4: {
     width: '50%',
     height: '50%',
+  },
+  haulCardGridCellEmpty: {
+    backgroundColor: theme.colors.surfaceVariant,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   haulCardPlaceholder: {
     width: '100%',

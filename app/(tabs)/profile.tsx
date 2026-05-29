@@ -22,6 +22,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+const NOT_SET_STORE_LABEL = 'Not set';
+
 const SETTINGS_ROWS = [
   { id: 'subscription', label: 'Subscription', icon: 'card-outline' as const },
   { id: 'manage', label: 'Manage Subscription', icon: 'settings-outline' as const },
@@ -118,7 +120,7 @@ export default function ProfileScreen() {
       { profit: number; count: number; totalSpent: number }
     >();
     for (const i of soldFlips) {
-      const storeKey = i.store.trim() || 'Not set';
+      const storeKey = i.store.trim() || NOT_SET_STORE_LABEL;
       const prev = byStore.get(storeKey) ?? { profit: 0, count: 0, totalSpent: 0 };
       const paid = Number(i.paid) || 0;
       const revenue = Number(i.soldPrice ?? i.resale) || 0;
@@ -133,9 +135,21 @@ export default function ProfileScreen() {
       store,
       ...data,
     }));
-    list.sort((a, b) => b.profit - a.profit);
+    // Keep the "Not set" bucket pinned to the bottom so an unnamed store never
+    // ranks as the best store or shows up in the comparison copy.
+    list.sort((a, b) => {
+      const aNotSet = a.store === NOT_SET_STORE_LABEL;
+      const bNotSet = b.store === NOT_SET_STORE_LABEL;
+      if (aNotSet !== bNotSet) return aNotSet ? 1 : -1;
+      return b.profit - a.profit;
+    });
     return list;
   }, [inventory]);
+
+  const namedStoreStats = useMemo(
+    () => storeStats.filter((s) => s.store !== NOT_SET_STORE_LABEL),
+    [storeStats]
+  );
 
   const handleSetting = async (id: string) => {
     Haptics.selectionAsync();
@@ -223,9 +237,9 @@ export default function ProfileScreen() {
         {storeStats.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle} accessibilityRole="header">Profit by store</Text>
-            {storeStats.length >= 2 && (
+            {namedStoreStats.length >= 2 && (
               <Text style={styles.storeCopy}>
-                You make more profit from <Text style={styles.storeCopyHighlight}>{storeStats[0].store}</Text> than {storeStats[1].store} – {storeStats[0].store} has better finds.
+                You make more profit from <Text style={styles.storeCopyHighlight}>{namedStoreStats[0].store}</Text> than {namedStoreStats[1].store} – {namedStoreStats[0].store} has better finds.
               </Text>
             )}
             <ScrollView
@@ -239,12 +253,12 @@ export default function ProfileScreen() {
                   key={s.store}
                   style={styles.storeRow}
                   accessible
-                  accessibilityLabel={`${s.store}${idx === 0 ? ', best store' : ''}, ${s.count} sold, ${formatMoney(s.totalSpent)} spent, profit ${formatMoneyWithSign(s.profit)}`}
+                  accessibilityLabel={`${s.store}${idx === 0 && s.store !== NOT_SET_STORE_LABEL ? ', best store' : ''}, ${s.count} sold, ${formatMoney(s.totalSpent)} spent, profit ${formatMoneyWithSign(s.profit)}`}
                 >
                   <View style={styles.storeRowLeft}>
                     <View style={styles.storeNameRow}>
                       <Text style={styles.storeName}>{s.store}</Text>
-                      {idx === 0 && (
+                      {idx === 0 && s.store !== NOT_SET_STORE_LABEL && (
                         <View style={styles.bestBadge}>
                           <Text style={styles.bestBadgeText}>Best store</Text>
                         </View>
@@ -263,23 +277,23 @@ export default function ProfileScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle} accessibilityRole="header">Your Stats</Text>
-          <View style={styles.row} accessible accessibilityLabel={`Total Invested, ${stats.invested > 0 ? formatMoney(stats.invested) : 'none'}`}>
+          <View style={styles.row} accessible accessibilityLabel={`Total Invested, ${formatMoney(stats.invested)}`}>
             <AppIcon name="wallet-outline" size={22} color={theme.colors.mauve} />
             <Text style={styles.rowLabel}>Total Invested</Text>
-            <Text style={styles.rowValue}>{stats.invested > 0 ? formatMoney(stats.invested) : ','}</Text>
+            <Text style={styles.rowValue}>{formatMoney(stats.invested)}</Text>
           </View>
           <View style={styles.row} accessible accessibilityLabel={`Total Profit, ${stats.soldCount > 0 ? formatMoneyWithSign(stats.totalProfit) : 'none yet'}`}>
             <AppIcon name="cash-outline" size={22} color={theme.colors.profit} />
             <Text style={styles.rowLabel}>Total Profit</Text>
             <Text style={[styles.rowValue, stats.soldCount > 0 && styles.profitGreen]}>
-              {stats.soldCount > 0 ? formatMoneyWithSign(stats.totalProfit) : ','}
+              {stats.soldCount > 0 ? formatMoneyWithSign(stats.totalProfit) : 'None yet'}
             </Text>
           </View>
           <View style={styles.row} accessible accessibilityLabel={`Best Single Flip, ${stats.soldCount > 0 ? formatMoneyWithSign(stats.bestFlip) : 'none yet'}`}>
             <AppIcon name="trending-up-outline" size={22} color={theme.colors.profit} />
             <Text style={styles.rowLabel}>Best Single Flip</Text>
             <Text style={[styles.rowValue, stats.soldCount > 0 && styles.profitGreen]}>
-              {stats.soldCount > 0 ? formatMoneyWithSign(stats.bestFlip) : ','}
+              {stats.soldCount > 0 ? formatMoneyWithSign(stats.bestFlip) : 'None yet'}
             </Text>
           </View>
           <View style={styles.row} accessible accessibilityLabel={`Total Items Tracked, ${stats.totalItems}`}>

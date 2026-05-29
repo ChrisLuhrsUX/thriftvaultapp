@@ -1889,7 +1889,8 @@ export default function ScanScreen() {
     const catFromScan = result.category && result.category !== 'other' ? { cat: result.category } : {};
     const fieldUpdates = {
       name: result.name,
-      ...(newResale > 0 ? { resale: newResale } : {}),
+      ...(pendingIntent !== 'closet' && newResale > 0 ? { resale: newResale } : {}),
+      ...(pendingIntent === 'closet' ? { intent: 'closet' as const, resale: 0 } : {}),
       ...catFromScan,
     };
     updateItem(target.id, {
@@ -1922,7 +1923,7 @@ export default function ScanScreen() {
     setDuplicateCandidates([]);
     clearResultAndPhoto();
     router.push({ pathname: '/detail', params: { itemId: String(target.id), fromScan: '1' } });
-  }, [result, persistPhotos, stagedPhotos, createSnapshot, updateItem, sessionSnapshots, activeSessionSnapshotId, promptCustomDismissed, promptWrongScanDismissed, promptRedFlagDismissed, redFlagDismissed, clearResultAndPhoto, router]);
+  }, [result, persistPhotos, stagedPhotos, createSnapshot, updateItem, sessionSnapshots, activeSessionSnapshotId, promptCustomDismissed, promptWrongScanDismissed, promptRedFlagDismissed, redFlagDismissed, clearResultAndPhoto, router, pendingIntent]);
 
   const isOldOrSold = useCallback((item: Item) => {
     if (item.status === 'sold') return true;
