@@ -28,7 +28,7 @@ Bookmark these. Daily-checklist items below assume you can pull them up in <30 s
 - [ ] Anthropic console: Claude fallback usage. Sustained non-zero = Gemini reliability issue.
 - [ ] Inbox: 24h response SLA on user email.
 
-**Why daily this week:** the first crash is usually the worst (everything you didn't catch in TestFlight surfaces in hours). The first reviews shape your Search rank for weeks.
+**Why daily this week:** the first crash is usually the worst, and TestFlight was skipped for v1.0, so everything surfaces post-launch. Sentry is the load-bearing signal. The first reviews shape your Search rank for weeks.
 
 ## Phase 2, Weeks 2–4 (every 2–3 days, ~20 min)
 
@@ -67,11 +67,14 @@ Bookmark these. Daily-checklist items below assume you can pull them up in <30 s
 
 These come from `MVP.md`. Knock them out before submitting v1.0.
 
-- [ ] Apple Individual → Org conversion (emailed Apple Dev Support 2026-04-26)
-- [ ] Wire `EXPO_PUBLIC_SENTRY_DSN` (currently inert; crash reporting won't fire without it)
-- [ ] RevenueCat 9-step infra sequence (Paid Apps agreement, 3 ASC products, dashboard, `npm install react-native-purchases`, `app.json` plugin, `.env` key, `npx expo prebuild`, dev client / TestFlight)
-- [ ] `eas.json`: fill `ascAppId` + `appleTeamId` once Org is live
-- [ ] 1024×1024 PNG icon export → update `app.json` icon/splash/favicon paths
+- [x] Apple Individual → Org conversion (completed 2026-05-21)
+- [x] Wire `EXPO_PUBLIC_SENTRY_DSN` (live in `.env`; Sentry wrapped in `_layout.tsx`)
+- [x] RevenueCat 9-step infra sequence (sandbox purchase end-to-end verified 2026-05-27)
+- [x] `npx expo prebuild` + first EAS dev client build (installed on iPhone 13, 2026-05-27)
+- [ ] `eas.json`: fill `ascAppId` + `appleTeamId` with new Org team ID
+- [ ] 1024×1024 PNG icon export, update `app.json` icon/splash/favicon paths (current `thriftvault_logo_v2.png` is 834×836 with alpha + circular frame, fails App Store specs)
+- [ ] Production EAS env vars: swap `EXPO_PUBLIC_REVENUECAT_API_KEY` from `test_` to `appl_`; add `SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN` for source-map upload
+- [ ] `cli.appVersionSource` in `eas.json` (currently unset, EAS warning, required in a future release)
 
 ## Annual obligations
 

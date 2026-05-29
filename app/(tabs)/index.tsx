@@ -484,7 +484,7 @@ export default function InventoryScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { theme } = useTheme();
-  const { inventory, addItem, addItems, haulTitles } = useInventory();
+  const { inventory, addItem, haulTitles } = useInventory();
   const { showToast } = useToast();
   const { gridColumns, hPad, headerHPad, contentMaxWidth, isTablet } = useResponsive();
   const [view, setView] = useState<VaultView>('flips');
@@ -572,7 +572,7 @@ export default function InventoryScreen() {
     router.push({ pathname: '/detail', params: { itemId: String(id), manual: '1' } });
   }, [view, addItem, router]);
 
-  const createHaulItems = useCallback(async (
+  const createItemFromAssets = useCallback(async (
     assets: ImagePicker.ImagePickerAsset[],
     store: string,
     intent: 'flip' | 'closet',
@@ -580,39 +580,40 @@ export default function InventoryScreen() {
     const today = new Date().toLocaleDateString('en-US', {
       month: 'short', day: 'numeric', year: 'numeric',
     });
-    const items: Item[] = [];
+    const id = Date.now();
+    const photos: string[] = [];
     for (let i = 0; i < assets.length; i++) {
       const asset = assets[i];
-      const id = Date.now() + i;
       let imgUri = asset.uri;
       if (asset.uri.startsWith('file:') && FileSystem.documentDirectory) {
         try {
-          const dest = `${FileSystem.documentDirectory}item_${id}.jpg`;
+          const dest = `${FileSystem.documentDirectory}item_${id}_${i}.jpg`;
           await FileSystem.copyAsync({ from: asset.uri, to: dest });
           imgUri = dest;
         } catch { /* use original uri */ }
       }
-      items.push({
-        id,
-        name: `Find ${i + 1}`,
-        cat: 'tops',
-        paid: null,
-        resale: 0,
-        status: 'unlisted',
-        date: today,
-        store,
-        platform: '',
-        notes: '',
-        soldPrice: null,
-        img: imgUri,
-        photos: [imgUri],
-        intent,
-      });
+      photos.push(imgUri);
     }
-    addItems(items);
+    const newItem: Item = {
+      id,
+      name: 'New find',
+      cat: 'tops',
+      paid: null,
+      resale: 0,
+      status: 'unlisted',
+      date: today,
+      store,
+      platform: '',
+      notes: '',
+      soldPrice: null,
+      img: photos[0] ?? '',
+      photos,
+      intent,
+    };
+    addItem(newItem);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    return items.length;
-  }, [addItems]);
+    return id;
+  }, [addItem]);
 
   const STORE_PRESETS = ['Goodwill', 'Salvation Army', 'Savers', 'Plato\'s Closet'];
   const [storePickerVisible, setStorePickerVisible] = useState(false);
@@ -647,9 +648,9 @@ export default function InventoryScreen() {
           ? ''
           : selectedStore;
     setStorePickerVisible(false);
-    const n = await createHaulItems(storePickerAssets, store, 'flip');
-    showToast(`Added ${n} find${n !== 1 ? 's' : ''} to today's haul`);
-  }, [selectedStore, customStore, storePickerAssets, createHaulItems, showToast]);
+    const id = await createItemFromAssets(storePickerAssets, store, 'flip');
+    router.push({ pathname: '/detail', params: { itemId: String(id), manual: '1' } });
+  }, [selectedStore, customStore, storePickerAssets, createItemFromAssets, router]);
 
   const handleAddToCloset = useCallback(async () => {
     if (Platform.OS === 'web') {
@@ -663,9 +664,9 @@ export default function InventoryScreen() {
       orderedSelection: true,
     });
     if (result.canceled || !result.assets?.length) return;
-    const n = await createHaulItems(result.assets, '', 'closet');
-    showToast(`Added ${n} piece${n !== 1 ? 's' : ''} to your closet`);
-  }, [createHaulItems, showToast]);
+    const id = await createItemFromAssets(result.assets, '', 'closet');
+    router.push({ pathname: '/detail', params: { itemId: String(id), manual: '1' } });
+  }, [createItemFromAssets, showToast, router]);
 
   const filtersForView = view === 'closet' ? CLOSET_FILTERS : FLIP_FILTERS;
 

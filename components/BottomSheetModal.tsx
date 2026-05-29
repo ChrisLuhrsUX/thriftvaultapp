@@ -5,8 +5,10 @@ import type { Theme } from '@/theme';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     Animated,
+    KeyboardAvoidingView,
     Modal,
     PanResponder,
+    Platform,
     Pressable,
     StyleProp,
     StyleSheet,
@@ -119,6 +121,35 @@ export function BottomSheetModal({
 
   if (!shouldRender) return null;
 
+  const sheetContent = (
+    <>
+      <Pressable
+        style={styles.backdrop}
+        onPress={onDismiss}
+        accessibilityLabel={backdropLabel}
+        accessibilityRole="button"
+      />
+      <Animated.View
+        accessibilityViewIsModal
+        style={[
+          styles.sheet,
+          isDesktop
+            ? { paddingBottom: theme.spacing.xl }
+            : { paddingBottom: insets.bottom + theme.spacing.xl, transform: [{ translateY }] },
+          sheetStyle,
+        ]}
+        {...(!isDesktop ? panResponder.panHandlers : {})}
+      >
+        {!isDesktop && (
+          <View style={styles.handleArea} onStartShouldSetResponder={() => true}>
+            <View style={styles.handle} />
+          </View>
+        )}
+        {children}
+      </Animated.View>
+    </>
+  );
+
   return (
     <Modal
       visible
@@ -126,32 +157,19 @@ export function BottomSheetModal({
       animationType={isDesktop ? 'fade' : 'none'}
       onRequestClose={onDismiss}
     >
-      <View style={styles.overlay} pointerEvents="box-none">
-        <Pressable
-          style={styles.backdrop}
-          onPress={onDismiss}
-          accessibilityLabel={backdropLabel}
-          accessibilityRole="button"
-        />
-        <Animated.View
-          accessibilityViewIsModal
-          style={[
-            styles.sheet,
-            isDesktop
-              ? { paddingBottom: theme.spacing.xl }
-              : { paddingBottom: insets.bottom + theme.spacing.xl, transform: [{ translateY }] },
-            sheetStyle,
-          ]}
-          {...(!isDesktop ? panResponder.panHandlers : {})}
+      {isDesktop ? (
+        <View style={styles.overlay} pointerEvents="box-none">
+          {sheetContent}
+        </View>
+      ) : (
+        <KeyboardAvoidingView
+          style={styles.overlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          pointerEvents="box-none"
         >
-          {!isDesktop && (
-            <View style={styles.handleArea} onStartShouldSetResponder={() => true}>
-              <View style={styles.handle} />
-            </View>
-          )}
-          {children}
-        </Animated.View>
-      </View>
+          {sheetContent}
+        </KeyboardAvoidingView>
+      )}
     </Modal>
   );
 }

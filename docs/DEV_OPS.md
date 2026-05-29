@@ -83,10 +83,11 @@ The Sentry **auth token** (used for source-map upload during build, NOT the runt
 
 Without uploaded source maps, Sentry stack traces are minified gibberish. The Expo Sentry integration uploads them automatically during `eas build` if:
 
-1. `@sentry/react-native` is installed (already done).
-2. `sentry-expo` plugin is in `app.json` `plugins` (verify before first prod build).
-3. `SENTRY_AUTH_TOKEN` is set in EAS Secrets.
-4. `EXPO_PUBLIC_SENTRY_DSN` is set in EAS Secrets.
+1. `@sentry/react-native` is installed and wrapped in `_layout.tsx` (`Sentry.wrap(RootLayout)`).
+2. The Sentry Expo plugin is auto-discovered via `@sentry/react-native` (no explicit `app.json` entry needed). Confirmed active on the 2026-05-27 dev build, where source-map upload was disabled via `SENTRY_DISABLE_AUTO_UPLOAD=true` in `eas.json:development.env`.
+3. `SENTRY_AUTH_TOKEN` is set in EAS Secrets (still pending for production profile).
+4. `EXPO_PUBLIC_SENTRY_DSN` is set in EAS Secrets (still pending for production profile; live in local `.env`).
+5. `SENTRY_ORG` + `SENTRY_PROJECT` set in EAS Secrets on production profile (required for source-map upload, otherwise the build fails the way the 2026-05-27 dev build did before the disable-flag).
 
 After each build, verify in Sentry → Settings → Projects → Source Maps that the new release shows up with maps attached.
 
@@ -108,16 +109,18 @@ Run on a physical iPhone (NOT simulator) before every `eas submit`. Apple will r
 - [ ] Edit item: rename, change category, mark sold
 - [ ] Delete item: confirm flow, removed from grid
 - [ ] Hauls: create, add to, view detail
-- [ ] Paywall: opens, plan selection works, RevenueCat sandbox purchase succeeds (use a sandbox Apple ID, `appleid.apple.com` → "Sandbox" tab)
+- [ ] Paywall: opens, plan selection works, RevenueCat sandbox purchase succeeds (use a sandbox Apple ID at `appleid.apple.com` → "Sandbox" tab; end-to-end flow verified once on 2026-05-27 with `chrisluhrsdesign+sandbox@gmail.com`)
 - [ ] Restore Purchases button works
 - [ ] Profile → Privacy + Terms links open `chrisluhrsux.github.io` URLs
 - [ ] Force-quit + relaunch: vault, hauls, scan history all rehydrate
 
 ## TestFlight workflow
 
-Use TestFlight before every public submit. Costs nothing, catches what you missed.
+**Skipped for v1.0** per insufficient tester pool. Sentry crash reporting + the pre-submit smoke test below carry the load. Section kept for reference if a future release warrants beta testing.
 
-1. `eas build --profile preview --platform ios` → wait ~15 min
+Original use: TestFlight before every public submit. Costs nothing, catches what you missed.
+
+1. `eas build --profile preview --platform ios`, wait ~15 min
 2. `eas submit --profile preview --platform ios` (uploads to TestFlight, NOT public)
 3. Wait for processing (~15 min). It appears in App Store Connect → TestFlight.
 4. **Internal testing** (you, friends, family, up to 100 users, no Apple review):
@@ -148,9 +151,9 @@ git push && git push --tags
 eas build --profile production --platform ios
 # Wait ~15-20 min
 
-# 5. Run smoke test on TestFlight version of this same build first
-eas submit --profile preview --platform ios   # to TestFlight
-# Test on phone for 30+ min real usage
+# 5. Smoke test the same commit via dev client first (TestFlight skipped for v1.0)
+# eas build --profile development --platform ios   # if not already on this commit
+# Install via QR and test on phone for 30+ min real usage
 
 # 6. Submit to App Store
 eas submit --profile production --platform ios
@@ -166,32 +169,28 @@ eas submit --profile production --platform ios
 
 ## Local dev workflow
 
-**Pre-prebuild (current state):**
+**Current state (post-prebuild as of 2026-05-27):** Expo Go no longer works for this app. RevenueCat's native module (`react-native-purchases`) isn't bundled in Expo Go. Dev client is built and installed on iPhone 13.
+
 ```bash
 cd C:\Users\Chris\Downloads\ThriftVault\thriftvaultapp
-npx expo start
-# w = web preview, scan QR for Expo Go on iPhone
+npx expo start --dev-client
+# Open ThriftVault dev client on phone (NOT Expo Go), it auto-connects on same Wi-Fi
+# w = web preview still works (camera + RevenueCat stubbed on web)
 ```
 
-**Post-prebuild (after RevenueCat lands and `npx expo prebuild` runs):**
-- Expo Go **stops working permanently** for this app, it has native modules (`react-native-purchases`) that Expo Go doesn't bundle.
-- You'll need a dev client: `eas build --profile development --platform ios` once, install on phone.
-- Then: `npx expo start --dev-client` and the dev client connects.
-- The web preview still works (some features like camera/RevenueCat are stubbed on web).
+### When to rebuild the dev client
 
-### Mental model for the dev-client switch
+JS / TSX / prompt / style edits never need a rebuild, just save the file and Fast Refresh hits the phone. Re-run `eas build --profile development --platform ios` only when:
 
-Think of the dev client as "Expo Go but custom-built for your app, with RevenueCat baked in." Everything else stays the same.
+- Adding a new native dependency (`npm install something-with-native-code`)
+- Editing `app.json` `plugins` array
+- Changing the app icon (bundled natively)
 
-1. **One-time build.** Run `eas build --profile development --platform ios`. EAS compiles on Apple's cloud Macs (~15–30 min on free tier). When done, EAS prints a QR + URL.
-2. **One-time install.** Open the URL on your iPhone in Safari and tap Install. A new app icon appears on your home screen called "ThriftVault Dev" (or similar). This is your custom Expo Go. iOS → Settings → General → VPN & Device Management → trust the developer certificate the first time.
-3. **Daily loop.** From Windows: `npx expo start --dev-client`. Open the dev client app on your phone. It auto-connects over Wi-Fi (same network as your computer). Code loads, you see your app. Edit a file in VS Code → Fast Refresh updates the phone instantly. Identical day-to-day feel to Expo Go.
-4. **When to rebuild.** JS / TSX / prompt / style edits never need a rebuild, just save the file. The only times you re-run `eas build --profile development` are:
-   - Adding a new native dependency (`npm install something-with-native-code`)
-   - Editing `app.json` `plugins` array
-   - Changing the app icon (since it's bundled natively)
-   After the rebuild finishes, reinstall via the new QR. Existing data on the phone survives the reinstall.
-5. **Same physical phone, same Wi-Fi network as your Windows machine.** That's the only setup requirement past the initial install.
+After the rebuild finishes, reinstall via the new QR. Existing data on the phone survives the reinstall.
+
+### Dev client mental model
+
+Think of the dev client as "Expo Go but custom-built for your app, with RevenueCat baked in." Everything else stays the same: same physical phone, same Wi-Fi network as the Windows machine.
 
 ## Hotfix paths
 

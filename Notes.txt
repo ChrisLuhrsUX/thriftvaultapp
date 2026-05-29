@@ -1,2 +1,9 @@
+dev client
+cd "C:/Users/Chris/Downloads/ThriftVault/thriftvaultapp" && npx expo start --dev-client --port 8082
+
+not home
+npx expo start --dev-client --tunnel 
+routes through Expo's relay so the phone can be on cellular or a different network. Slower than LAN but useful if you're not home. Once the bundle's loaded, the app itself runs offline (vault data is local)
+
 github
 npm run backup

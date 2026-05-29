@@ -2132,7 +2132,7 @@ export default function ScanScreen() {
             <Text style={styles.title} accessibilityRole="header">Scan</Text>
             <Text style={styles.sub}>Find your next flip</Text>
           </View>
-          <Text style={styles.versionTag}>ThriftVault · Launching June</Text>
+          {/* <Text style={styles.versionTag}>ThriftVault · Launching June</Text> */}
         </View>
         <View style={[styles.cameraBoxWrap, result?.redFlags?.length && !redFlagDismissed ? styles.cameraBoxRedFlag : null]}>
         <View style={styles.cameraBox}>
