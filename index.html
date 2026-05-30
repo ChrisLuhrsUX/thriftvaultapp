@@ -304,8 +304,6 @@
     .screen-card:nth-child(2) { transform: rotate(0.3deg); }
     .screen-card:nth-child(3) { transform: rotate(-0.4deg); }
     .screen-card:nth-child(4) { transform: rotate(0.4deg); }
-    .screen-card:nth-child(5) { transform: rotate(-0.3deg); }
-    .screen-card:nth-child(6) { transform: rotate(0.5deg); }
     .screen-card:hover {
       transform: rotate(0deg) translateY(-4px);
       box-shadow: 0 22px 48px -22px rgba(60, 47, 47, 0.36);
@@ -702,11 +700,17 @@
       opacity: 1;
       transform: translateY(0);
     }
-    .reveal-child > * {
+    .reveal-child > *:not(.screen-card) {
       opacity: 0;
       transform: translateY(18px);
       transition: opacity 640ms cubic-bezier(0.2, 0.8, 0.3, 1.0),
                   transform 640ms cubic-bezier(0.2, 0.8, 0.3, 1.0);
+    }
+    .reveal-child > .screen-card {
+      opacity: 0;
+      transition: transform 280ms cubic-bezier(0.2, 0.8, 0.3, 1.0),
+                  box-shadow 280ms,
+                  opacity 640ms cubic-bezier(0.2, 0.8, 0.3, 1.0);
     }
     .reveal-child.in-view > *:nth-child(1) { transition-delay: 0ms; }
     .reveal-child.in-view > *:nth-child(2) { transition-delay: 90ms; }
@@ -714,14 +718,17 @@
     .reveal-child.in-view > *:nth-child(4) { transition-delay: 270ms; }
     .reveal-child.in-view > *:nth-child(5) { transition-delay: 360ms; }
     .reveal-child.in-view > *:nth-child(6) { transition-delay: 450ms; }
-    .reveal-child.in-view > * {
+    .reveal-child.in-view > *:not(.screen-card) {
       opacity: 1;
       transform: translateY(0);
+    }
+    .reveal-child.in-view > .screen-card {
+      opacity: 1;
     }
 
     @media (prefers-reduced-motion: reduce) {
       .rise { animation: none; }
-      .reveal, .reveal-child > * {
+      .reveal, .reveal-child > *:not(.screen-card), .reveal-child > .screen-card {
         opacity: 1;
         transform: none;
         transition: none;
@@ -758,8 +765,6 @@
       .screen-card:nth-child(2),
       .screen-card:nth-child(3),
       .screen-card:nth-child(4),
-      .screen-card:nth-child(5),
-      .screen-card:nth-child(6),
       .screen-pair > .screen-card:first-child,
       .screen-pair > .screen-card:last-child { transform: none; }
       .screen-card {
