@@ -374,6 +374,17 @@
       color: var(--charcoal-soft);
       margin: 0;
     }
+    .screen-pair {
+      grid-column: span 2;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .screen-pair > .screen-card:first-child { transform: rotate(0.6deg); }
+    .screen-pair > .screen-card:last-child { transform: rotate(-0.6deg); }
+    .screen-pair > .screen-card:hover {
+      transform: rotate(0deg) translateY(-4px);
+    }
 
     /* ─── Pricing ────────────────────────────────── */
     .pricing-rack {
@@ -754,9 +765,13 @@
       .screen-card:nth-child(3),
       .screen-card:nth-child(4),
       .screen-card:nth-child(5),
-      .screen-card:nth-child(6) { transform: none; }
-      .screen-card:hover { transform: translateY(-4px); }
+      .screen-card:nth-child(6),
+      .screen-pair > .screen-card:first-child,
+      .screen-pair > .screen-card:last-child { transform: none; }
+      .screen-card:hover,
+      .screen-pair > .screen-card:hover { transform: translateY(-4px); }
       .screen-frame { max-width: 360px; margin: 0 auto 20px; }
+      .screen-pair { grid-template-columns: 1fr; gap: 40px; }
       .pricing-rack { margin-top: 8px; }
       .pricing-rail { display: none; }
       .pricing-grid {
@@ -1103,42 +1118,44 @@
             <p>What you spent, what you made, what stuck.</p>
           </div>
         </article>
-        <article class="screen-card">
-          <div class="screen-frame">
-            <img
-              class="screen-shot"
-              src="assets/screenshots/05-red-flags-counterfeit.jpg"
-              alt="ThriftVault scan with a red counterfeit warning banner asking the user to confirm whether the item looks fake"
-              width="1200"
-              height="2597"
-              loading="lazy"
-              decoding="async"
-            />
-          </div>
-          <div class="screen-divider" aria-hidden="true"></div>
-          <div class="screen-caption">
-            <h3>Catch the <em>red flags</em>.</h3>
-            <p>A clear no when something's off.</p>
-          </div>
-        </article>
-        <article class="screen-card">
-          <div class="screen-frame">
-            <img
-              class="screen-shot"
-              src="assets/screenshots/06-red-flags-verify.jpg"
-              alt="ThriftVault scan with a teal verification banner suggesting the user inspect the item in person before paying"
-              width="1200"
-              height="2597"
-              loading="lazy"
-              decoding="async"
-            />
-          </div>
-          <div class="screen-divider" aria-hidden="true"></div>
-          <div class="screen-caption">
-            <h3>Worth a <em>closer look</em>.</h3>
-            <p>A heads-up on what to verify in person.</p>
-          </div>
-        </article>
+        <div class="screen-pair">
+          <article class="screen-card">
+            <div class="screen-frame">
+              <img
+                class="screen-shot"
+                src="assets/screenshots/05-red-flags-counterfeit.jpg"
+                alt="ThriftVault scan with a red counterfeit warning banner asking the user to confirm whether the item looks fake"
+                width="1200"
+                height="2597"
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+            <div class="screen-divider" aria-hidden="true"></div>
+            <div class="screen-caption">
+              <h3>Catch the <em>red flags</em>.</h3>
+              <p>A clear no when something's off.</p>
+            </div>
+          </article>
+          <article class="screen-card">
+            <div class="screen-frame">
+              <img
+                class="screen-shot"
+                src="assets/screenshots/06-red-flags-verify.jpg"
+                alt="ThriftVault scan with a teal verification banner suggesting the user inspect the item in person before paying"
+                width="1200"
+                height="2597"
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+            <div class="screen-divider" aria-hidden="true"></div>
+            <div class="screen-caption">
+              <h3>Worth a <em>closer look</em>.</h3>
+              <p>A heads-up on what to verify in person.</p>
+            </div>
+          </article>
+        </div>
       </div>
     </section>
 
