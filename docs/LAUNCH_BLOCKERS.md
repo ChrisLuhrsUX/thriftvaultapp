@@ -1,6 +1,6 @@
 # Launch Blockers
 
-Ordered punch list, dependencies respected. Tick top to bottom. Source of truth for "what's left before submit".
+Ordered punch list, dependencies respected. Tick top to bottom. Source of truth for "what's left before launch".
 
 ## Pre-prebuild (can run in parallel)
 
@@ -64,8 +64,15 @@ Prereqs: Apple Developer Org enrollment active (done 2026-05-21), iPhone 13 in h
 
 ## Submit
 
-- [ ] **`eas build --profile production --platform ios`**. Cloud build, ~15-30 min. Produces a signed `.ipa`.
-- [ ] **`eas submit --platform ios`**. Uploads the `.ipa` to App Store Connect using the `ascAppId` + `appleTeamId` from `eas.json`. Then in ASC: attach screenshots, fill metadata, click Submit for Review. Apple review ~24-48h typical.
+- [x] **`eas build --profile production --platform ios`** (2026-05-30). Build `96ea8a83-19fb-4ad9-accb-1261f3daa203`, buildNumber **7**, v1.0.0. IPA: `https://expo.dev/artifacts/eas/jCSJUq9tp9aWtHfN3huwr2.ipa`. First attempt (`be3db102`) failed: Sentry source-map upload missing `SENTRY_ORG` / `SENTRY_PROJECT` in EAS production env (only `SENTRY_AUTH_TOKEN` loaded). Fixed by adding both vars; second build succeeded.
+- [x] **`eas submit --platform ios`** (2026-05-30). Submission `30ec6d89-1051-42e7-b05f-1d9556c9b93f` succeeded. Build **#7** uploaded to App Store Connect. **Not TestFlight beta** — upload lands in ASC's build library (TestFlight tab in UI) while Apple processes; no testers added, no beta shipped. v1.0 goes straight to App Store review.
+
+  **ASC API key incident:** First two submit attempts (`8dff93fc`, `bacedb2c`) failed 401 — manually uploaded key `5R4H56CK65` stored on EAS with Team/Roles **None** (validation warning ignored). Fix: delete key on expo.dev → Credentials → iOS → App Store Connect API Key, rerun submit, **Y** to generate fresh key. New key: `T64TPFN72R` (`[Expo] EAS Submit HMJurcy62d`, App Manager). RevenueCat's separate key `5R4H56CK65` left intact in ASC.
+
+- [x] **Wait for Apple binary processing** (~5-10 min) (2026-05-30). Build **7** processed, status Ready to Submit.
+- [x] **Attach build to App Store version 1.0.0** (2026-05-30). Build **7** selected on Distribution → 1.0.0.
+- [x] **Attach 3 subscriptions** to the version (`monthly`, `three_month`, `annual`) — already in ASC.
+- [ ] **Submit for Review**. Apple review ~24-48h typical.
 
 ## Already done
 
