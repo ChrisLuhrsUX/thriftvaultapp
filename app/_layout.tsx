@@ -6,6 +6,7 @@ import { DMSans_400Regular, DMSans_600SemiBold } from '@expo-google-fonts/dm-san
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { Platform, StatusBar as RNStatusBar, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -66,6 +67,7 @@ function RootLayout() {
         <InventoryProvider>
           <ToastProvider>
           {Platform.OS !== 'web' && <RNStatusBar hidden={false} />}
+          {Platform.OS !== 'web' && <ExpoStatusBar style="dark" />}
           <View style={rootStyles.flex}>
             {Platform.OS !== 'web' && <StatusBar />}
             <Stack screenOptions={{ headerShown: false }}>

@@ -221,6 +221,15 @@ export function PaywallModal({ visible, onClose }: PaywallModalProps) {
             accessibilityLabel="Start free trial"
             style={{ marginTop: theme.spacing.xs }}
           />
+          <Pressable
+            onPress={() => { Haptics.selectionAsync(); dismiss(); }}
+            style={styles.notNowBtn}
+            accessibilityLabel="Not now"
+            accessibilityRole="button"
+            hitSlop={8}
+          >
+            <Text style={styles.notNowText}>Not now</Text>
+          </Pressable>
           <Text style={styles.fine}>
             {TRIAL_DURATION_DAYS}-day free trial · then {activePlan.price}{activePlan.period} · cancel anytime
           </Text>
@@ -437,6 +446,19 @@ function createStyles(theme: Theme, isDesktop: boolean) {
   },
   planPerMonthSelected: {
     color: theme.colors.vintageBlueDark,
+  },
+  notNowBtn: {
+    alignSelf: 'center',
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.lg,
+    marginTop: theme.spacing.xs,
+    minHeight: theme.minTouchTargetSize,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  notNowText: {
+    ...theme.typography.body,
+    color: theme.colors.mauve,
   },
   fine: {
     ...theme.typography.caption,

@@ -59,8 +59,8 @@ Prereqs: Apple Developer Org enrollment active (done 2026-05-21), iPhone 13 in h
 ## Pre-production build
 
 - [x] **Set `cli.appVersionSource` in `eas.json`** (2026-05-29). Set to `"remote"` (EAS-managed, recommended for solo dev; alternative `local` reads from `app.json`). Knocks out the EAS warning and locks in the source of truth for buildNumber.
-- [ ] **Upload `.env` keys to EAS Environment Variables (production scope)**. Local `.env` is only used for dev builds; production build pulls from the EAS server. Required keys: `EXPO_PUBLIC_GEMINI_API_KEY`, `EXPO_PUBLIC_ANTHROPIC_API_KEY`, `EXPO_PUBLIC_SENTRY_DSN`, `EXPO_PUBLIC_REVENUECAT_API_KEY`. **Critical:** swap RC key from `test_...` to production `appl_...` (per `project_rc_test_key_swap` memory) — sandbox-only key silently fails live App Store purchases.
-- [ ] **Configure Sentry source-map upload for production**. Dev builds set `SENTRY_DISABLE_AUTO_UPLOAD=true` in `eas.json:development.env` to skip upload. For production, set `SENTRY_ORG`, `SENTRY_PROJECT`, and `SENTRY_AUTH_TOKEN` (Sentry → Settings → Auth Tokens, project-scoped) as EAS Environment Variables on the production profile so JS stack traces symbolicate. Without these, native crashes still report but JS lines show as minified bytecode.
+- [x] **Upload `.env` keys to EAS Environment Variables (production scope)** (2026-05-30). All 4 keys added to EAS production scope: `EXPO_PUBLIC_GEMINI_API_KEY`, `EXPO_PUBLIC_ANTHROPIC_API_KEY`, `EXPO_PUBLIC_SENTRY_DSN`, `EXPO_PUBLIC_REVENUECAT_API_KEY`. RC key already swapped to `appl_` in local `.env` on 5/27, so direct copy (no swap needed at upload time).
+- [x] **Configure Sentry source-map upload for production** (2026-05-30). `SENTRY_ORG=chrisluhrsdesign`, `SENTRY_PROJECT=thriftvault`, `SENTRY_AUTH_TOKEN` (org-scoped, marked Sensitive) added to EAS Production env vars. `eas.json` production profile has no `SENTRY_DISABLE_AUTO_UPLOAD`, so plugin auto-uploads on build.
 
 ## Submit
 

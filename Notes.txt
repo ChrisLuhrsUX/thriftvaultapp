@@ -1,5 +1,5 @@
 dev client
-cd "C:/Users/Chris/Downloads/ThriftVault/thriftvaultapp" && npx expo start --dev-client --port 8082
+npx expo start --dev-client --port 8082
 
 not home
 npx expo start --dev-client --tunnel 

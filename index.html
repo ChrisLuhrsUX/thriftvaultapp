@@ -768,10 +768,23 @@
       .screen-card:nth-child(6),
       .screen-pair > .screen-card:first-child,
       .screen-pair > .screen-card:last-child { transform: none; }
+      .screen-card {
+        max-width: 380px;
+        margin-left: auto;
+        margin-right: auto;
+        padding: 28px 20px 22px;
+      }
       .screen-card:hover,
       .screen-pair > .screen-card:hover { transform: translateY(-4px); }
-      .screen-frame { max-width: 360px; margin: 0 auto 20px; }
-      .screen-pair { grid-template-columns: 1fr; gap: 40px; }
+      .screen-frame { max-width: 360px; margin: 0 auto 18px; }
+      .screen-pair {
+        grid-column: span 1;
+        grid-template-columns: 1fr;
+        gap: 28px;
+        max-width: 380px;
+        margin-left: auto;
+        margin-right: auto;
+      }
       .pricing-rack { margin-top: 8px; }
       .pricing-rail { display: none; }
       .pricing-grid {
@@ -799,6 +812,8 @@
       .wordmark { justify-self: center; }
       .topnav { gap: 22px; }
       .topnav a { font-size: 10px; letter-spacing: 0.18em; }
+      .screen-card { max-width: 340px; }
+      .screen-pair { max-width: 340px; }
       .screen-frame { max-width: 300px; }
       .screen-caption h3 { font-size: 18px; }
     }
@@ -813,6 +828,8 @@
       .feature-title { font-size: 18px; }
       .price-amount { font-size: 40px; }
       .topnav { gap: 18px; }
+      .screen-card { max-width: 300px; }
+      .screen-pair { max-width: 300px; }
       .screen-frame { max-width: 260px; }
       .screens-grid { gap: 36px; }
     }
