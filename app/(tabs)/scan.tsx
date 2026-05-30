@@ -373,7 +373,6 @@ function ScanResultCard({
           </Pressable>
         )}
         <View style={styles.resultPriceWrap}>
-          <Text style={styles.resultAiLabel}>AI estimate</Text>
           <Text style={styles.resultProfit}>
             {formatMoney(scenario.suggestedResale ?? 0)}
           </Text>
@@ -735,11 +734,6 @@ function createScanStyles(theme: Theme, formMaxWidth?: number) {
     },
     resultPriceWrap: {
       alignItems: 'flex-end' as const,
-    },
-    resultAiLabel: {
-      ...theme.typography.label,
-      color: theme.colors.mauve,
-      marginBottom: 2,
     },
     resultProfit: {
       ...theme.typography.h2,
