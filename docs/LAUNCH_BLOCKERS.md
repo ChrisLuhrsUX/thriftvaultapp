@@ -2,6 +2,8 @@
 
 Ordered punch list, dependencies respected. Tick top to bottom. Source of truth for "what's left before launch".
 
+**Status (2026-05-30):** All items complete. v1.0.0 build **7** submitted to App Review. Next: Apple approval email → release manually or auto per ASC version settings.
+
 ## Pre-prebuild (can run in parallel)
 
 - [x] **Paid Apps agreement** accepted (2026-05-22).
@@ -72,7 +74,7 @@ Prereqs: Apple Developer Org enrollment active (done 2026-05-21), iPhone 13 in h
 - [x] **Wait for Apple binary processing** (~5-10 min) (2026-05-30). Build **7** processed, status Ready to Submit.
 - [x] **Attach build to App Store version 1.0.0** (2026-05-30). Build **7** selected on Distribution → 1.0.0.
 - [x] **Attach 3 subscriptions** to the version (`monthly`, `three_month`, `annual`) — already in ASC.
-- [ ] **Submit for Review**. Apple review ~24-48h typical.
+- [x] **Submit for Review** (2026-05-30). Submitted to App Review. Typical turnaround ~24-48h.
 
 ## Already done
 

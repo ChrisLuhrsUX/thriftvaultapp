@@ -65,16 +65,17 @@ Bookmark these. Daily-checklist items below assume you can pull them up in <30 s
 
 ## Pre-launch infra (blocks launch, not part of maintenance)
 
-These come from `MVP.md`. Knock them out before submitting v1.0.
+All items done — v1.0 submitted to App Review 2026-05-30. Kept for audit trail.
 
 - [x] Apple Individual → Org conversion (completed 2026-05-21)
 - [x] Wire `EXPO_PUBLIC_SENTRY_DSN` (live in `.env`; Sentry wrapped in `_layout.tsx`)
 - [x] RevenueCat 9-step infra sequence (sandbox purchase end-to-end verified 2026-05-27)
 - [x] `npx expo prebuild` + first EAS dev client build (installed on iPhone 13, 2026-05-27)
-- [ ] `eas.json`: fill `ascAppId` + `appleTeamId` with new Org team ID
-- [ ] 1024×1024 PNG icon export, update `app.json` icon/splash/favicon paths (current `thriftvault_logo_v2.png` is 834×836 with alpha + circular frame, fails App Store specs)
-- [ ] Production EAS env vars: swap `EXPO_PUBLIC_REVENUECAT_API_KEY` from `test_` to `appl_`; add `SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN` for source-map upload
-- [ ] `cli.appVersionSource` in `eas.json` (currently unset, EAS warning, required in a future release)
+- [x] `eas.json`: `ascAppId: 6772308542` + `appleTeamId: UG3X275FNX` (2026-05-22)
+- [x] 1024×1024 PNG icon (`assets/logo/thriftvault_logo.png`, `app.json` paths, 2026-05-22)
+- [x] Production EAS env vars: `EXPO_PUBLIC_*` + RC `appl_` key + `SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN` (2026-05-30)
+- [x] `cli.appVersionSource: "remote"` in `eas.json` (2026-05-29)
+- [x] Production build + `eas submit` + Submit for Review (build **7**, 2026-05-30)
 
 ## Annual obligations
 
