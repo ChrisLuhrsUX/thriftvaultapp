@@ -16,7 +16,22 @@ Bookmark these. Daily-checklist items below assume you can pull them up in <30 s
 | Email | contact@thriftvaultapp.com | User support, App Review feedback |
 | GitHub | github.com/ChrisLuhrsUX/thriftvaultapp | Code, issues, GH Pages legal docs |
 
+## Phase 0, Submitted, awaiting Apple (current state 2026-05-30 onward)
+
+Build **7** (v1.0.0) is in review since 2026-05-30. Apple turnaround is usually 24–48h, occasionally up to a week. Release is set to **Manual**, so even after approval the binary stays held until you flip the switch in ASC.
+
+- [ ] **Daily:** ASC → My Apps → ThriftVault → App Store tab. Status moves Waiting for Review → In Review → Pending Developer Release (good) / Metadata Rejected / Rejected.
+- [ ] **Inbox:** contact@thriftvaultapp.com + the Apple-account email. Reviewer questions and rejection notes land there.
+- [ ] **Don't push native or config changes.** A new `eas build` + `eas submit` resets the review queue. Hotfix only if blocking; otherwise wait for the verdict then ship as 1.0.1.
+- [ ] **Do push** landing site, docs, and TikTok freely per `feedback_auto_push_website` memory. Use this window to seed pre-launch traffic.
+
+**If approved:** ASC → 1.0.0 → "Release This Version" when you're ready to coordinate with a social post. The moment you click release, **Phase 1 begins**.
+
+**If rejected:** Open Resolution Center, reply same day. v1.0 rejections usually cite screenshots, paywall presentation, or metadata, recoverable in <24h. Code-level rejection requires a new build + submit cycle.
+
 ## Phase 1, Launch day → end of week 1 (daily, 20–40 min)
+
+**Trigger:** approval email arrives → ASC → 1.0.0 → "Release This Version" (manual release). The moment you click, Phase 1 begins; run the checklist below daily for week 1.
 
 **Morning checklist (run in order):**
 

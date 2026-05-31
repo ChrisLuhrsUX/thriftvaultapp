@@ -51,7 +51,7 @@ eas build --profile production --platform ios
 eas submit --profile production --platform ios
 ```
 
-`ascAppId` and `appleTeamId` in `eas.json` need to be filled in once the Apple Developer Org account is live.
+`ascAppId` (`6772308542`) and `appleTeamId` (`UG3X275FNX`) in `eas.json` are required for `eas submit`; both set 2026-05-22.
 
 ## Secrets management
 
@@ -85,9 +85,9 @@ Without uploaded source maps, Sentry stack traces are minified gibberish. The Ex
 
 1. `@sentry/react-native` is installed and wrapped in `_layout.tsx` (`Sentry.wrap(RootLayout)`).
 2. The Sentry Expo plugin is auto-discovered via `@sentry/react-native` (no explicit `app.json` entry needed). Confirmed active on the 2026-05-27 dev build, where source-map upload was disabled via `SENTRY_DISABLE_AUTO_UPLOAD=true` in `eas.json:development.env`.
-3. `SENTRY_AUTH_TOKEN` is set in EAS Secrets (still pending for production profile).
-4. `EXPO_PUBLIC_SENTRY_DSN` is set in EAS Secrets (still pending for production profile; live in local `.env`).
-5. `SENTRY_ORG` + `SENTRY_PROJECT` set in EAS Secrets on production profile (required for source-map upload, otherwise the build fails the way the 2026-05-27 dev build did before the disable-flag).
+3. `SENTRY_AUTH_TOKEN` set in EAS Secrets on production profile (2026-05-30, org-scoped, marked Sensitive).
+4. `EXPO_PUBLIC_SENTRY_DSN` set in EAS production env vars (2026-05-30; also in local `.env`).
+5. `SENTRY_ORG=chrisluhrsdesign` + `SENTRY_PROJECT=thriftvault` set in EAS production env vars (2026-05-30). First production build (`be3db102`) failed source-map upload because these two were missing; second attempt (`96ea8a83`, build **7**) succeeded after adding them. Lesson: `SENTRY_AUTH_TOKEN` alone isn't enough; all three Sentry vars need to be on the build profile.
 
 After each build, verify in Sentry → Settings → Projects → Source Maps that the new release shows up with maps attached.
 
@@ -157,6 +157,10 @@ eas build --profile production --platform ios
 
 # 6. Submit to App Store
 eas submit --profile production --platform ios
+# If submit fails 401 ("Unable to validate"), the cached ASC API Key on EAS is invalid:
+# delete it at expo.dev → Credentials → iOS → App Store Connect API Key, then rerun
+# and answer Y when prompted — EAS will generate a fresh key with correct Team/Roles.
+# (Manually-pasted keys with Team/Roles "None" silently fail at submit time.)
 
 # 7. In App Store Connect, fill in:
 #    - "What's New in This Version" (changelog)
